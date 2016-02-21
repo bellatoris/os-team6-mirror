@@ -24,6 +24,8 @@ static const char PRELOAD_BINARIES_ADD[] = "bins_add";
 static const char PRELOAD_BINARIES_REMOVE[] = "bins_remove";
 static const char PRELOAD_CALLER[] = "caller";
 static const char PRELOAD_HANDLERS_PATH[] = "handlers_path";
+static const char PRELOAD_UI_VIEWER_PATH[] = "ui_viewer_path";
+static const char PRELOAD_UI_VIEWER_APP_INFO[] = "ui_viewer_app_info";
 static const char PRELOAD_LINKER_DATA[] = "linker";
 static const char PRELOAD_LINKER_PATH[] = "linker_path";
 static const char PRELOAD_LINKER_R_DEBUG_OFFSET[] = "r_debug_offset";
@@ -363,6 +365,128 @@ static const struct file_operations handlers_path_file_ops = {
 };
 
 
+/* ===========================================================================
+ * =                           UI VIEWER PATH                                =
+ * ===========================================================================
+ */
+
+
+static ssize_t ui_viewer_path_write(struct file *file, const char __user *buf,
+				   size_t len, loff_t *ppos)
+{
+	ssize_t ret;
+	char *path;
+
+	path = kmalloc(len, GFP_KERNEL);
+	if (path == NULL) {
+		ret = -ENOMEM;
+		goto ui_viewer_path_write_out;
+	}
+
+	if (copy_from_user(path, buf, len)) {
+		ret = -EINVAL;
+		goto ui_viewer_path_write_out;
+	}
+
+	path[len - 1] = '\0';
+
+	if (preload_storage_set_ui_viewer_info(path) != 0) {
+		printk(PRELOAD_PREFIX "Cannot set ui viewer path %s\n", path);
+		ret = -EINVAL;
+		goto ui_viewer_path_write_out;
+	}
+
+	ret = len;
+
+	printk(PRELOAD_PREFIX "Set ui viewer path %s\n", path);
+
+ui_viewer_path_write_out:
+	kfree(path);
+
+	return ret;
+}
+
+static const struct file_operations ui_viewer_path_file_ops = {
+	.owner = THIS_MODULE,
+	.write = ui_viewer_path_write,
+};
+
+
+/*
+ * format:
+ *	main:app_path
+ *
+ * sample:
+ *	0x00000d60:/bin/app_sample
+ */
+static int ui_viewer_add_app_info(const char *buf, size_t len)
+{
+	int n, ret;
+	char *app_path;
+	unsigned long main_addr;
+	const char fmt[] = "%%lx:/%%%ds";
+	char fmt_buf[64];
+
+	n = snprintf(fmt_buf, sizeof(fmt_buf), fmt, PATH_MAX - 2);
+	if (n <= 0)
+		return -EINVAL;
+
+	app_path = kmalloc(PATH_MAX, GFP_KERNEL);
+	if (app_path == NULL)
+		return -ENOMEM;
+
+	n = sscanf(buf, fmt_buf, &main_addr, app_path + 1);
+	if (n != 2) {
+		ret = -EINVAL;
+		goto free_app_path;
+	}
+	app_path[0] = '/';
+
+	printk(PRELOAD_PREFIX "Set ui viewer app path %s, main offset 0x%lx\n", app_path, main_addr);
+
+	ret = preload_ui_viewer_data_set(app_path, main_addr);
+
+free_app_path:
+	kfree(app_path);
+	return ret;
+}
+
+static ssize_t write_ui_viewer_app_info(struct file *file,
+					const char __user *user_buf,
+					size_t len, loff_t *ppos)
+{
+	ssize_t ret;
+	char *buf;
+
+	buf = kmalloc(len, GFP_KERNEL);
+	if (buf == NULL) {
+		ret = -ENOMEM;
+		goto free_buf;
+	}
+
+	if (copy_from_user(buf, user_buf, len)) {
+		ret = -EINVAL;
+		goto free_buf;
+	}
+
+	buf[len - 1] = '\0';
+
+	if (ui_viewer_add_app_info(buf, len))
+		ret = -EINVAL;
+
+	ret = len;
+
+free_buf:
+	kfree(buf);
+
+	return ret;
+}
+
+static const struct file_operations ui_viewer_app_info_file_ops = {
+	.owner = THIS_MODULE,
+	.write =	write_ui_viewer_app_info,
+};
+
 
 
 unsigned long preload_debugfs_r_debug_offset(void)
@@ -374,7 +498,8 @@ int preload_debugfs_init(void)
 {
 	struct dentry *swap_dentry, *root, *loader, *open_p, *lib_path,
 		  *bin_path, *bin_list, *bin_add, *bin_remove,
-		  *linker_dir, *linker_path, *linker_offset, *handlers_path;
+		  *linker_dir, *linker_path, *linker_offset, *handlers_path,
+		  *ui_viewer_path, *ui_viewer_app_info;
 	int ret;
 
 	ret = -ENODEV;
@@ -467,6 +592,22 @@ int preload_debugfs_init(void)
 					    PRELOAD_DEFAULT_PERMS, root, NULL,
 					    &handlers_path_file_ops);
 	if (IS_ERR_OR_NULL(handlers_path)) {
+		ret = -ENOMEM;
+		goto remove;
+	}
+
+	ui_viewer_path = debugfs_create_file(PRELOAD_UI_VIEWER_PATH,
+					    PRELOAD_DEFAULT_PERMS, root, NULL,
+					    &ui_viewer_path_file_ops);
+	if (IS_ERR_OR_NULL(ui_viewer_path)) {
+		ret = -ENOMEM;
+		goto remove;
+	}
+
+	ui_viewer_app_info = debugfs_create_file(PRELOAD_UI_VIEWER_APP_INFO,
+					    PRELOAD_DEFAULT_PERMS, root, NULL,
+					    &ui_viewer_app_info_file_ops);
+	if (IS_ERR_OR_NULL(ui_viewer_app_info)) {
 		ret = -ENOMEM;
 		goto remove;
 	}

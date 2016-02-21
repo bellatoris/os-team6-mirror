@@ -12,15 +12,16 @@
 #include <kprobe/swap_kprobes.h>
 #include <kprobe/swap_kprobes_deps.h>
 #include <us_manager/us_manager_common.h>
+#include <us_manager/pf/pf_group.h>
 #include <us_manager/sspt/sspt_page.h>
 #include <us_manager/sspt/sspt_file.h>
 #include <us_manager/sspt/sspt_proc.h>
 #include <us_manager/sspt/ip.h>
 #include <us_manager/callbacks.h>
+#include <us_manager/probes/probe_info_new.h>
 #include <writer/kernel_operations.h>
 #include <master/swap_initializer.h>
 #include <writer/swap_msg.h>
-#include <task_data/task_data.h>
 #include "preload.h"
 #include "preload_probe.h"
 #include "preload_debugfs.h"
@@ -518,6 +519,7 @@ static inline void __write_data_to_msg(char *msg, size_t len,
 enum mmap_type_t {
 	MMAP_LOADER,
 	MMAP_HANDLERS,
+	MMAP_UI_VIEWER,
 	MMAP_SKIP
 };
 
@@ -537,7 +539,7 @@ static int mmap_entry_handler(struct kretprobe_instance *ri,
 	unsigned long prot = swap_get_karg(regs, 3);
 	struct mmap_priv *priv = (struct mmap_priv *)ri->data;
 	struct dentry *dentry, *loader_dentry;
-	struct bin_info *hi;
+	struct bin_info *hi, *vi;
 
 	priv->type = MMAP_SKIP;
 	if (!check_prot(prot))
@@ -556,12 +558,23 @@ static int mmap_entry_handler(struct kretprobe_instance *ri,
 		return 0;
 	}
 
+	vi = preload_storage_get_ui_viewer_info();
+	if (vi == NULL) {
+		printk(PRELOAD_PREFIX "Cannot get ui viewer info [%u %u %s]\n",
+		       current->tgid, current->pid, current->comm);
+		goto put_hi;
+	}
+
 	loader_dentry = preload_debugfs_get_loader_dentry();
 	if (dentry == loader_dentry)
 		priv->type = MMAP_LOADER;
 	else if (hi->dentry != NULL && dentry == hi->dentry)
 		priv->type = MMAP_HANDLERS;
+	else if (vi->dentry != NULL && dentry == vi->dentry)
+		priv->type = MMAP_UI_VIEWER;
 
+	preload_storage_put_handlers_info(vi);
+put_hi:
 	preload_storage_put_handlers_info(hi);
 
 	return 0;
@@ -600,6 +613,9 @@ static int mmap_ret_handler(struct kretprobe_instance *ri,
 		break;
 	case MMAP_HANDLERS:
 		preload_pd_set_handlers_base(pd, vaddr);
+		break;
+	case MMAP_UI_VIEWER:
+		preload_pd_set_ui_viewer_base(proc->private_data, vaddr);
 		break;
 	case MMAP_SKIP:
 	default:
@@ -660,7 +676,7 @@ static int preload_us_entry(struct uretprobe_instance *ri, struct pt_regs *regs)
 		if (vaddr) {
 			/* save original regs state */
 			__save_uregs(ri, regs);
-			print_regs("ORIG", regs, ri);
+			print_regs("PROBE ORIG", regs, ri);
 
 			path = preload_pd_get_path(pd);
 
@@ -747,16 +763,14 @@ static int preload_us_ret(struct uretprobe_instance *ri, struct pt_regs *regs)
 
 			/* restore original regs state */
 			__restore_uregs(ri, regs);
-			print_regs("REST", regs, ri);
+			print_regs("PROBE REST", regs, ri);
 			/* check if preloading done */
 
 			if (preload_pd_get_handle(pd)) {
 				preload_pd_set_state(pd, LOADED);
-				preload_pd_put_path(pd);
 			} else {
 				preload_pd_dec_attempts(pd);
 				preload_pd_set_state(pd, FAILED);
-				preload_pd_put_path(pd);
 			}
 		}
 		break;
@@ -781,7 +795,6 @@ static int preload_us_ret(struct uretprobe_instance *ri, struct pt_regs *regs)
 	case FAILED:
 		if (preload_pd_get_attempts(pd)) {
 			preload_pd_set_state(pd, NOT_LOADED);
-			preload_pd_put_path(pd);
 		}
 		break;
 	case ERROR:
@@ -963,6 +976,171 @@ void preload_unset(void)
 	preload_module_set_not_ready();
 
 }
+
+
+/* ============================================================================
+ * =                               ui_viewer                                  =
+ * ============================================================================
+ */
+
+/* main handler for ui viewer */
+static int preload_ui_viewer_main_eh(struct uretprobe_instance *ri,
+			       struct pt_regs *regs);
+static int preload_ui_viewer_main_rh(struct uretprobe_instance *ri,
+			       struct pt_regs *regs);
+static struct probe_info_new pin_main = MAKE_URPROBE(preload_ui_viewer_main_eh,
+						     preload_ui_viewer_main_rh,
+						     0);
+
+struct ui_viewer_data {
+	struct dentry *app_dentry;
+	struct probe_new p_main;
+	struct pf_group *pfg;
+};
+
+static struct ui_viewer_data __ui_data;
+
+static int preload_ui_viewer_data_inst(void)
+{
+	int ret;
+	struct pf_group *pfg;
+
+	pfg = get_pf_group_by_dentry(__ui_data.app_dentry,
+				     (void *)__ui_data.app_dentry);
+	if (pfg == NULL)
+		return -ENOMEM;
+
+	ret = pin_register(&__ui_data.p_main, pfg, __ui_data.app_dentry);
+	if (ret)
+		goto put_g;
+
+	__ui_data.pfg = pfg;
+
+	return 0;
+put_g:
+	put_pf_group(pfg);
+	return ret;
+}
+
+/*
+static void preload_ui_viewer_data_uninst(void)
+{
+	struct pf_group *pfg = __ui_data.pfg;
+
+	pin_unregister(&__ui_data.p_main, pfg, __ui_data.app_dentry);
+
+	put_pf_group(pfg);
+
+	__ui_data.pfg = NULL;
+}
+*/
+
+static int preload_ui_viewer_init(struct us_ip *ip)
+{
+	return 0;
+}
+
+static void preload_ui_viewer_exit(struct us_ip *ip)
+{
+	return;
+}
+
+int preload_ui_viewer_data_set(const char *app_path, unsigned long main_addr)
+{
+	struct dentry *dentry;
+
+	dentry = dentry_by_path(app_path);
+	if (dentry == NULL)
+		return -ENOENT;
+
+	__ui_data.app_dentry = dentry;
+	__ui_data.p_main.info = &pin_main;
+	__ui_data.p_main.offset = main_addr;
+	__ui_data.pfg = NULL;
+
+	preload_ui_viewer_data_inst();
+
+	return 0;
+}
+
+/* ============================================================================
+ * =                          ui viewer handlers                              =
+ * ============================================================================
+ */
+static int preload_ui_viewer_main_eh(struct uretprobe_instance *ri,
+			      struct pt_regs *regs)
+{
+	struct process_data *pd;
+	struct us_ip *ip = container_of(ri->rp, struct us_ip, retprobe);
+	unsigned long vaddr = 0;
+	char __user *path = NULL;
+
+	preload_ui_viewer_init(ip);
+
+	pd = __get_process_data(ri->rp);
+
+	switch (preload_pd_get_ui_viewer_state(pd)) {
+	case NOT_LOADED:
+		/* jump to loader code if ready */
+		vaddr = preload_pd_get_loader_base(pd) +
+			preload_debugfs_get_loader_offset();
+		if (vaddr) {
+			/* save original regs state */
+			__save_uregs(ri, regs);
+			print_regs("UI VIEWER ORIG", regs, ri);
+
+			path = preload_pd_get_ui_viewer_path(pd);
+
+			/* set dlopen args: filename, flags */
+			swap_set_arg(regs, 0, (unsigned long)path);
+			swap_set_arg(regs, 1, 2 /* RTLD_NOW */);
+
+			/* do the jump to dlopen */
+			__prepare_ujump(ri, regs, vaddr);
+			/* set new state */
+			preload_pd_set_ui_viewer_state(pd, LOADING);
+		}
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
+
+static int preload_ui_viewer_main_rh(struct uretprobe_instance *ri, struct pt_regs *regs)
+{
+	struct process_data *pd = __get_process_data(ri->rp);
+	struct us_ip *ip = container_of(ri->rp, struct us_ip, retprobe);
+	unsigned long vaddr = 0;
+
+	switch (preload_pd_get_ui_viewer_state(pd)) {
+	case LOADING:
+		vaddr = preload_pd_get_loader_base(pd) +
+			preload_debugfs_get_loader_offset();
+		if (vaddr) {
+			preload_pd_set_handle(pd,
+				(void __user *)regs_return_value(regs));
+			/* restore original regs state */
+			__restore_uregs(ri, regs);
+			print_regs("UI VIEWER REST", regs, ri);
+
+			/* check if preloading is done */
+			if (preload_pd_get_handle(pd)) {
+				preload_pd_set_ui_viewer_state(pd, LOADED);
+			} else {
+				preload_pd_set_ui_viewer_state(pd, FAILED);
+			}
+		}
+	default:
+		break;
+	}
+
+	preload_ui_viewer_exit(ip);
+
+	return 0;
+}
+
 
 static int preload_module_init(void)
 {

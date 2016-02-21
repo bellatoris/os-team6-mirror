@@ -11,6 +11,10 @@ int preload_storage_set_handlers_info(char *path);
 struct bin_info *preload_storage_get_handlers_info(void);
 void preload_storage_put_handlers_info(struct bin_info *info);
 
+int preload_storage_set_ui_viewer_info(char *path);
+struct bin_info *preload_storage_get_ui_viewer_info(void);
+void preload_storage_put_ui_viewer_info(struct bin_info *info);
+
 int preload_storage_set_linker_info(char *path);
 struct bin_info *preload_storage_get_linker_info(void);
 void preload_storage_put_linker_info(struct bin_info *info);
