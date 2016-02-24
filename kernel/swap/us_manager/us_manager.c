@@ -200,8 +200,7 @@ static int us_filter(struct task_struct *task)
 {
 	struct sspt_proc *proc;
 
-	/* FIXME: add read lock (deadlock in sampler) */
-	proc = sspt_proc_get_by_task_no_lock(task);
+	proc = sspt_proc_get_by_task(task);
 	if (proc)
 		return sspt_proc_is_send_event(proc);
 

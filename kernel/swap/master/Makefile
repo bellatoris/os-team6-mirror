@@ -14,6 +14,4 @@ ccflags-y += -Ikernel/swap/kprobe/arch/$(link) \
 obj-$(CONFIG_SWAP_DA) := swap_master.o
 swap_master-y := master_module.o \
                  swap_debugfs.o \
-                 swap_initializer.o \
-                 swap_deps.o
-
+                 swap_initializer.o

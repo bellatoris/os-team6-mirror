@@ -28,6 +28,7 @@ struct dentry;
 struct task_struct;
 struct vm_area_struct;
 
+int usm_msg_once(void);
 
 void usm_msg_info(struct task_struct *task, struct dentry *dentry);
 void usm_msg_term(struct task_struct *task);

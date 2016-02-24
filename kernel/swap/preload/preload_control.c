@@ -1,8 +1,7 @@
 #include <linux/mm.h>
 #include <linux/slab.h>
-#include <linux/spinlock.h>
+#include <linux/mutex.h>
 #include <linux/limits.h>
-#include <linux/list.h>
 
 #include <us_manager/sspt/ip.h>
 
@@ -12,91 +11,125 @@
 #include "preload_probe.h"
 #include "preload_module.h"
 
+
+#define DEFAULT_SLOTS_COUNT 5
+#define DEFAULT_SLOTS_STEP 2
+
 struct bin_desc {
-	struct list_head list;
 	struct dentry *dentry;
 	char *filename;
 };
 
-static LIST_HEAD(target_binaries_list);
-static DEFINE_RWLOCK(target_binaries_lock);
-static int target_binaries_cnt = 0;
+static struct bin_desc *target_binaries = NULL;
+static unsigned int target_binaries_cnt = 0;
+static unsigned int target_binaries_slots = 0;
+
+static DEFINE_MUTEX(__target_binaries_mutex);
+
+
+static inline void __target_binaries_lock(void)
+{
+	mutex_lock(&__target_binaries_mutex);
+}
+
+static inline void __target_binaries_unlock(void)
+{
+	mutex_unlock(&__target_binaries_mutex);
+}
 
 static inline struct task_struct *__get_task_struct(void)
 {
 	return current;
 }
 
-static struct bin_desc *__alloc_target_binary(struct dentry *dentry,
-					      char *name, int namelen)
+static int __alloc_target_binaries_no_lock(unsigned int cnt)
 {
-	struct bin_desc *p = NULL;
+	target_binaries = kmalloc(sizeof(*target_binaries) * cnt, GFP_KERNEL);
+	if (target_binaries == NULL)
+		return -ENOMEM;
 
-	p = kzalloc(sizeof(*p), GFP_KERNEL);
-	if (!p)
-		return NULL;
+	target_binaries_slots = cnt;
 
-	INIT_LIST_HEAD(&p->list);
-	p->filename = kmalloc(namelen + 1, GFP_KERNEL);
-	if (!p->filename)
-		goto fail;
-	memcpy(p->filename, name, namelen);
-	p->filename[namelen] = '\0';
-	p->dentry = dentry;
-
-	return p;
-fail:
-	kfree(p);
-	return NULL;
+	return 0;
 }
 
-static void __free_target_binary(struct bin_desc *p)
+static int __alloc_target_binaries(unsigned int cnt)
 {
-	kfree(p->filename);
-	kfree(p);
+	int ret;
+
+	__target_binaries_lock();
+	ret = __alloc_target_binaries_no_lock(cnt);
+	__target_binaries_unlock();
+
+	return ret;
 }
 
 static void __free_target_binaries(void)
 {
-	struct bin_desc *p, *n;
-	struct list_head rm_head;
+	int i;
 
-	INIT_LIST_HEAD(&rm_head);
-	write_lock(&target_binaries_lock);
-	list_for_each_entry_safe(p, n, &target_binaries_list, list) {
-		list_move(&p->list, &rm_head);
+	__target_binaries_lock();
+
+	for (i = 0; i < target_binaries_cnt; i++) {
+		put_dentry(target_binaries[i].dentry);
+		kfree(target_binaries[i].filename);
 	}
+
+	kfree(target_binaries);
 	target_binaries_cnt = 0;
-	write_unlock(&target_binaries_lock);
+	target_binaries_slots = 0;
 
-	list_for_each_entry_safe(p, n, &rm_head, list) {
-		list_del(&p->list);
-		put_dentry(p->dentry);
-		__free_target_binary(p);
+	__target_binaries_unlock();
+}
+
+static int __grow_target_binaries(void)
+{
+	struct bin_desc *tmp = target_binaries;
+	int i, ret;
+
+	__target_binaries_lock();
+
+	ret = __alloc_target_binaries_no_lock(target_binaries_slots + DEFAULT_SLOTS_STEP);
+	if (ret != 0)
+		return ret;
+
+	target_binaries_slots += DEFAULT_SLOTS_STEP;
+
+	for (i = 0; i < target_binaries_cnt; i++) {
+		target_binaries[i].dentry = tmp[i].dentry;
+		target_binaries[i].filename = tmp[i].filename;
 	}
+
+	__target_binaries_unlock();
+
+	kfree(tmp);
+
+	return 0;
 }
 
 static bool __check_dentry_already_exist(struct dentry *dentry)
 {
-	struct bin_desc *p;
+	int i;
 	bool ret = false;
 
-	read_lock(&target_binaries_lock);
-	list_for_each_entry(p, &target_binaries_list, list) {
-		if (p->dentry == dentry) {
+	__target_binaries_lock();
+
+	for (i = 0; i < target_binaries_cnt; i++) {
+		if (target_binaries[i].dentry == dentry) {
 			ret = true;
-			goto out;
+			goto check_dentry_unlock;
 		}
 	}
-out:
-	read_unlock(&target_binaries_lock);
+
+check_dentry_unlock:
+	__target_binaries_unlock();
 
 	return ret;
 }
 
 static int __add_target_binary(struct dentry *dentry, char *filename)
 {
-	struct bin_desc *p;
+	int ret;
 	size_t len;
 
 	if (__check_dentry_already_exist(dentry)) {
@@ -104,21 +137,33 @@ static int __add_target_binary(struct dentry *dentry, char *filename)
 		return EALREADY;
 	}
 
+
+	if (target_binaries_slots == target_binaries_cnt) {
+		ret = __grow_target_binaries();
+		if (ret != 0)
+			return ret;
+	}
+
 	/* Filename should be < PATH_MAX */
 	len = strnlen(filename, PATH_MAX);
 	if (len == PATH_MAX)
 		return -EINVAL;
 
-	p = __alloc_target_binary(dentry, filename, len);
-	if (!p)
-		return -ENOMEM;
+	__target_binaries_lock();
 
-	write_lock(&target_binaries_lock);
-	list_add_tail(&p->list, &target_binaries_list);
-	target_binaries_cnt++;
-	write_unlock(&target_binaries_lock);
+	target_binaries[target_binaries_cnt].dentry = dentry;
+	target_binaries[target_binaries_cnt].filename = kmalloc(len + 1, GFP_KERNEL);
+	memcpy(target_binaries[target_binaries_cnt].filename, filename, len + 1);
+	++target_binaries_cnt;
+
+	__target_binaries_unlock();
 
 	return 0;
+}
+
+static char *__get_binary_name(struct bin_desc *bin)
+{
+	return bin->filename;
 }
 
 static struct dentry *__get_caller_dentry(struct task_struct *task,
@@ -143,7 +188,13 @@ get_caller_dentry_fail:
 static bool __check_if_instrumented(struct task_struct *task,
 				    struct dentry *dentry)
 {
-	return __check_dentry_already_exist(dentry);
+	int i;
+
+	for (i = 0; i < target_binaries_cnt; i++)
+		if (target_binaries[i].dentry == dentry)
+			return true;
+
+	return false;
 }
 
 static bool __is_instrumented(void *caller)
@@ -198,35 +249,32 @@ int preload_control_add_instrumented_binary(char *filename)
 int preload_control_clean_instrumented_bins(void)
 {
 	__free_target_binaries();
-
-	return 0;
+	return __alloc_target_binaries(DEFAULT_SLOTS_COUNT);
 }
 
 unsigned int preload_control_get_bin_names(char ***filenames_p)
 {
-	unsigned int i, ret = 0;
-	struct bin_desc *p;
-	char **a = NULL;
+	int i;
+	unsigned int ret = 0;
 
-	read_lock(&target_binaries_lock);
 	if (target_binaries_cnt == 0)
-		goto out;
+		return 0;
 
-	a = kmalloc(sizeof(*a) * target_binaries_cnt, GFP_KERNEL);
-	if (!a)
-		goto out;
+	__target_binaries_lock();
 
-	i = 0;
-	list_for_each_entry(p, &target_binaries_list, list) {
-		if (i >= target_binaries_cnt)
-			break;
-		a[i++] = p->filename;
-	}
+	*filenames_p = kmalloc(sizeof(**filenames_p) * target_binaries_cnt,
+			   GFP_KERNEL);
+	if (*filenames_p == NULL)
+		goto get_binaries_names_out;
 
-	*filenames_p = a;
-	ret = i;
-out:
-	read_unlock(&target_binaries_lock);
+	for (i = 0; i < target_binaries_cnt; i++)
+		(*filenames_p)[i] = __get_binary_name(&target_binaries[i]);
+
+	ret = target_binaries_cnt;
+
+get_binaries_names_out:
+	__target_binaries_unlock();
+
 	return ret;
 }
 
@@ -237,7 +285,7 @@ void preload_control_release_bin_names(char ***filenames_p)
 
 int preload_control_init(void)
 {
-	return 0;
+	return __alloc_target_binaries(DEFAULT_SLOTS_COUNT);
 }
 
 void preload_control_exit(void)
@@ -245,3 +293,5 @@ void preload_control_exit(void)
 	__free_target_binaries();
 }
 
+#undef DEFAULT_SLOTS_STEP
+#undef DEFAULT_SLOTS_COUNT

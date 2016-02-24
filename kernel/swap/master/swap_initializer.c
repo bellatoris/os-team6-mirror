@@ -26,7 +26,6 @@
 #include <linux/types.h>
 #include <linux/spinlock.h>
 #include "swap_initializer.h"
-#include "swap_deps.h"
 
 
 enum init_level {
@@ -166,10 +165,6 @@ static int do_once(void)
 {
 	int ret;
 	struct swap_init_struct *init;
-
-	ret = chef_once();
-	if (ret)
-		return ret;
 
 	list_for_each_entry(init, &init_list, list) {
 		ret = sis_once(init);

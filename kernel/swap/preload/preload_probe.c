@@ -216,13 +216,6 @@ static void write_msg_init(struct us_ip *ip)
 	preload_module_write_msg_init(ip);
 }
 
-static int write_msg_reg(struct us_ip *ip)
-{
-	ip->uprobe.atomic_ctx = false;
-
-	return get_caller_register_probe(ip);
-}
-
 static void write_msg_uninit(struct us_ip *ip)
 {
 	preload_module_write_msg_exit(ip);
@@ -233,7 +226,7 @@ static void write_msg_uninit(struct us_ip *ip)
 static struct probe_iface write_msg_iface = {
 	.init = write_msg_init,
 	.uninit = write_msg_uninit,
-	.reg = write_msg_reg,
+	.reg = get_caller_register_probe,
 	.unreg = get_caller_unregister_probe,
 	.get_uprobe = get_caller_get_uprobe,
 	.copy = get_caller_info_copy,
@@ -257,7 +250,6 @@ int register_preload_probes(void)
 		return ret;
 
 	ret = swap_register_probe_type(SWAP_WRITE_MSG, &write_msg_iface);
-
 	return ret;
 }
 

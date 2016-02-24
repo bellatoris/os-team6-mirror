@@ -46,11 +46,6 @@ ifeq ($(CONFIG_DISPLAY_PANEL_S6E8AA0), y)
     LCD_FUNC_LIST += s6e8aa0_panel
 endif
 
-## FB_SCX30G
-ifeq ($(CONFIG_FB_SCX30G), y)
-    swap_energy-y += lcd/sprdfb_panel.o
-    LCD_FUNC_LIST += sprdfb_panel
-endif
 
 # MARU:
 ifeq ($(CONFIG_MARU_BACKLIGHT), y)

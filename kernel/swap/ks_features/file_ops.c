@@ -343,11 +343,7 @@ static int fops_fcheck(struct task_struct *task, struct file *file)
 
 static char *fops_fpath(struct file *file, char *buf, int buflen)
 {
-	char *filename;
-
-	path_get(&file->f_path);
-	filename = d_path(&file->f_path, buf, buflen);
-	path_put(&file->f_path);
+	char *filename = d_path(&file->f_path, buf, buflen);
 
 	if (IS_ERR_OR_NULL(filename)) {
 		printk(FOPS_PREFIX "d_path FAILED: %ld\n", PTR_ERR(filename));

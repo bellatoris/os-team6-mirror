@@ -13,22 +13,17 @@
 #include "preload_storage.h"
 #include "preload.h"
 
-
 struct process_data {
 	enum preload_state_t state;
-	enum preload_state_t ui_viewer_state;
 	unsigned long loader_base;
 	unsigned long handlers_base;
-	unsigned long ui_viewer_base;
 	unsigned long data_page;
-	unsigned long ui_viewer_offset;
 	void __user *handle;
 	long attempts;
 	long refcount;
 };
 
 static struct bin_info *handlers_info;
-static struct bin_info *ui_viewer_info;
 
 
 
@@ -117,38 +112,6 @@ static inline void __set_refcount(struct process_data *pd, long refcount)
 	pd->refcount = refcount;
 }
 
-static inline enum preload_state_t __get_ui_viewer_state(struct process_data *pd)
-{
-	return pd->ui_viewer_state;
-}
-
-static inline void __set_ui_viewer_state(struct process_data *pd,
-				   enum preload_state_t state)
-{
-	pd->ui_viewer_state = state;
-}
-
-static inline void __set_ui_viewer_base(struct process_data *pd,
-				        unsigned long addr)
-{
-	pd->ui_viewer_base = addr;
-}
-
-static inline unsigned long __get_ui_viewer_base(struct process_data *pd)
-{
-	return pd->ui_viewer_base;
-}
-
-static inline void __set_ui_viewer_offset(struct process_data *pd,
-					  unsigned long offset)
-{
-	pd->ui_viewer_offset = offset;
-}
-
-static inline char __user *__get_ui_viewer_path(struct process_data *pd)
-{
-	return (char *)(pd->data_page + pd->ui_viewer_offset);
-}
 
 
 
@@ -157,12 +120,6 @@ static int __pd_create_on_demand(void)
 	if (handlers_info == NULL) {
 		handlers_info = preload_storage_get_handlers_info();
 		if (handlers_info == NULL)
-			return -EINVAL;
-	}
-
-	if (ui_viewer_info == NULL) {
-		ui_viewer_info = preload_storage_get_ui_viewer_info();
-		if (ui_viewer_info == NULL)
 			return -EINVAL;
 	}
 
@@ -183,45 +140,11 @@ void preload_pd_set_state(struct process_data *pd, enum preload_state_t state)
 {
 	if (pd == NULL) {
 		printk(PRELOAD_PREFIX "%d: No process data! Current %d %s\n", __LINE__,
-		       current->tgid, current->comm);
+               current->tgid, current->comm);
 		return;
 	}
 
 	__set_state(pd, state);
-}
-
-enum preload_state_t preload_pd_get_ui_viewer_state(struct process_data *pd)
-{
-	if (pd == NULL)
-		return 0;
-
-	return __get_ui_viewer_state(pd);
-}
-
-void preload_pd_set_ui_viewer_state(struct process_data *pd,
-				    enum preload_state_t state)
-{
-	if (pd == NULL) {
-		printk(PRELOAD_PREFIX "%d: No process data! Current %d %s\n", __LINE__,
-		       current->tgid, current->comm);
-		return;
-	}
-
-	__set_ui_viewer_state(pd, state);
-}
-
-char __user *preload_pd_get_path(struct process_data *pd)
-{
-	char __user *path = __get_path(pd);
-
-	return path;
-}
-
-char __user *preload_pd_get_ui_viewer_path(struct process_data *pd)
-{
-	char __user *path = __get_ui_viewer_path(pd);
-
-	return path;
 }
 
 unsigned long preload_pd_get_loader_base(struct process_data *pd)
@@ -250,30 +173,11 @@ void preload_pd_set_handlers_base(struct process_data *pd, unsigned long vaddr)
 	__set_handlers_base(pd, vaddr);
 }
 
-unsigned long preload_pd_get_ui_viewer_base(struct process_data *pd)
-{
-	if (pd == NULL)
-		return 0;
-
-	return __get_ui_viewer_base(pd);
-}
-
-void preload_pd_set_ui_viewer_base(struct process_data *pd, unsigned long vaddr)
-{
-	if (pd == NULL) {
-		printk(PRELOAD_PREFIX "%d: No process data! Current %d %s\n", __LINE__,
-		       current->tgid, current->comm);
-		return;
-	}
-
-	__set_ui_viewer_base(pd, vaddr);
-}
-
 void preload_pd_put_path(struct process_data *pd)
 {
 	if (pd == NULL) {
 		printk(PRELOAD_PREFIX "%d: No process data! Current %d %s\n", __LINE__,
-		       current->tgid, current->comm);
+               current->tgid, current->comm);
 		return;
 	}
 
@@ -282,6 +186,15 @@ void preload_pd_put_path(struct process_data *pd)
 
 	__set_data_page(pd, 0);
 }
+
+char __user *preload_pd_get_path(struct process_data *pd)
+{
+	char __user *path = __get_path(pd);
+
+	return path;
+}
+
+
 
 void *preload_pd_get_handle(struct process_data *pd)
 {
@@ -368,15 +281,13 @@ struct process_data *preload_pd_get(struct sspt_proc *proc)
 	return (struct process_data *)proc->private_data;
 }
 
-static unsigned long make_preload_path(unsigned long *offset)
+static unsigned long make_preload_path(void)
 {
 	unsigned long page = -EINVAL;
 
-	if (handlers_info && ui_viewer_info) {
-		const char *probe_path = handlers_info->path;
-		size_t probe_len = strnlen(probe_path, PATH_MAX);
-		const char *ui_viewer_path = ui_viewer_info->path;
-		size_t ui_viewer_len = strnlen(ui_viewer_path, PATH_MAX);
+	if (handlers_info) {
+		const char *path = handlers_info->path;
+		size_t len = strnlen(path, PATH_MAX);
 
 		down_write(&current->mm->mmap_sem);
 		page = swap_do_mmap(NULL, 0, PAGE_SIZE, PROT_READ | PROT_WRITE,
@@ -389,17 +300,8 @@ static unsigned long make_preload_path(unsigned long *offset)
 			goto out;
 		}
 
-		/* set preload_libraries paths */
-		if (copy_to_user((void __user *)page, probe_path,
-				 probe_len) != 0)
-			printk(KERN_ERR PRELOAD_PREFIX
-			       "Cannot copy string to user!\n");
-
-		/* split paths with 0 value */
-		*offset = probe_len + 1;
-
-		if (copy_to_user((void __user *)(page + *offset),
-				 ui_viewer_path, ui_viewer_len) != 0)
+		/* set preload_library path */
+		if (copy_to_user((void __user *)page, path, len) != 0)
 			printk(KERN_ERR PRELOAD_PREFIX
 			       "Cannot copy string to user!\n");
 	}
@@ -446,7 +348,7 @@ static void set_already_mapp(struct process_data *pd, struct mm_struct *mm)
 static struct process_data *do_create_pd(struct task_struct *task)
 {
 	struct process_data *pd;
-	unsigned long page, offset = 0;
+	unsigned long page;
 	int ret;
 
 	ret = __pd_create_on_demand();
@@ -459,14 +361,13 @@ static struct process_data *do_create_pd(struct task_struct *task)
 		goto create_pd_exit;
 	}
 
-	page = make_preload_path(&offset);
+	page = make_preload_path();
 	if (IS_ERR_VALUE(page)) {
 		ret = (long)page;
 		goto free_pd;
 	}
 
 	__set_data_page(pd, page);
-	__set_ui_viewer_offset(pd, offset);
 	__set_attempts(pd, PRELOAD_MAX_ATTEMPTS);
 	set_already_mapp(pd, task->mm);
 
@@ -515,8 +416,4 @@ void preload_pd_uninit(void)
 	if (handlers_info)
 		preload_storage_put_handlers_info(handlers_info);
 	handlers_info = NULL;
-
-	if (ui_viewer_info)
-		preload_storage_put_ui_viewer_info(ui_viewer_info);
-	ui_viewer_info = NULL;
 }

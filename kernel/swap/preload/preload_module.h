@@ -26,7 +26,5 @@ void preload_module_write_msg_exit(struct us_ip *ip);
 struct dentry *get_dentry(const char *filepath);
 void put_dentry(struct dentry *dentry);
 
-int preload_ui_viewer_data_set(const char *app_path, unsigned long main_addr);
-
 
 #endif /* __PRELOAD_MODULE_H__ */

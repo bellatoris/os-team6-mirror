@@ -187,37 +187,22 @@ int arch_prepare_uretprobe(struct uretprobe_instance *ri, struct pt_regs *regs)
 {
 	/* Replace the return addr with trampoline addr */
 	unsigned long ra = trampoline_addr(&ri->rp->up);
-	unsigned long ret_addr;
 	ri->sp = (kprobe_opcode_t *)regs->sp;
 
-	if (get_user(ret_addr, (unsigned long *)regs->sp)) {
-		pr_err("failed to read user space func ra %lx addr=%p!\n",
-		       regs->sp, ri->rp->up.kp.addr);
+	if (!read_proc_vm_atomic(current, regs->EREG(sp), &(ri->ret_addr),
+				 sizeof(ri->ret_addr))) {
+		printk(KERN_ERR "failed to read user space func ra %lx addr=%p!\n",
+				regs->EREG(sp), ri->rp->up.kp.addr);
 		return -EINVAL;
 	}
 
-	if (put_user(ra, (unsigned long *)regs->sp)) {
-		pr_err("failed to write user space func ra %lx!\n", regs->sp);
+	if (!write_proc_vm_atomic(current, regs->EREG(sp), &ra, sizeof(ra))) {
+		printk(KERN_ERR "failed to write user space func ra %lx!\n",
+		       regs->EREG(sp));
 		return -EINVAL;
 	}
-
-	ri->ret_addr = (kprobe_opcode_t *)ret_addr;
 
 	return 0;
-}
-
-static bool get_long(struct task_struct *task,
-		     unsigned long vaddr, unsigned long *val)
-{
-	return sizeof(*val) != read_proc_vm_atomic(task, vaddr,
-						   val, sizeof(*val));
-}
-
-static bool put_long(struct task_struct *task,
-		     unsigned long vaddr, unsigned long *val)
-{
-	return sizeof(*val) != write_proc_vm_atomic(task, vaddr,
-						    val, sizeof(*val));
 }
 
 /**
@@ -231,6 +216,7 @@ static bool put_long(struct task_struct *task,
 int arch_disarm_urp_inst(struct uretprobe_instance *ri,
 			 struct task_struct *task, unsigned long tr)
 {
+	int len;
 	unsigned long ret_addr;
 	unsigned long sp = (unsigned long)ri->sp;
 	unsigned long tramp_addr;
@@ -240,14 +226,17 @@ int arch_disarm_urp_inst(struct uretprobe_instance *ri,
 	else
 		tramp_addr = tr; /* ri - invalid */
 
-	if (get_long(task, sp, &ret_addr)) {
+	len = read_proc_vm_atomic(task, sp, &ret_addr, sizeof(ret_addr));
+	if (len != sizeof(ret_addr)) {
 		printk(KERN_INFO "---> %s (%d/%d): failed to read stack from %08lx\n",
 		       task->comm, task->tgid, task->pid, sp);
 		return -EFAULT;
 	}
 
 	if (tramp_addr == ret_addr) {
-		if (put_long(task, sp, (unsigned long *)&ri->ret_addr)) {
+		len = write_proc_vm_atomic(task, sp, &ri->ret_addr,
+					   sizeof(ri->ret_addr));
+		if (len != sizeof(ri->ret_addr)) {
 			printk(KERN_INFO "---> %s (%d/%d): failed to write "
 			       "orig_ret_addr to %08lx",
 			       task->comm, task->tgid, task->pid, sp);
@@ -338,9 +327,10 @@ static void set_user_jmp_op(void *from, void *to)
 	jop.raddr = (long)(to) - ((long)(from) + 5);
 	jop.op = RELATIVEJUMP_INSTRUCTION;
 
-	if (put_user(jop.op, (char *)from) ||
-	    put_user(jop.raddr, (long *)(from + 1)))
-		pr_err("failed to write jump opcode to user space %p\n", from);
+	if (!write_proc_vm_atomic(current, (unsigned long)from, &jop,
+				  sizeof(jop)))
+		printk(KERN_WARNING
+		       "failed to write jump opcode to user space %p\n", from);
 }
 
 static void resume_execution(struct kprobe *p,
@@ -355,13 +345,19 @@ static void resume_execution(struct kprobe *p,
 	regs->EREG(flags) &= ~TF_MASK;
 
 	tos = (unsigned long *)&tos_dword;
-	if (get_user(tos_dword, (unsigned long *)regs->sp)) {
-		pr_err("failed to read from user space sp=%lx!\n", regs->sp);
+	if (!read_proc_vm_atomic(current, regs->EREG(sp), &tos_dword,
+				 sizeof(tos_dword))) {
+		printk(KERN_WARNING
+		       "failed to read dword from top of the user space stack %lx!\n",
+		       regs->sp);
 		return;
 	}
 
-	if (get_user(*(unsigned short *)insns, (unsigned short *)p->ainsn.insn)) {
-		pr_err("failed to read first 2 opcodes %p!\n", p->ainsn.insn);
+	if (!read_proc_vm_atomic(current, (unsigned long)p->ainsn.insn, insns,
+				 2 * sizeof(kprobe_opcode_t))) {
+		printk(KERN_WARNING
+		       "failed to read first 2 opcodes of instruction copy from user space %p!\n",
+		       p->ainsn.insn);
 		return;
 	}
 
@@ -385,8 +381,13 @@ static void resume_execution(struct kprobe *p,
 	case 0x9a: /* call absolute -- same as call absolute, indirect */
 		*tos = orig_eip + (*tos - copy_eip);
 
-		if (put_user(tos_dword, (unsigned long *)regs->sp)) {
-			pr_err("failed to write dword to sp=%lx\n", regs->sp);
+		if (!write_proc_vm_atomic(current,
+					  regs->EREG(sp),
+					  &tos_dword,
+					  sizeof(tos_dword))) {
+			printk(KERN_WARNING
+			       "failed to write dword to top of the user space stack %lx!\n",
+			       regs->sp);
 			return;
 		}
 
@@ -400,8 +401,12 @@ static void resume_execution(struct kprobe *p,
 			 */
 			*tos = orig_eip + (*tos - copy_eip);
 
-			if (put_user(tos_dword, (unsigned long *)regs->sp)) {
-				pr_err("failed to write dword to sp=%lx\n", regs->sp);
+			if (!write_proc_vm_atomic(current, regs->EREG(sp),
+						  &tos_dword,
+						  sizeof(tos_dword))) {
+				printk(KERN_WARNING
+				       "failed to write dword to top of the user space stack %lx!\n",
+				       regs->EREG(sp));
 				return;
 			}
 
@@ -423,8 +428,11 @@ static void resume_execution(struct kprobe *p,
 		break;
 	}
 
-	if (put_user(tos_dword, (unsigned long *)regs->sp)) {
-		pr_err("failed to write dword to sp=%lx\n", regs->sp);
+	if (!write_proc_vm_atomic(current, regs->EREG(sp), &tos_dword,
+				  sizeof(tos_dword))) {
+		printk(KERN_WARNING
+		       "failed to write dword to top of the user space stack %lx!\n",
+		       regs->EREG(sp));
 		return;
 	}
 
