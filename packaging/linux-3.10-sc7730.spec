@@ -44,12 +44,12 @@ print("Group:          TO_BE_FILLED/TO_BE_FILLED \n")
 print("Requires(post): coreutils \n")
 print("\n")
 print("%files -n linux-3.10-sc7730_"..targets.." \n")
-print("/var/tmp/kernel/mod_"..targets.." \n")
+print("/boot/kernel/mod_"..targets.." \n")
 print("/var/tmp/kernel/kernel-"..targets.."/dzImage \n")
 print("/var/tmp/kernel/kernel-"..targets.."/dzImage-recovery \n")
 print("\n")
 print("%post -n linux-3.10-sc7730_"..targets.." \n")
-print("cp -r /var/tmp/kernel/mod_"..targets.."/lib/modules/* /lib/modules/. \n")
+print("cp -r /boot/kernel/mod_"..targets.."/lib/modules/* /lib/modules/. \n")
 print("mv /var/tmp/kernel/kernel-"..targets.."/dzImage /var/tmp/kernel/. \n")
 print("mv /var/tmp/kernel/kernel-"..targets.."/dzImage-recovery /var/tmp/kernel/. \n")
 print("\n")
@@ -62,7 +62,7 @@ print("Summary:        Linux support headers for userspace development \n")
 print("Group:          TO_BE_FILLED/TO_BE_FILLED \n")
 print("\n")
 print("%files -n linux-3.10-sc7730_"..targets.."-debuginfo \n")
-print("/var/tmp/kernel/mod_"..targets.." \n")
+print("/boot/kernel/mod_"..targets.." \n")
 print("/var/tmp/kernel/kernel-"..targets.." \n")
 print("\n")
 print("%description -n linux-3.10-sc7730_"..targets.."-debuginfo \n")
@@ -166,8 +166,9 @@ for i in %{BOARDS}; do
 	target=$i
 
 	mkdir -p %{buildroot}/var/tmp/kernel/kernel-$i
+	mkdir -p %{buildroot}/boot/kernel/
 
-	mv %_builddir/mod_$target %{buildroot}/var/tmp/kernel/mod_$i
+	mv %_builddir/mod_$target %{buildroot}/boot/kernel/mod_$i
 
 	mv %_builddir/zImage.$target %{buildroot}/var/tmp/kernel/kernel-$i/zImage
 	mv %_builddir/dzImage.$target %{buildroot}/var/tmp/kernel/kernel-$i/dzImage
