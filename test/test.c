@@ -23,31 +23,26 @@ int main()
 	dfs(buf , &nr);
 	return 0;
 }
-
 void dfs(struct prinfo *buf, int *nr)
 {
         int index = 0;
         int indent_index = 0;
-        int parent_arr[*nr];
+        tree_print(buf, nr, index, indent_index);
+}
+void tree_print(struct prinfo *buf, int *nr, int index, int indent){
+        struct prinfo node = buf[index];
+        indent_print(indent);
+        info_print(node);
+        index++;
+        if(node.first_child_pid){
+                indent++;
+                tree_print(buf,nr,index,indent);
+        }else{
+                if(!node.next_sibling_pid){
+                        return;
 
-        while(1){
-                struct prinfo node = buf[index];
-                indent_print(indent_index);
-                info_print(&node);
-                if(node.first_child_pid){
-                        if(buf[index+1].next_sibling_pid)
-                                parent_arr[indent_index]=have_child;
-                        else
-                                parent_arr[indent_index]=no_child;
-                        indent_index++;
-                }else{
-                        if(!node.next_sibling_pid){
-                                if(node.pid==0)
-                                        return
-                                indent_index = indent_cal(parent_arr,indent_index);
-                        }
                 }
-                index++;
+                tree_print(buf,nr,index,indent-1);
         }
 }
 
@@ -64,13 +59,6 @@ void info_print(struct prinfo *node)
                         node->next_sibling_pid, node->uid);
 }
 
-int indent_cal(int *arr , int indent_index)
-{
-        while(!arr[indent_index])
-                if(indent_index ==0)
-                        return 0;
-                indent_index--;
-        return indent_index;
-}
 
+                                                                                      70,0-1       바닥
 
