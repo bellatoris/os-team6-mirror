@@ -391,7 +391,11 @@
 		CALL(sys_finit_module)
 /* 380 */	CALL(sys_ni_syscall)		/* reserved sys_sched_setattr */
 		CALL(sys_dfs)		/* reserved sys_sched_getattr */
+<<<<<<< HEAD
+		CALL(sys_ptree)		/* new funtion!     */
+=======
 		CALL(sys_ptree)			/* reserved sys_renameat2     */
+>>>>>>> Doogie
 		CALL(sys_seccomp)
 
 #ifndef syscalls_counted
