@@ -1,8 +1,7 @@
-#include <unistd.h>
-#include <sys/syscall.h>
+#include <stdio.h>
 #include <linux/unistd.h>
 
-#define __NR_helloworld (__NR_SYSCALL_BASE+382)
+#define __NR_helloworld 382
 
 int main()
 {
