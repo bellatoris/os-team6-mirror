@@ -1,5 +1,4 @@
-#include <unistd.h>
-#include <sys/syscall.h>
+#include <stdio.h>
 #include <linux/unistd.h>
 
 #define __NR_foo 382

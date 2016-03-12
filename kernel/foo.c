@@ -10,7 +10,6 @@ asmlinkage long sys_foo(void)
 	task = current;
 	printk("parent pid = %d\n", task->parent->pid);
 	printk("task pid = %d\n", task->pid);
-
 	printk("==========star=============\n");
 
 	return 1;
