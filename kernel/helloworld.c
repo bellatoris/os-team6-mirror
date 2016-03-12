@@ -1,8 +1,8 @@
-#include <linux/linkage.h>
-#include <linux/kernel/h>
+#include <linux/unistd.h>
+#include <linux/kernel.h>
 
 asmlinkage long sys_helloworld(void)
 {
-	printk(KERN_EMERG "HELLOWORLD\n");
-	return 1;
+	printk("[sys_helloworld] HELLO WORLD\n");
+	return 0;
 }
