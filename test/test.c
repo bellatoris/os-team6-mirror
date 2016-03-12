@@ -59,6 +59,3 @@ void info_print(struct prinfo *node)
                         node->next_sibling_pid, node->uid);
 }
 
-
-                                                                                      70,0-1       바닥
-
