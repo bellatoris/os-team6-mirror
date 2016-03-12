@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <linux/unistd.h>
-#include <linux/prinfo.h>
 #define __NR_ptree 382
 #define no_child 0
 #define have_child 1
