@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <linux/unistd.h>
-#include <linux/prinfo.h>
 #define __NR_ptree 382
 #define no_child 0
 #define have_child 1
@@ -32,7 +31,7 @@ void dfs(struct prinfo *buf, int *nr)
 void tree_print(struct prinfo *buf, int *nr, int index, int indent){
         struct prinfo node = buf[index];
         indent_print(indent);
-        info_print(node);
+        info_print(&node);
         index++;
         if(node.first_child_pid){
                 indent++;
@@ -40,9 +39,11 @@ void tree_print(struct prinfo *buf, int *nr, int index, int indent){
         }else{
                 if(!node.next_sibling_pid){
                         return;
+		tree_print(buf,nr,index,indent-1);
 
-                }
-                tree_print(buf,nr,index,indent-1);
+                }else{
+                	tree_print(buf,nr,index,indent);
+		}
         }
 }
 
