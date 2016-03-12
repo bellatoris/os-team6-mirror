@@ -39,9 +39,11 @@ void tree_print(struct prinfo *buf, int *nr, int index, int indent){
         }else{
                 if(!node.next_sibling_pid){
                         return;
+		tree_print(buf,nr,index,indent-1);
 
-                }
-                tree_print(buf,nr,index,indent-1);
+                }else{
+                	tree_print(buf,nr,index,indent);
+		}
         }
 }
 
