@@ -11,23 +11,85 @@
  */
 
 asmlinkage long sys_dfs(struct prinfo *buf, int *nr, 
-		struct task_struct *task, int *i);
+				struct task_struct *root);
+asmlinkage long sys_visit(struct prinfo *buf, int *nr
+			struct task_struct *task, int *i);
 
 asmlinkage long sys_ptree(struct prinfo *buf, int *nr)
 {
-	struct task_struct *task;
+	struct task_struct *root;
 	int i;
 	
-	task = &init_task;
-	i = 0;
+	root = &init_task;
 
 	read_lock(&tasklist_lock);
-	sys_dfs(buf, nr, task, &i);
+	i = sys_dfs(buf, nr, root);
 	read_unlock(&tasklist_lock);
 
 	return i;
 }
 
+asmlinkage long sys_dfc(struct prinfo *but, int *nr,
+			    struct task_struct *root)
+{
+	struct task_struct task;
+	int next_sibling_pid;
+	int i;
+
+	task = root;
+	i = 0;
+
+	while (true) {
+		sys_visit(buf, nr, task, &i);
+
+		if (!list_empty(&task->children)) {
+			task = list_first_entry(&task->children,
+					struct task_struct, sibling);
+		} else {
+			next_sibling_pid = list_entry(task->sibling.next,
+					struct task_struct, sibling)->pid;
+			while (next_sibling_pid == 1) {
+				task = task->real_parent;
+				next_sibling_pid = list_entry(
+					task->sibling.next, struct task_struct,
+								sibling)->pid;
+			}
+			if (task == root)
+				break;
+			task = list_entry(task->sibling.next, 
+				    struct task_struct, sibling);
+		}
+	}
+	return i;
+}
+
+asmlinkage long sys_visit(struct prinfo *buf, int *nr,
+			struct task_struct *task, int *i)
+{
+    if (*i < *nr) {
+	    buf[*i]->state = task->state;
+	    buf[*i]->pid = task->pid;
+	    buf[*i]->parent_pid = task->real_parent->pid;
+
+	    if(!list_empty(&task->children)
+		    buf[*i]->first_child_pid = list_first_entry(&task->children,
+					    struct task_struct, sibling)->pid;
+	    else
+		    buf[*i]->first_child_pid = 0;
+	
+	    buf[*i]->next_sibling_pid = list_entry(task->sibling.next,
+					struct task_struct, sibling)->pid;
+
+	    if(buf[*i]->next_sibling_pid == 1)
+		    buf[*i]->next_sibling_pid = 0;
+
+	    buf[*i]->uid = node->real_cred->uid;
+	    strncpy(buf[*i]->comm, task->comm, 64);
+    }
+    (*i)++;
+}
+
+/*
 asmlinkage long sys_dfs(struct prinfo *buf, int *nr, 
 		struct task_struct *task, int *i)
 {
@@ -68,3 +130,4 @@ asmlinkage long sys_dfs(struct prinfo *buf, int *nr,
 	}
 	return 1;
 }
+*/
