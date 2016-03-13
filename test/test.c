@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <linux/unistd.h>
 #define __NR_ptree 382
-#define no_child 0
-#define have_child 1
 
 typedef struct prinfo {
         int state;
@@ -16,7 +14,7 @@ typedef struct prinfo {
 
 int main()
 {
-	int nr = 50;			//randomly choosed
+	int nr = 80;			//randomly choosed
 	struct prinfo buf[nr]; 
 	syscall(__NR_ptree, &buf, &nr);
 	dfs(buf , &nr);
@@ -29,7 +27,10 @@ void dfs(struct prinfo *buf, int *nr)
         tree_print(buf, nr, index, indent_index);
 }
 void tree_print(struct prinfo *buf, int *nr, int index, int indent){
+	if(buf[index+1].pid == 0 && index != 0)
+		return;
         struct prinfo node = buf[index];
+	printf("line %d: ", index);
         indent_print(indent);
         info_print(&node);
         index++;
@@ -37,14 +38,11 @@ void tree_print(struct prinfo *buf, int *nr, int index, int indent){
                 indent++;
                 tree_print(buf,nr,index,indent);
         }else{
-                if(!node.next_sibling_pid){
-			if(node.pid==0)
-                        	return;
+                if(!node.next_sibling_pid)
 			tree_print(buf,nr,index,indent-1);
-
-                }else{
+                else
                 	tree_print(buf,nr,index,indent);
-		}
+		
         }
 }
 
@@ -53,6 +51,7 @@ void indent_print(int index)
         int i = 0;
         for(; i < index; i++)
                 printf("\t");
+		
 }
 void info_print(struct prinfo *node)
 {
@@ -60,4 +59,3 @@ void info_print(struct prinfo *node)
                         node->pid, node->parent_pid, node->first_child_pid,
                         node->next_sibling_pid, node->uid);
 }
-
