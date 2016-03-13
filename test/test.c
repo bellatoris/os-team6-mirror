@@ -15,8 +15,10 @@ typedef struct prinfo {
 int main()
 {
 	int nr = 80;			//randomly choosed
-	struct prinfo buf[nr]; 
-	syscall(__NR_ptree, &buf, &nr);
+	int i;
+	struct prinfo buf[nr];
+	i = syscall(__NR_ptree, &buf, &nr);
+	printf("all process number is = %d\n", i);
 	dfs(buf , &nr);
 	return 0;
 }

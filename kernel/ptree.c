@@ -18,7 +18,7 @@ asmlinkage void sys_visit(struct prinfo *buf, int *nr,
 asmlinkage long sys_ptree(struct prinfo *buf, int *nr)
 {
 	struct task_struct *root;
-	int i;
+	int i = 0;
 	
 	root = &init_task;
 
@@ -33,7 +33,6 @@ asmlinkage long sys_dfs(struct prinfo *buf, int *nr,
 				struct task_struct *root)
 {
 	struct task_struct *task;
-	int next_sibling_pid;
 	int i;
 
 	task = root;
@@ -45,19 +44,16 @@ asmlinkage long sys_dfs(struct prinfo *buf, int *nr,
 		if (!list_empty(&task->children)) {
 			task = list_first_entry(&task->children,
 					struct task_struct, sibling);
+			continue;
 		} else {
-			next_sibling_pid = list_entry(task->sibling.next,
-					struct task_struct, sibling)->pid;
-			while (next_sibling_pid == 1) {
+			while (list_is_last(&task->sibling, 
+					    &task->real_parent->children) &&
+							    task != root) {
 				task = task->real_parent;
-				next_sibling_pid = list_entry(
-					task->sibling.next, struct task_struct,
-								sibling)->pid;
 			}
 			if (task == root)
 				break;
-			task = list_entry(task->sibling.next, 
-				    struct task_struct, sibling);
+			task = list_next_entry(task, sibling);
 		}
 	}
 	return i;
@@ -71,20 +67,21 @@ asmlinkage void sys_visit(struct prinfo *buf, int *nr,
 	    buf[*i].pid = task->pid;
 	    buf[*i].parent_pid = task->real_parent->pid;
 
-	    if(!list_empty(&task->children))
+	    if (!list_empty(&task->children))
 		    buf[*i].first_child_pid = list_first_entry(&task->children,
 					    struct task_struct, sibling)->pid;
 	    else
 		    buf[*i].first_child_pid = 0;
-	
-	    buf[*i].next_sibling_pid = list_entry(task->sibling.next,
-					struct task_struct, sibling)->pid;
-
-	    if(buf[*i].next_sibling_pid == 1)
+		
+	    if (list_is_last(&task->sibling, &task->real_parent->children))
 		    buf[*i].next_sibling_pid = 0;
+	    else
+		    buf[*i].next_sibling_pid = list_next_entry(task, 
+							    sibling)->pid;
 
 	    buf[*i].uid = task->real_cred->uid;
-	    strncpy(buf[*i].comm, task->comm, 64);
+	    
+	    strcpy(buf[*i].comm, task->comm);
     }
     (*i)++;
 }
