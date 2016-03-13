@@ -12,7 +12,7 @@
 
 asmlinkage long sys_dfs(struct prinfo *buf, int *nr, 
 				struct task_struct *root);
-asmlinkage long sys_visit(struct prinfo *buf, int *nr
+asmlinkage void sys_visit(struct prinfo *buf, int *nr,
 			struct task_struct *task, int *i);
 
 asmlinkage long sys_ptree(struct prinfo *buf, int *nr)
@@ -29,10 +29,10 @@ asmlinkage long sys_ptree(struct prinfo *buf, int *nr)
 	return i;
 }
 
-asmlinkage long sys_dfc(struct prinfo *but, int *nr,
-			    struct task_struct *root)
+asmlinkage long sys_dfs(struct prinfo *buf, int *nr,
+				struct task_struct *root)
 {
-	struct task_struct task;
+	struct task_struct *task;
 	int next_sibling_pid;
 	int i;
 
@@ -63,28 +63,28 @@ asmlinkage long sys_dfc(struct prinfo *but, int *nr,
 	return i;
 }
 
-asmlinkage long sys_visit(struct prinfo *buf, int *nr,
+asmlinkage void sys_visit(struct prinfo *buf, int *nr,
 			struct task_struct *task, int *i)
 {
     if (*i < *nr) {
-	    buf[*i]->state = task->state;
-	    buf[*i]->pid = task->pid;
-	    buf[*i]->parent_pid = task->real_parent->pid;
+	    buf[*i].state = task->state;
+	    buf[*i].pid = task->pid;
+	    buf[*i].parent_pid = task->real_parent->pid;
 
-	    if(!list_empty(&task->children)
-		    buf[*i]->first_child_pid = list_first_entry(&task->children,
+	    if(!list_empty(&task->children))
+		    buf[*i].first_child_pid = list_first_entry(&task->children,
 					    struct task_struct, sibling)->pid;
 	    else
-		    buf[*i]->first_child_pid = 0;
+		    buf[*i].first_child_pid = 0;
 	
-	    buf[*i]->next_sibling_pid = list_entry(task->sibling.next,
+	    buf[*i].next_sibling_pid = list_entry(task->sibling.next,
 					struct task_struct, sibling)->pid;
 
-	    if(buf[*i]->next_sibling_pid == 1)
-		    buf[*i]->next_sibling_pid = 0;
+	    if(buf[*i].next_sibling_pid == 1)
+		    buf[*i].next_sibling_pid = 0;
 
-	    buf[*i]->uid = node->real_cred->uid;
-	    strncpy(buf[*i]->comm, task->comm, 64);
+	    buf[*i].uid = task->real_cred->uid;
+	    strncpy(buf[*i].comm, task->comm, 64);
     }
     (*i)++;
 }
