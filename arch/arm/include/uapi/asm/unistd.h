@@ -411,16 +411,12 @@
 #define __NR_sched_getattr		(__NR_SYSCALL_BASE+381)
 #define __NR_renameat2			(__NR_SYSCALL_BASE+382)
 */
-<<<<<<< HEAD
 
-#define __NR_seccomp			(__NR_SYSCALL_BASE+383)
-=======
 #define __NR_dfs			(__NR_SYSCALL_BASE+381)
 #define __NR_ptree                      (__NR_SYSCALL_BASE+382)    
 #define __NR_seccomp			(__NR_SYSCALL_BASE+383)
 
 
->>>>>>> Doogie
 /*
  * This may need to be greater than __NR_last_syscall+1 in order to
  * account for the padding in the syscall table
