@@ -26,25 +26,20 @@ void dfs(struct prinfo *buf, int *nr)
         int indent_index = 0;
         tree_print(buf, nr, index, indent_index);
 }
-void tree_print(struct prinfo *buf, int *nr, int index, int indent){
-	if(buf[index+1].pid == 0 && index != 0)
-		return;
+int tree_print(struct prinfo *buf, int *nr, int index, int indent){
         struct prinfo node = buf[index];
-	printf("line %d: ", index);
         indent_print(indent);
         info_print(&node);
         index++;
-        if(node.first_child_pid){
-                indent++;
+        if(node.first_child_pid)
+                index = tree_print(buf,nr,index,indent + 1);
+        if(node.next_sibling_pid)
                 tree_print(buf,nr,index,indent);
-        }else{
-                if(!node.next_sibling_pid)
-			tree_print(buf,nr,index,indent-1);
-                else
-                	tree_print(buf,nr,index,indent);
-		
-        }
+        return index;
+
+
 }
+
 
 void indent_print(int index)
 {
