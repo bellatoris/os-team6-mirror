@@ -389,7 +389,7 @@
 		CALL(sys_process_vm_writev)
 		CALL(sys_kcmp)
 		CALL(sys_finit_module)
-/* 380 */	CALL(sys_ni_syscall)		/* reserved sys_sched_setattr */
+/* 380 */	CALL(sys_visit)			/* reserved sys_sched_setattr */
 		CALL(sys_dfs)			/* reserved sys_sched_getattr */
 		CALL(sys_ptree)			/* reserved sys_renameat2     */
 		CALL(sys_seccomp)

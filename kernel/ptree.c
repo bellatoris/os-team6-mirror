@@ -11,23 +11,82 @@
  */
 
 asmlinkage long sys_dfs(struct prinfo *buf, int *nr, 
-		struct task_struct *task, int *i);
+				struct task_struct *root);
+asmlinkage void sys_visit(struct prinfo *buf, int *nr,
+			struct task_struct *task, int *i);
 
 asmlinkage long sys_ptree(struct prinfo *buf, int *nr)
 {
-	struct task_struct *task;
-	int i;
+	struct task_struct *root;
+	int i = 0;
 	
-	task = &init_task;
-	i = 0;
+	root = &init_task;
 
 	read_lock(&tasklist_lock);
-	sys_dfs(buf, nr, task, &i);
+	i = sys_dfs(buf, nr, root);
 	read_unlock(&tasklist_lock);
 
 	return i;
 }
 
+asmlinkage long sys_dfs(struct prinfo *buf, int *nr,
+				struct task_struct *root)
+{
+	struct task_struct *task;
+	int i;
+
+	task = root;
+	i = 0;
+
+	while (true) {
+		sys_visit(buf, nr, task, &i);
+
+		if (!list_empty(&task->children)) {
+			task = list_first_entry(&task->children,
+					struct task_struct, sibling);
+			continue;
+		} else {
+			while (list_is_last(&task->sibling, 
+					    &task->real_parent->children) &&
+							    task != root) {
+				task = task->real_parent;
+			}
+			if (task == root)
+				break;
+			task = list_next_entry(task, sibling);
+		}
+	}
+	return i;
+}
+
+asmlinkage void sys_visit(struct prinfo *buf, int *nr,
+			struct task_struct *task, int *i)
+{
+    if (*i < *nr) {
+	    buf[*i].state = task->state;
+	    buf[*i].pid = task->pid;
+	    buf[*i].parent_pid = task->real_parent->pid;
+
+	    if (!list_empty(&task->children))
+		    buf[*i].first_child_pid = list_first_entry(&task->children,
+					    struct task_struct, sibling)->pid;
+	    else
+		    buf[*i].first_child_pid = 0;
+		
+	    if (list_is_last(&task->sibling, &task->real_parent->children))
+		    buf[*i].next_sibling_pid = 0;
+	    else
+		    buf[*i].next_sibling_pid = list_next_entry(task, 
+							    sibling)->pid;
+
+	    buf[*i].uid = task->real_cred->uid;
+	    
+	    strcpy(buf[*i].comm, task->comm);
+    }
+    (*i)++;
+}
+
+/*
 asmlinkage long sys_dfs(struct prinfo *buf, int *nr, 
 		struct task_struct *task, int *i)
 {
@@ -68,3 +127,4 @@ asmlinkage long sys_dfs(struct prinfo *buf, int *nr,
 	}
 	return 1;
 }
+*/
