@@ -1,14 +1,16 @@
 #include <stdio.h>
 #include <linux/unistd.h>
+#include <linux/types.h>
 #define __NR_ptree 382
 
+
 typedef struct prinfo {
-        int state;
-        int pid;
-        int parent_pid;
-        int first_child_pid;
-        int next_sibling_pid;
-        int uid;
+        long state;
+        pid_t pid;
+        pid_t parent_pid;
+        pid_t first_child_pid;
+        pid_t next_sibling_pid;
+        long uid;
         char comm[64];
 };
 
@@ -30,7 +32,7 @@ int tree_print(struct prinfo *buf, int *nr, int index, int indent){
 	if(*nr <= index){
 		return *nr;	
 	}
-	printf("line : %d", index);
+	//printf("line : %d", index);
         struct prinfo node = buf[index];
         indent_print(indent);
         info_print(&node);
@@ -52,7 +54,7 @@ void indent_print(int index)
 }
 void info_print(struct prinfo *node)
 {
-        printf("%s, %d, %d, %d, %d, %d, %d\n", node->comm, node->state,
-                        node->pid, node->parent_pid, node->first_child_pid,
+        printf("%s, %d, %ld, %d, %d, %d, %d\n", node->comm, node->pid,
+                        node->state, node->parent_pid, node->first_child_pid,
                         node->next_sibling_pid, node->uid);
 }
