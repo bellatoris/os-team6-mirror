@@ -2,6 +2,9 @@
 #include <linux/unistd.h>
 #include <linux/prinfo.h>
 #include <linux/string.h>
+#include <linux/slab.h>
+#include <asm-generic/uaccess.h>
+
 /*
  * DFS
  * Lock
@@ -15,16 +18,23 @@ asmlinkage long sys_dfs(struct prinfo *buf, int *nr,
 asmlinkage void sys_visit(struct prinfo *buf, int *nr,
 			struct task_struct *task, int *i);
 
-asmlinkage long sys_ptree(struct prinfo *buf, int *nr)
+asmlinkage long sys_ptree(struct prinfo __user *buf, int __user *nr)
 {
 	struct task_struct *root;
+	struct prinfo *kbuf;
+	int knr;
 	int i = 0;
 	
 	root = &init_task;
+	get_user(knr, nr);
+	kbuf = kmalloc_array(knr, sizeof(struct prinfo), GFP_KERNEL);
 
 	read_lock(&tasklist_lock);
-	i = sys_dfs(buf, nr, root);
+	i = sys_dfs(kbuf, &knr, root);
 	read_unlock(&tasklist_lock);
+
+	copy_to_user(buf, kbuf, knr * sizeof(struct prinfo));
+	put_user(i, nr);
 
 	return i;
 }
