@@ -4,7 +4,7 @@
 #include <linux/string.h>
 #include <linux/slab.h>
 #include <asm-generic/uaccess.h>
-
+#include <asm-generic/errno-base.h>
 /*
  * DFS
  * Lock
@@ -25,17 +25,33 @@ asmlinkage long sys_ptree(struct prinfo __user *buf, int __user *nr)
 	int knr;
 	int i = 0;
 	
+	if (buf || nr == NULL) {
+		printk(KERN_ERR"Please check buf or nr 's address\n!");
+		return -EINVAL;
+	}
+	
 	root = &init_task;
 	get_user(knr, nr);
-	kbuf = kmalloc_array(knr, sizeof(struct prinfo), GFP_KERNEL);
+	if (knr < 1) {
+		printk(KERN_ERR"nr is below 1!\n");
+		return -EINVAL;
+	}
 
+	kbuf = kmalloc_array(knr, sizeof(struct prinfo), GFP_KERNEL);
+	if (*kbuf == NULL) {
+		printk(KERN_ERR"kmalloc fails!\n");
+		return -ENOMEM;
+	}
 	read_lock(&tasklist_lock);
 	i = sys_dfs(kbuf, &knr, root);
 	read_unlock(&tasklist_lock);
 
-	copy_to_user(buf, kbuf, knr * sizeof(struct prinfo));
+	if( copy_to_user(buf, kbuf, knr * sizeof(struct prinfo)) ) {
+		printk(KERN_ERR"Copy_to_user fails!\n");
+		return -EFAULT;
+	}
 	put_user(i, nr);
-
+	kfree(kbuf);
 	return i;
 }
 

@@ -16,8 +16,9 @@ typedef struct prinfo {
 
 int main()
 {
-	int nr = 80;			//randomly choosed
-	struct prinfo buf[nr]; 
+	int nr = 0;	
+	int nr2 = 200;		//randomly choosed
+	struct prinfo buf[nr2]; 
 	syscall(__NR_ptree, &buf, &nr);
 	dfs(buf , &nr);
 	return 0;
