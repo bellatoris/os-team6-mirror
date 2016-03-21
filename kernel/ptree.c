@@ -28,18 +28,18 @@ asmlinkage long sys_ptree(struct prinfo __user *buf, int __user *nr)
 	i = 0;
 	
 	if (buf == NULL || nr == NULL) {
-    		return -EINVAL;
+		return -EINVAL;
 	}
-	
 	if (get_user(knr, nr) < 0) {
 		return -EFAULT;
 	}
+	printk("%d\n", knr);
 	if (knr < 1) {
-		return -EINVAL;
+		return = -EINVAL;
 	}
 
 	kbuf = kmalloc_array(knr, sizeof(struct prinfo), GFP_KERNEL);
-	if (kbuf == NULL)
+	if (kbuf == NULL) {
 		return -ENOMEM;
 	}
 

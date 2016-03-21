@@ -18,13 +18,13 @@ typedef struct prinfo {
 int main()
 {
 	int nr = 0;	
-	int nr2 = 200;
+	const int nr2 = 200;
 	int np = 0;
 
 	struct prinfo buf[nr2]; 
 	np = syscall(__NR_ptree, &buf, &nr);
 	printf("%d : np\n",np);
-
+	printf("%d\n", -EINVAL);
 	if (np < 0) {
 		switch(np){
 		case -EINVAL:

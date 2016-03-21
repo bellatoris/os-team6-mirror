@@ -104,3 +104,6 @@ system_kernel.tar
 
 #dzImage
 dzImage
+
+./*.txt
+./test/Makfile
