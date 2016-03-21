@@ -10,7 +10,6 @@
  * Lock
  * buf, nr
  *
- *
  */
 
 asmlinkage long sys_dfs(struct prinfo *buf, int *nr, 
@@ -23,34 +22,36 @@ asmlinkage long sys_ptree(struct prinfo __user *buf, int __user *nr)
 	struct task_struct *root;
 	struct prinfo *kbuf;
 	int knr;
-	int i = 0;
+	int i;
+
+	root = &init_task;
+	i = 0;
 	
-	if (buf || nr == NULL) {
-		printk(KERN_ERR"Please check buf or nr 's address\n!");
-		return -EINVAL;
+	if (buf == NULL || nr == NULL) {
+    		return -EINVAL;
 	}
 	
-	root = &init_task;
-	get_user(knr, nr);
+	if (get_user(knr, nr) < 0) {
+		return -EFAULT;
+	}
 	if (knr < 1) {
-		printk(KERN_ERR"nr is below 1!\n");
 		return -EINVAL;
 	}
 
 	kbuf = kmalloc_array(knr, sizeof(struct prinfo), GFP_KERNEL);
-	if (*kbuf == NULL) {
-		printk(KERN_ERR"kmalloc fails!\n");
+	if (kbuf == NULL) {
 		return -ENOMEM;
 	}
+
 	read_lock(&tasklist_lock);
 	i = sys_dfs(kbuf, &knr, root);
 	read_unlock(&tasklist_lock);
 
-	if( copy_to_user(buf, kbuf, knr * sizeof(struct prinfo)) ) {
-		printk(KERN_ERR"Copy_to_user fails!\n");
+	if (copy_to_user(buf, kbuf, knr * sizeof(struct prinfo)) < 0) {
+		kfree(kbuf);
 		return -EFAULT;
 	}
-	put_user(i, nr);
+
 	kfree(kbuf);
 	return i;
 }
@@ -99,15 +100,14 @@ asmlinkage void sys_visit(struct prinfo *buf, int *nr,
 	    else
 		    buf[*i].first_child_pid = 0;
 		
-	    if (list_is_last(&task->sibling, &task->real_parent->children))
-		    buf[*i].next_sibling_pid = 0;
+	    if (!list_is_last(&task->sibling, &task->real_parent->children))
+		    buf[*i].next_sibling_pid = list_next_entry(task,
+	                                                    sibling)->pid;
 	    else
-		    buf[*i].next_sibling_pid = list_next_entry(task, 
-							    sibling)->pid;
+		    buf[*i].next_sibling_pid = 0;
 
 	    buf[*i].uid = task->real_cred->uid;
-	    
-	    strcpy(buf[*i].comm, task->comm);
+	    get_task_comm(buf[*i].comm, task);
     }
     (*i)++;
 }
