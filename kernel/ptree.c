@@ -35,7 +35,7 @@ asmlinkage long sys_ptree(struct prinfo __user *buf, int __user *nr)
 	}
 	printk("%d\n", knr);
 	if (knr < 1) {
-		return = -EINVAL;
+		return -EINVAL;
 	}
 
 	kbuf = kmalloc_array(knr, sizeof(struct prinfo), GFP_KERNEL);
