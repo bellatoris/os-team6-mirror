@@ -39,7 +39,7 @@ asmlinkage long sys_ptree(struct prinfo __user *buf, int __user *nr)
 	}
 
 	kbuf = kmalloc_array(knr, sizeof(struct prinfo), GFP_KERNEL);
-	if (kbuf == NULL) {
+	if (kbuf == NULL)
 		return -ENOMEM;
 	}
 
