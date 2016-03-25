@@ -16,16 +16,16 @@ typedef struct prinfo {
 
 int main()
 {
-	int nr = 200000;			//randomly choosed
+	int nr = 2000;			//randomly choosed
 	int np = 0;
 	struct prinfo buf[nr];
-	//np = syscall(__NR_ptree,buf, &nr);
+	np = syscall(__NR_ptree,buf, &nr);
 	
 	perror("ptree");
 	if(np < 0 ) {
 		return 0;
 	}
-	//dfs(buf , &nr);
+	dfs(buf , &nr);
 	printf("%d\n",np);
 	return 0;
 }
