@@ -33,7 +33,7 @@ asmlinkage long sys_ptree(struct prinfo __user *buf, int __user *nr)
 	if (get_user(knr, nr) < 0) {
 		return -EFAULT;
 	}
-	printk("%d\n", knr);
+
 	if (knr < 1) {
 		return -EINVAL;
 	}
