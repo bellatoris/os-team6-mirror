@@ -6,15 +6,15 @@
 #include <asm-generic/uaccess.h>
 #include <asm-generic/errno-base.h>
 
-asmlinkage long sys_dfs(struct prinfo *buf, int *nr,
+static int dfs(struct prinfo *buf, int *nr,
 				struct task_struct *root);
-asmlinkage void sys_visit(struct prinfo *buf, int *nr,
+static void visit(struct prinfo *buf, int *nr,
 			struct task_struct *task, int *i);
-
 /*
  * hi heelo
  */
-asmlinkage long sys_ptree(struct prinfo __user *buf, int __user *nr)
+
+asmlinkage int sys_ptree(struct prinfo __user *buf, int __user *nr)
 {
 	struct task_struct *root;
 	struct prinfo *kbuf;
@@ -22,7 +22,6 @@ asmlinkage long sys_ptree(struct prinfo __user *buf, int __user *nr)
 	int i;
 
 	root = &init_task;
-	i = 0;
 
 	if (buf == NULL || nr == NULL)
 		return -EINVAL;
@@ -34,11 +33,12 @@ asmlinkage long sys_ptree(struct prinfo __user *buf, int __user *nr)
 		return -EINVAL;
 
 	kbuf = kmalloc_array(knr, sizeof(struct prinfo), GFP_KERNEL);
+
 	if (kbuf == NULL)
 		return -ENOMEM;
 
 	read_lock(&tasklist_lock);
-	i = sys_dfs(kbuf, &knr, root);
+	i = dfs(kbuf, &knr, root);
 	read_unlock(&tasklist_lock);
 
 	if (copy_to_user(buf, kbuf, knr * sizeof(struct prinfo)) < 0) {
@@ -50,8 +50,7 @@ asmlinkage long sys_ptree(struct prinfo __user *buf, int __user *nr)
 	return i;
 }
 
-asmlinkage long sys_dfs(struct prinfo *buf, int *nr,
-				struct task_struct *root)
+static int dfs(struct prinfo *buf, int *nr, struct task_struct *root)
 {
 	struct task_struct *task;
 	int i;
@@ -60,8 +59,7 @@ asmlinkage long sys_dfs(struct prinfo *buf, int *nr,
 	i = 0;
 
 	while (true) {
-		sys_visit(buf, nr, task, &i);
-
+		visit(buf, nr, task, &i);
 		if (!list_empty(&task->children)) {
 			task = list_first_entry(&task->children,
 					struct task_struct, sibling);
@@ -80,10 +78,10 @@ asmlinkage long sys_dfs(struct prinfo *buf, int *nr,
 	return i;
 }
 
-asmlinkage void sys_visit(struct prinfo *buf, int *nr,
+static void visit(struct prinfo *buf, int *knr,
 			struct task_struct *task, int *i)
 {
-	if (*i < *nr) {
+	if (*i < *knr) {
 		buf[*i].state = task->state;
 		buf[*i].pid = task->pid;
 		buf[*i].parent_pid = task->real_parent->pid;
