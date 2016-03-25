@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <linux/unistd.h>
 #include <linux/types.h>
-#include <asm-generic/errno-base.h>
 #define __NR_ptree 382
 
 
@@ -17,31 +16,17 @@ typedef struct prinfo {
 
 int main()
 {
-	int nr = 0;	
-	const int nr2 = 200;
+	int nr = 2000;			//randomly choosed
 	int np = 0;
-
-	struct prinfo buf[nr2]; 
-	np = syscall(__NR_ptree, &buf, &nr);
-	printf("%d : np\n",np);
-	printf("%d\n", -EINVAL);
-	if (np < 0) {
-		switch(np){
-		case -EINVAL:
-			printf("EINVAL\n");
-			return 0;
-		case -EFAULT:
-			printf("EFAULT\n");
-			return 0;
-		case -ENOMEM: 
-			printf("ENOMEM\n");
-			return 0;
-		default :
-			printf("%d NO! it's default!\n", np);
-			return 0;
-		}
+	struct prinfo buf[nr];
+	np = syscall(__NR_ptree,buf, &nr);
+	
+	perror("ptree");
+	if(np < 0 ) {
+		return 0;
 	}
 	dfs(buf , &nr);
+	printf("%d\n",np);
 	return 0;
 }
 void dfs(struct prinfo *buf, int *nr)
