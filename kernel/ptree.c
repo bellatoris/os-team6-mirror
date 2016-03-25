@@ -1,3 +1,13 @@
+/*
+ * This program is a program that  searches processes
+ * by Depth First Search algorithm(DFS),
+ * obtains the infomation,
+ * saves it to temporary kernel buf,
+ * passs it to user buf,
+ * and returns the number of proesses..
+ */
+
+
 #include <linux/linkage.h>
 #include <linux/unistd.h>
 #include <linux/prinfo.h>
@@ -11,7 +21,9 @@ static int dfs(struct prinfo *buf, int *nr,
 static void visit(struct prinfo *buf, int *nr,
 			struct task_struct *task, int *i);
 /*
- * hi heelo
+ * sys_ptree obtain all processes's  "prinfo",
+ * passes it to user buf,
+ * and returns the total number of processes.
  */
 
 asmlinkage int sys_ptree(struct prinfo __user *buf, int __user *nr)
@@ -50,6 +62,11 @@ asmlinkage int sys_ptree(struct prinfo __user *buf, int __user *nr)
 	return i;
 }
 
+/*
+ * dfs searches all processes in dfs way,
+ * and returns the number of that.
+ *
+ */
 static int dfs(struct prinfo *buf, int *nr, struct task_struct *root)
 {
 	struct task_struct *task;
@@ -78,6 +95,11 @@ static int dfs(struct prinfo *buf, int *nr, struct task_struct *root)
 	return i;
 }
 
+/*
+ * visit saves a prinfo of each process to the kernel buffer.
+ *
+ *
+ */
 static void visit(struct prinfo *buf, int *knr,
 			struct task_struct *task, int *i)
 {
