@@ -86,7 +86,7 @@ reboot하면 새로운 커널을 사용할 수 있다.(프로젝트 리드미에
 				task = list_next_entry(task, sibling);
 			}
 		}
-	return i;
+		return i;
   	}
   ```
   이 함수는 ptree에서만 불리는 것이므로 static을 사용하여 외부에서 접근하지 못하게 하였고,
