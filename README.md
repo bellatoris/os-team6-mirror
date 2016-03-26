@@ -13,9 +13,9 @@ a.시스템 콜 번호 추가
 ```
 b.시스템 콜 테이블에 함수 등록
 
-arch/arm/kernel/calls.S에 우리가 추가하는 시스템 콜을 처리할 함수를 등록했다.
-이 때 더미 시스콜인 nisyscall의 번호를 ptree로 바꾸는 식으로 구현해서 시스콜의 갯수가 4의 배수가 아니면
-OS가 동작하지 않는 문제를 해결했다. 
+arch/arm/kernel/calls.S에 우리가 추가하는 시스템 콜을 처리할 함수를 등록했다.		
+이 때 더미 시스콜인 nisyscall의 번호를 ptree로 바꾸는 식으로 구현해서 시스콜의 갯수가 4의 배수가 아니면		
+OS가 동작하지 않는 문제를 해결했다. 	
 ```
 CALL(sys_ni_syscall)		
 CALL(sys_ni_syscall)		
