@@ -39,22 +39,27 @@ d.커널 빌드
 reboot하면 새로운 커널을 사용할 수 있다.(프로젝트 리드미에 다 있는데 써야될까)가
 
 3.Investigation of the process tree		 
- a
+ a. 반복적으로 test를 실행 할 때마다 test 프로세스의 pid가 1씩 증가했는데 일정 시간( 약 7초~10초)마다 pid가 2씩 증가하는 경우가 있었다. 그 이유는 전체 프로세스를 살펴 봄으로써 알 수 있었는데 Pid가 2씩 증가 할 때마다 systemd-udevd의 자식 프로세스가 생성되고 있었다.그 자식 프로세스가 pid를 먼저 차지해서 test의 pid가 2 증가하게 된것이다.
+systemd-udevd는 커널로 부터 uevent를 받아서 device에 알맞은 instruction을 수행하는 daemon process이다.왜 주기적으로 systemd-udevd의 자식이 생성되는지 알아보기 위해 udevadm monitor 커맨드를 사용해서 다음과 같은 결과를 얻었다.
+```
+monitor will print the received events for:
+UDEV - the event which udev sends out after rule processing
+KERNEL - the kernel uevent
+
+KERNEL[14085.073604] change   /devices/sec-battery.32/power_supply/battery (power_supply)
+UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (power_supply)
+....
+....
+```
+앞서 말했던 일정시간마다 udev monitor에 메시지가 나오는 것으로 보아 
+커널이 배터리를 확인하기 위한 event를 udev에게 보내면 그 때마다 udev의 child가 생성되고 있었음을
+알 수 있다.
+
+
  
  b
- 
- 타이젠에서 앱을 실행시키면 launchpad의 child로 실행시킨 앱의 프로세스 하나가 추가된다 		
- 앱을 종료하면 해당하는 프로세스가 종료된다.		
+ 타이젠에서 앱을 실행시키면 launchpad의 child로 실행시킨 앱의 프로세스 하나가 추가되고,
+ 앱을 종료하면 해당하는 프로세스가 종료된다. 이 때 앱의 pid 가 기존의 loader중 하나의 pid와 
+ 같은 것으로 보아 loader중 하나가 execev해서 loader가 되고, launchpad가 fork 후 execv해서
+ 새로운 loader를 만드는 것으로 보인다.
  				
- c_1
- 
- 타이젠 상에서 앱을 실행시키면 launchpad-process의 child인 launchpad-loader중 에서		
- 하나가 그 앱의 이름으로 바뀐다.이때 이름을 제외한 pid, uid 등의 field값들이		
- 변하지 않는 것으로 보아 새로운 앱이 생성되는 것이 아니라 loader중 하나가 바뀌는 것을 알 수 있다.		
- 그와 동시에 새로운 launchpad-loader가 생성되어 총 3개의 Loader가 유지 된다.		
- 				
- c_2
- 
-launchpad는 앱을 실행 시키는 명령을 받으면 권한이 있는지 판단해서 앱을 띄우는 역할을 한다.		
-또한 Loader,앱의 fork,exit등을 관리한다. 		
-Loader는 앱을 구성하는데필수적인 요소들을 미리 만들어서 앱의 실행 속도를 빠르게 한다.
