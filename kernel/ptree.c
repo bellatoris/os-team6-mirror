@@ -65,9 +65,8 @@ asmlinkage int sys_ptree(struct prinfo __user *buf, int __user *nr)
 /*
  * dfs searches all processes in dfs way,
  * and returns the number of that.
- *
  */
-static int dfs(struct prinfo *buf, int *nr, struct task_struct *root)
+static int dfs(struct prinfo *kbuf, int *knr, struct task_struct *root)
 {
 	struct task_struct *task;
 	int i;
@@ -76,7 +75,7 @@ static int dfs(struct prinfo *buf, int *nr, struct task_struct *root)
 	i = 0;
 
 	while (true) {
-		visit(buf, nr, task, &i);
+		visit(kbuf, knr, task, &i);
 		if (!list_empty(&task->children)) {
 			task = list_first_entry(&task->children,
 					struct task_struct, sibling);
@@ -97,32 +96,30 @@ static int dfs(struct prinfo *buf, int *nr, struct task_struct *root)
 
 /*
  * visit saves a prinfo of each process to the kernel buffer.
- *
- *
  */
-static void visit(struct prinfo *buf, int *knr,
+static void visit(struct prinfo *kbuf, int *knr,
 			struct task_struct *task, int *i)
 {
 	if (*i < *knr) {
-		buf[*i].state = task->state;
-		buf[*i].pid = task->pid;
-		buf[*i].parent_pid = task->real_parent->pid;
+		kbuf[*i].state = task->state;
+		kbuf[*i].pid = task->pid;
+		kbuf[*i].parent_pid = task->real_parent->pid;
 
 		if (!list_empty(&task->children))
-			buf[*i].first_child_pid = list_first_entry(
+			kbuf[*i].first_child_pid = list_first_entry(
 				&task->children, struct task_struct,
 							sibling)->pid;
 		else
-			buf[*i].first_child_pid = 0;
+			kbuf[*i].first_child_pid = 0;
 
 		if (!list_is_last(&task->sibling, &task->real_parent->children))
-			buf[*i].next_sibling_pid = list_next_entry(task,
+			kbuf[*i].next_sibling_pid = list_next_entry(task,
 							    sibling)->pid;
 		else
-			buf[*i].next_sibling_pid = 0;
+			kbuf[*i].next_sibling_pid = 0;
 
-		buf[*i].uid = task->real_cred->uid;
-		get_task_comm(buf[*i].comm, task);
+		kbuf[*i].uid = task->real_cred->uid;
+		get_task_comm(kbuf[*i].comm, task);
 	}
 	(*i)++;
 }
