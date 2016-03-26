@@ -40,9 +40,9 @@ reboot하면 새로운 커널을 사용할 수 있다.(프로젝트 리드미에
 
 **2.High-level design and impelementation**
 
- 프로젝트의 목표가 프로세스트 트리를 dfs로 탐색하여 user가 원하는 만큼 prinfo를 복사하여\n
- 주는것 이었기 때문에 user에게 제공되는 system call ptree함수와 프로세스 트리를 dfs로 탐색하는\n
- dfs함수 프로세스에게서 원하는 데이터를 얻어오는 visit함수를 구현하였다.\n
+ 프로젝트의 목표가 프로세스트 트리를 dfs로 탐색하여 user가 원하는 만큼 prinfo를 복사하여
+ 주는것 이었기 때문에 user에게 제공되는 system call ptree함수와 프로세스 트리를 dfs로 탐색하는
+ dfs함수 프로세스에게서 원하는 데이터를 얻어오는 visit함수를 구현하였다.
  
  -ptree함수
  ```
