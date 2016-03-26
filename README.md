@@ -2,7 +2,7 @@
 
 Project1
 
-1.How to build kernel
+**1.How to build kernel**
 
 a.시스템 콜 번호 추가
 
@@ -38,7 +38,7 @@ d.커널 빌드
 ./build.sh tizen_tm1 USR 커맨드로 커널을 빌드하고, sdb를 이용해 생성된 tar파일을 기기에 Push한 후
 reboot하면 새로운 커널을 사용할 수 있다.(프로젝트 리드미에 다 있는데 써야될까)가
 
-2.High-level design and impelementation
+**2.High-level design and impelementation**
  프로젝트의 목표가 프로세스트 트리를 dfs로 탐색하여 user가 원하는 만큼 prinfo를 복사하여
  주는것 이었기 때문에 user에게 제공되는 system call ptree함수와 프로세스 트리를 dfs로 탐색하는
  dfs함수 프로세스에게서 원하는 데이터를 얻어오는 visit함수를 구현하였다.
@@ -95,7 +95,7 @@ reboot하면 새로운 커널을 사용할 수 있다.(프로젝트 리드미에
   -visit함수
   ```
   	static void visit(struct prinfo *kbuf, int *knr,
-  				struct task_struct *task, int *i)
+  					struct task_struct *task, int *i)
   	{
   		if (*i < *knr) {
   			kbuf[*i].state = task->state;
@@ -107,7 +107,7 @@ reboot하면 새로운 커널을 사용할 수 있다.(프로젝트 리드미에
    전체 프로세스개수를 리턴해야 하므로 *i는 visit할 때마다 증가하지만, *knr과 같아지는
    순간 정보의 복사는 일어나지 않고 *i의 개수만 커지게 된다.
 
-3.Investigation of the process tree		 
+**3.Investigation of the process tree**	 
  a
  
  b
