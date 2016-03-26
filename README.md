@@ -65,6 +65,37 @@ reboot하면 새로운 커널을 사용할 수 있다.(프로젝트 리드미에
   사용하여 user에게서 값을 얻어오고 user로 값을 복사한다. 그러한 과정에서 에러가 났다면 적절한 에러값을
   리턴하도록 하였다. 또한 dfs를 하는 도중 task_struct list가 변경되는 것을 막기 위해 lock을 걸어주었다.
   
+  *에러 핸들링
+  시스템 콜에서 에러 핸들링은 발생하는 에러를  errno-base.h에서 에러에 해당하는 값을 찾아
+ -를 붙여서 리턴하는 방식으로 이루어 진다.
+```
+if (buf == NULL || nr == NULL)
+	return -EINVAL;
+```
+prinfo를 담을 but 나 최대 process수인 nr이 NULL이면 invalid argument인 -EINVAL을 리턴한다
+```
+if (knr < 1)
+	return -EINVAL;
+```
+최대 process수가 1보다 작으면 -EINVAL을 리턴한다
+```
+if (kbuf == NULL)
+		return -ENOMEM;
+```
+kmalloc에 실패했을 경우 memory가 부족하다는 의미인 -ENOMEM을 리턴한다
+
+```
+if (get_user(knr, nr) < 0)
+		return -EFAULT;
+
+if (copy_to_user(buf, kbuf, knr * sizeof(struct prinfo)) < 0) {
+		kfree(kbuf);
+		return -EFAULT;
+	}
+```
+
+user영역에서 nr 을 불러오거나, kbuf를 유저 영역으로 보내는데 실패하면 -EFAULT를 리턴한다
+  
   -dfs함수 
   ```
   	static int dfs(struct prinfo *kbuf, int *knr, struct task_struct *root)
