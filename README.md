@@ -30,8 +30,8 @@ kernel에 ptree.c라는 시스템 콜 함수를 구현하고 kernel 폴더의 Ma
 
 ```
 	obj-y =  fork.o exec_domain.o panic.o printk.o \
-	 ...
-	 smpboot.o ptree.o
+		...
+		 smpboot.o ptree.o
 ```
 d.커널 빌드
 
