@@ -138,8 +138,6 @@ UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (powe
  앱을 종료하면 해당하는 프로세스가 종료된다. 이 때 앱의 pid 가 기존의 loader중 하나의 pid와 
  같은 것으로 보아 loader중 하나가 execev해서 loader가 되고, launchpad가 fork 후 execv해서
  새로운 loader를 만드는 것으로 보인다.
- 				
- 
  타이젠에서 앱을 실행시키면 launchpad의 child로 실행시킨 앱의 프로세스 하나가 추가된다 		
  앱을 종료하면 해당하는 프로세스가 종료된다.		
  				
