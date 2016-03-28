@@ -14,7 +14,7 @@ a.System call 번호 추가
 b.System call Table에 함수 등록
 
 arch/arm/kernel/calls.S에 우리가 추가하는 System call을 처리할 함수를 등록했다.
-이 때 dummy system call인 ni syscall의 번호를 ptree로 바꾸는 식으로 구현해서 시스콜의 갯수가 4의 배수가 아니면 	
+이 때 dummy system call인 ni syscall의 번호를 ptree로 바꾸는 식으로 구현해서 system call의 갯수가 4의 배수가 아니면
 OS가 동작하지 않는 문제를 해결했다.  
 ```
 CALL(sys_ni_syscall)		
