@@ -191,7 +191,7 @@ UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (powe
  ```
  contacts Applicatoin 종료후  
   
- **Discuss** 
+ **Discuss**  
  타이젠에서 Application을 실행시키면 launchpad-process의 child process로 실행시킨 Application의 process
  하나가 추가된다. 이 때 오히려 launchpad-loader의 pid가 바뀌는 것을 확인 할 수 있었다.  
  그러나 Application의 pid가 기존의 launchpad-loader중 하나의 pid와 같고 마지막 sibling으로 추가된게 
@@ -231,4 +231,3 @@ UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (powe
  백그라운드 elm_bg_edd() 컴포먼트 elm_conformant_add()등 Application을 구성하는 필수적인 요소들을 사전에 
  만들어 놓는다. 이렇게 사전에 만들어 둔 process가 callee Application의 executable file을
  load 하고 callee Application의 main 함수를 dlsym함수를 통해 load 하여 callee Application을 빠르게 launching한다.
- `(단순히 launchpad-loader가 execv하여 callee Application을 launching하는 것이 아니다)'
