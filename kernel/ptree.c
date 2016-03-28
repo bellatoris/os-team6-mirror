@@ -37,7 +37,7 @@ asmlinkage int sys_ptree(struct prinfo __user *buf, int __user *nr)
 	if (buf == NULL || nr == NULL)
 		return -EINVAL;
 
-	if (copy_from_user(&knr, nr, sizeof(int)) < 0)
+	if (copy_from_user(&knr, nr, sizeof(int)) != 0)
 		return -EFAULT;
 
 	if (knr < 1)
@@ -52,7 +52,7 @@ asmlinkage int sys_ptree(struct prinfo __user *buf, int __user *nr)
 	i = dfs(kbuf, &knr, root);
 	read_unlock(&tasklist_lock);
 
-	if (copy_to_user(buf, kbuf, knr * sizeof(struct prinfo)) < 0) {
+	if (copy_to_user(buf, kbuf, knr * sizeof(struct prinfo)) != 0) {
 		kfree(kbuf);
 		return -EFAULT;
 	}

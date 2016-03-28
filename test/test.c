@@ -39,7 +39,6 @@ int tree_print(struct prinfo *buf, int *nr, int index, int indent){
 	if(*nr <= index){
 		return *nr;	
 	}
-	//printf("line : %d", index);
         struct prinfo node = buf[index];
         indent_print(indent);
         info_print(&node);
