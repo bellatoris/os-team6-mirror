@@ -16,16 +16,15 @@
 #include <asm-generic/uaccess.h>
 #include <asm-generic/errno-base.h>
 
-static int dfs(struct prinfo *buf, int *nr,
+static int dfs(struct prinfo *kbuf, int *knr,
 				struct task_struct *root);
-static void visit(struct prinfo *buf, int *nr,
+static void visit(struct prinfo *kbuf, int *knr,
 			struct task_struct *task, int *i);
 /*
  * sys_ptree obtain all processes's  "prinfo",
  * passes it to user buf,
  * and returns the total number of processes.
  */
-
 asmlinkage int sys_ptree(struct prinfo __user *buf, int __user *nr)
 {
 	struct task_struct *root;
