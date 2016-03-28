@@ -205,7 +205,7 @@ UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (powe
  				
  c_2  
    
-    ```
+ ```
  • App-control API
 	– API for launching application (use AUL API)
 	– homescreen uses app-control API to launch an application
