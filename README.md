@@ -2,6 +2,14 @@
 
 Project1
 
+제출할 코드는 proj1 branch에 모두 merge해 두었습니다.  
+System call의 추가와 관련해서  
+/arch/arm/include/uapi/asm/unistd.h  
+/arch/arm/kernel/calls.S  
+/kernel/ptree.c  
+/kernel/Makefile  
+을 변경하였고 test 함수는 test폴더에 Makefile과 함께 들어있습니다.
+
 **1.How to build kernel**
 
 a.System call 번호 추가
@@ -200,7 +208,7 @@ UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (powe
  Application을 종료하면 마지막 launchpad-loader의 pid가 바뀐것을 확인 할 수 있다.
  이는 우리가 Application을 종료하기 위하여 Home button을 꾹 누르고 있으면 Application을
  종료할 수 있게 도와주는 창이 뜨게 되는데, 이 창 또한 task-mgr이라는 process라 이 process를 실행
- 하기 위하여 launchpad-loader가 execv과정을 거치고 다시한번 launchpad-process가 fork/exec 과정을
+ 하기 위하여 launchpad-loader가 execv과정을 거치고 다시한번 launchpad-process가 fork/execv 과정을
  수행 했기 때문일 것이다. 그래서 종료후에 보이는 마지막 launchpad-loader는
  새로 생겨난 launchpad-loader라 pid가 변경된 것으로 보인다.
  				
@@ -228,7 +236,7 @@ UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (powe
  되는데`(앞서 본 launchpad-process가 바로 AUL daemon이다)`, AUL daemon은 사전에 fork/exec으로 
  만들어 놓은 process(launchpad-loader)를 활용하여 callee Application을 띄우게 된다.  
  **Application launching 이러한 과정을 거치는 이유는 launching을 빠르게 위함이다.**  
- fork/exec자체가 상당한 시간을 소요하기 때문에 launchpad-loader를 사전에 만들어 놓고, 윈도우 elm_win_add(),
+ fork/execv자체가 상당한 시간을 소요하기 때문에 launchpad-loader를 사전에 만들어 놓고, 윈도우 elm_win_add(),
  백그라운드 elm_bg_edd() 컴포먼트 elm_conformant_add()등 Application을 구성하는 필수적인 요소들을 사전에 
  만들어 놓는다. 이렇게 사전에 만들어 둔 process가 callee Application의 executable file을
  load 하고 callee Application의 main 함수를 dlsym함수를 통해 load 하여 callee Application을 빠르게 launching한다.
@@ -238,5 +246,5 @@ UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (powe
  b. copy_to_user(), copy_from_user() 등의 함수를 사용해서 kernel과 user 간 memory를 전달하는 방식을 파악하였다.  
  c. 리눅스 kernel 여러 곳에 퍼져 있는 system call 관련 header들을 찾아냈고, 적절한 변경을 통해 custom system call을 생성할 수 있음을 알았다.  
  d. Kernel 에서 발생할 수 있는 다양한 error를 파악하였고, user가 system call error를 debuging하는 방식(perror) 을 확인하였다.  
- e. tizen OS 에서 Applcation의 launching이 launchpad 와 launchpad loader 를 통해 이뤄지는 방식에 대해 이해할 수 있었다.
+ e. Tizen OS 에서 Applcation의 launching이 launchpad 와 launchpad loader 를 통해 이뤄지는 방식에 대해 이해할 수 있었다.
 
