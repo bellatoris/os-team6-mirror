@@ -36,19 +36,19 @@ kernel에 ptree.c라는 시스템 콜 함수를 구현하고 kernel 폴더의 Ma
 d.커널 빌드
 
 ./build.sh tizen_tm1 USR 커맨드로 커널을 빌드하고, sdb를 이용해 생성된 tar파일을 기기에 Push한 후
-reboot하면 새로운 커널을 사용할 수 있다.(프로젝트 리드미에 다 있는데 써야될까)가
+reboot후 sdcard를 사용하여 flash하면 새로운 커널을 사용할 수 있다.
 
 **2.High-level design and impelementation**
 
  프로젝트의 목표가 process 트리를 dfs로 탐색하여 user가 원하는 만큼 prinfo를 복사하여
  주는것 이었기 때문에 user에게 제공되는 system call ptree함수와 process 트리를 dfs로 탐색하는
- dfs함수 process에게서 원하는 데이터를 얻어오는 visit함수를 구현하였다.
+ dfs함수, process에게서 원하는 데이터를 얻어오는 visit함수를 구현하였다.
  
  -ptree함수
  ```c
 	 asmlinkage int sys_ptree(struct prinfo __user *buf, int __user *nr)
 	 {
-	 	if (get_user(knr, nr) < 0)
+	 	if (copy_from_user(&knr, nr, sizeof(int)) < 0)
 	 		return -EFAULT;
 	 	kbuf = kmalloc_arrary(knt, sizeof(struct prinfo), GFP_KERNEL);
 	 	read_lock(&tasklist_lock);
@@ -59,13 +59,13 @@ reboot하면 새로운 커널을 사용할 수 있다.(프로젝트 리드미에
 	 }
  ```
   (위와 아래에 나온 모든 함수는 구현을 설명하기 위해서 실제 구현한 함수에 비해 매우 생략되고
-  간략화 되어있음을 염두해고 두고 보시기 바랍니다.)
+  간략화 되어있음을 염두해 두고 보시기 바랍니다.)
   user에게서 prinfo potinter와 int pointer를 받아온다. 다만 kernel에서 함부로 user의 메모리 스페이스를
   변경하거나 참조하는 것은 위험하기 때문에 buf와 nr을 그대로 쓰지 않고 리눅스에서 주어진 매크로를
   사용하여 user에게서 값을 얻어오고 user로 값을 복사한다. 그러한 과정에서 에러가 났다면 적절한 에러값을
   리턴하도록 하였다. 또한 dfs를 하는 도중 task_struct list가 변경되는 것을 막기 위해 lock을 걸어주었다.
   
-  에러 핸들링  
+  **에러 핸들링**  
   시스템 콜에서 에러 핸들링은 발생하는 에러를  errno-base.h에서 에러에 해당하는 값을 찾아
  -를 붙여서 리턴하는 방식으로 이루어 진다.
 ```c
@@ -85,7 +85,7 @@ if (kbuf == NULL)
 kmalloc에 실패했을 경우 memory가 부족하다는 의미인 -ENOMEM을 리턴한다
 
 ```c
-if (get_user(knr, nr) < 0)
+if (copy_from_user(knr, nr) < 0)
 		return -EFAULT;
 
 if (copy_to_user(buf, kbuf, knr * sizeof(struct prinfo)) < 0) {
@@ -161,7 +161,7 @@ UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (powe
 ....
 ....
 ```
- 일정시간마다 udev monitor에 메시지가 나오는 것으로 보아 커널이 배터리를 확인하기 위한 event를 udev에게 보내면 그 때마다 udev의 child가 생성되고 있었음을 알 수 있다.  
+ 일정시간마다 udev monitor에 메시지가 나오는 것으로 보아 커널이 cellphone의 배터리를 확인하기 위한 event를 udev에게 보내면 그 때마다 udev의 child가 생성되고 있었음을 알 수 있다.  
  
  b. c_1.
 
@@ -205,23 +205,9 @@ UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (powe
  				
  c_2  
    
- launchpad-process란 AUL daemon이다. 여기서 AUL이란 Application Uility Library로 한 Application에서
- 다른 Application을 런칭, 리쥼 혹은 종료시킬 떄 사용하는 API를 제공한다. 즉 우리가 Appliciation을 
- 실행하려고 터치를 하면 homescreen이(caller) 우리가 실행
- 시키고자 하는 Appliciation(callee)을 위의 API를 사용하여 런칭 하고자 시도 한다.
- `(실제 과정은 AUL api를 부르는 app-control api를 사용한다.)`
- 그럼 AUL daemon이 런칭 요청을 받게
- 되는데 앞서 본 launchpad-process가 바로 AUL daemon이다. launchpad-process는 사전에 fork/exec으로 
- 만들어 놓은 process(launchpad-loader)를 활용하여 callee Application을 띄우게 된다.  
- **Application launching 이러한 과정을 거치는 이유는 launching을 빠르게 위함이다.**  
- fork/exec자체가 상당한 시간을 소요하기 때문에 launchpad-loader를 사전에 만들어 놓고, 윈도우 elm_win_add(),
- 백그라운드 elm_bg_edd() 컴포먼트 elm_conformant_add()등 Application을 구성하는 필수적인 요소들을 사전에 
- 만들어 놓는다. 이렇게 사전에 만들어 둔 process가 application의 executable file을
- load 하고 callee Application의 main 함수를 dlsym함수를 통해 load 하여 Application을 빠르게 launching한다.
- 정리 하자면 다음과 같다.
- ```
+    ```
  • App-control API
-	– API for launching application
+	– API for launching application (use AUL API)
 	– homescreen uses app-control API to launch an application
 • launchpad
 	– Parent process of all applications
@@ -231,3 +217,16 @@ UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (powe
 	– Pre-initialized process for applications
 	– launchpad-loader is changed to real application
  ```
+ launchpad-process란 AUL daemon이다. 여기서 AUL이란 Application Uility Library로 한 Application에서
+ 다른 Application을 런칭, 리쥼 혹은 종료시킬 떄 사용하는 API를 제공한다. 즉 우리가 Appliciation을 
+ 실행하려고 터치를 하면 homescreen이(caller) 우리가 실행
+ 시키고자 하는 Appliciation(callee)을 위의 API를 사용하여 런칭 하고자 시도 한다.
+ `(실제 과정은 AUL api를 부르는 app-control api를 사용한다.)`
+ 그럼 AUL daemon이 런칭 요청을 받게
+ 되는데`(앞서 본 launchpad-process가 바로 AUL daemon이다)`, AUL daemon은 사전에 fork/exec으로 
+ 만들어 놓은 process(launchpad-loader)를 활용하여 callee Application을 띄우게 된다.  
+ **Application launching 이러한 과정을 거치는 이유는 launching을 빠르게 위함이다.**  
+ fork/exec자체가 상당한 시간을 소요하기 때문에 launchpad-loader를 사전에 만들어 놓고, 윈도우 elm_win_add(),
+ 백그라운드 elm_bg_edd() 컴포먼트 elm_conformant_add()등 Application을 구성하는 필수적인 요소들을 사전에 
+ 만들어 놓는다. 이렇게 사전에 만들어 둔 process가 callee Application의 executable file을
+ load 하고 callee Application의 main 함수를 dlsym함수를 통해 load 하여 callee Application을 빠르게 launching한다.
