@@ -203,21 +203,31 @@ UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (powe
  수행 했기 때문이다. 그래서 종료후에 보이는 마지막 launchpad-loader는
  새로 생겨난 launchpad-loader라 pid가 변경된 것이다.
  				
- c_2
- 
- 앞서 설명한 것과 달리 우리가 Application을 실행 하면 단순히 launchpad-loader가 우리의 Application
- 을 execv해서 실행 되는 것이 아니다.  
- 
+ c_2  
+   
  launchpad-process란 AUL daemon이다. 여기서 AUL이란 Application Uility Library로 한 Application에서
  다른 Application을 런칭, 리쥼 혹은 종료시킬 떄 사용하는 API를 제공한다. 즉 우리가 Appliciation을 
- 실행하려고 터치를 하면 그러한 터치를 대기하고 있는
- Application이(caller)`(마치 command를 기다리고 있는 shell 처럼)` 우리가 실행
- 시키고자 하는 Appliciation을(callee)을 위의 API를 사용하여 런칭 하고자 시도 한다.
+ 실행하려고 터치를 하면 homescreen이(caller) 우리가 실행
+ 시키고자 하는 Appliciation(callee)을 위의 API를 사용하여 런칭 하고자 시도 한다.
+ `(실제 과정은 AUL api를 부르는 app-control api를 사용한다.)`
  그럼 AUL daemon이 런칭 요청을 받게
- 데는데 앞서본 launchpad-process가 바로 AUL daemon이다. launchpad-process는 사전에 fork/exec으로 
- 만들어 놓은 process를 활용하여 callee Application을 띄우게 된다. 이 process가 launchpad-loader이다.
- fork/exec자체가 상당한 시간을 소요하기 때문에, Application 런칭 성능 향상을 위해 사전에 만들어
- 놓은 것이다. 또한 fork/exec뿐만 아니라 윈도우 elm_win_add(), 백그라운드 elm_bg_edd()
- 컴포먼트 elm_conformant_add()등 Application을 구성하는 필수적인 요소들을 사전에 
- 만들어 놓는다. 이렇게 사전에 만들어 둔 process에 callee Application의 main 함수를 dlsym함수를 
- 사용하여 로드한다.
+ 되는데 앞서 본 launchpad-process가 바로 AUL daemon이다. launchpad-process는 사전에 fork/exec으로 
+ 만들어 놓은 process(launchpad-loader)를 활용하여 callee Application을 띄우게 된다.  
+ **Application launching 이러한 과정을 거치는 이유는 launching을 빠르게 위함이다.**  
+ fork/exec자체가 상당한 시간을 소요하기 때문에 launchpad-loader를 사전에 만들어 놓고, 윈도우 elm_win_add(),
+ 백그라운드 elm_bg_edd() 컴포먼트 elm_conformant_add()등 Application을 구성하는 필수적인 요소들을 사전에 
+ 만들어 놓는다. 이렇게 사전에 만들어 둔 process가 application의 executable file을
+ load 하고 callee Application의 main 함수를 dlsym함수를 통해 load 하여 Application을 빠르게 launching한다.
+ 정리 하자면 다음과 같다.
+ ```
+ • App-control API
+	– API for launching application
+	– homescreen uses app-control API to launch an application
+• launchpad
+	– Parent process of all applications
+	– Handles launch request
+	– Manages launchpad-loaders
+• launchpad-loader
+	– Pre-initialized process for applications
+	– launchpad-loader is changed to real application
+ ```
