@@ -48,7 +48,7 @@ reboot후 sdcard를 사용하여 flash하면 새로운 kernel을 사용할 수 �
  ```c
 	 asmlinkage int sys_ptree(struct prinfo __user *buf, int __user *nr)
 	 {
-	 	if (copy_from_user(&knr, nr, sizeof(int)) < 0)
+	 	if (copy_from_user(&knr, nr, sizeof(int)) != 0)
 	 		return -EFAULT;
 	 	kbuf = kmalloc_arrary(knt, sizeof(struct prinfo), GFP_KERNEL);
 	 	read_lock(&tasklist_lock);
@@ -85,10 +85,10 @@ if (kbuf == NULL)
 kmalloc에 실패했을 경우 memory가 부족하다는 의미인 -ENOMEM을 리턴한다
 
 ```c
-if (copy_from_user(knr, nr) < 0)
+if (copy_from_user(&knr, nr, sizeof(int)) != 0)
 		return -EFAULT;
 
-if (copy_to_user(buf, kbuf, knr * sizeof(struct prinfo)) < 0) {
+if (copy_to_user(buf, kbuf, knr * sizeof(struct prinfo)) != 0) {
 		kfree(kbuf);
 		return -EFAULT;
 	}
