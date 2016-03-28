@@ -219,6 +219,7 @@ UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (powe
 	– launchpad-loader is changed to real application
  ```
  launchpad-process란 AUL daemon이다. 여기서 AUL이란 Application Uility Library로 한 Application에서
+
  다른 Application을 launching, resume 혹은 terminate할 때 사용하는 API를 제공한다. 즉 우리가 Appliciation을 
  실행하려고 터치를 하면 homescreen(caller)이 우리가 실행
  시키고자 하는 Appliciation(callee)을 위의 API를 사용하여 launching 하고자 시도 한다.
@@ -238,3 +239,4 @@ UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (powe
  c. 리눅스 kernel 여러 곳에 퍼져 있는 system call 관련 header들을 찾아냈고, 적절한 변경을 통해 custom system call을 생성할 수 있음을 알았다.  
  d. Kernel 에서 발생할 수 있는 다양한 error를 파악하였고, user가 system call error를 debuging하는 방식(perror) 을 확인하였다.  
  e. tizen OS 에서 Applcation의 launching이 launchpad 와 launchpad loader 를 통해 이뤄지는 방식에 대해 이해할 수 있었다.
+
