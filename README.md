@@ -143,7 +143,7 @@ user영역에서 nr 을 불러오거나, kbuf를 유저 영역으로 보내는�
 
  a.
 
- 반복적으로 test를 실행 할 때마다 test process의 pid가 1씩 증가했는데 일정 시간( 약 7초~10초)마다
+ 반복적으로 test를 실행 할 때마다 test process의 pid가 1씩 증가했는데 일정 시간(약 7초~10초)마다
  pid가 2씩 증가하는경우가 있었다. 그 이유는 전체 process를 살펴 봄으로써 알 수 있었는데
  pid가 2씩 증가 할 때마다 systemd-udevd의 자식 process가 생성되고 있었다.그 자식 process가
  pid를 먼저 차지해서 test의 pid가 2 증가하게 된것이다. systemd-udevd는 커널로 부터 uevent를
@@ -218,11 +218,11 @@ UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (powe
 	– launchpad-loader is changed to real application
  ```
  launchpad-process란 AUL daemon이다. 여기서 AUL이란 Application Uility Library로 한 Application에서
- 다른 Application을 런칭, 리쥼 혹은 종료시킬 떄 사용하는 API를 제공한다. 즉 우리가 Appliciation을 
- 실행하려고 터치를 하면 homescreen이(caller) 우리가 실행
- 시키고자 하는 Appliciation(callee)을 위의 API를 사용하여 런칭 하고자 시도 한다.
+ 다른 Application을 launching, resume 혹은 terminate할 때 사용하는 API를 제공한다. 즉 우리가 Appliciation을 
+ 실행하려고 터치를 하면 homescreen(caller)이 우리가 실행
+ 시키고자 하는 Appliciation(callee)을 위의 API를 사용하여 launching 하고자 시도 한다.
  `(실제 과정은 AUL api를 부르는 app-control api를 사용한다.)`
- 그럼 AUL daemon이 런칭 요청을 받게
+ 그럼 AUL daemon이 launching 요청을 받게
  되는데`(앞서 본 launchpad-process가 바로 AUL daemon이다)`, AUL daemon은 사전에 fork/exec으로 
  만들어 놓은 process(launchpad-loader)를 활용하여 callee Application을 띄우게 된다.  
  **Application launching 이러한 과정을 거치는 이유는 launching을 빠르게 위함이다.**  
