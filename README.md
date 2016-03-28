@@ -52,7 +52,7 @@ reboot후 sdcard를 사용하여 flash하면 새로운 kernel을 사용할 수 �
  주는것 이었기 때문에 user에게 제공되는 system call ptree함수와 process tree를 dfs로 탐색하는
  dfs함수, process에게서 원하는 data를 얻어오는 visit함수를 구현하였다.
  
- -ptree함수
+ a.ptree함수
  ```c
 	 asmlinkage int sys_ptree(struct prinfo __user *buf, int __user *nr)
 	 {
@@ -104,7 +104,7 @@ if (copy_to_user(buf, kbuf, knr * sizeof(struct prinfo)) != 0) {
 
 user영역에서 nr 을 불러오거나, kbuf를 user 영역으로 보내는데 실패하면 -EFAULT를 리턴한다
   
-  -dfs함수 
+  b.dfs함수 
   ```c
   	static int dfs(struct prinfo *kbuf, int *knr, struct task_struct *root)
   	{
@@ -132,7 +132,7 @@ user영역에서 nr 을 불러오거나, kbuf를 user 영역으로 보내는데 
   kernel stack의 memory가 overflow가 나는것을 조금이라도 방지하기 위해 recursive가 아닌
   while문을 사용하여 dfs를 구현하였다. task_struct의 접근은 list_head의 매크로를 사용하였다.
   
-  -visit함수
+  c.visit함수
   ```c
   	static void visit(struct prinfo *kbuf, int *knr,
   					struct task_struct *task, int *i)
@@ -212,7 +212,7 @@ UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (powe
  수행 했기 때문일 것이다. 그래서 종료후에 보이는 마지막 launchpad-loader는
  새로 생겨난 launchpad-loader라 pid가 변경된 것으로 보인다.
  				
- c_2  
+ c_2.  
    
  ```
 • App-control API
