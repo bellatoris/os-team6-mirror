@@ -37,7 +37,7 @@ asmlinkage int sys_ptree(struct prinfo __user *buf, int __user *nr)
 	if (buf == NULL || nr == NULL)
 		return -EINVAL;
 
-	if (get_user(knr, nr) < 0)
+	if (copy_from_user(&knr, nr, sizeof(int)) < 0)
 		return -EFAULT;
 
 	if (knr < 1)
