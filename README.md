@@ -222,7 +222,7 @@ UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (powe
  만들어 놓는다. 이렇게 사전에 만들어 둔 process에 callee Application의 main 함수를 dlsym함수를 
  사용하여 로드한다.
  
-** 4.lessons learned **  
+**4.lessons learned**  
 
  a. task_struct의 구조에 대해 알게 되었고, 이를 다루기 위한 매크로인 list_empty, list_first_entry 등을 파악하였다.  
  b. copy_to_user(), copy_from_user() 등의 함수를 사용해서 커널과 유저 간 메모리를 전달하는 방식을 파악하였다.  
