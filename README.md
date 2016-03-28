@@ -6,14 +6,14 @@ Project1
 
 a.System call 번호 추가
 
-/arch/arm/include/uapi/asm/unistd.h에서 우리가 추가할 System call인 ptree에 해당하는 번호를 추가했다.    
+/arch/arm/include/uapi/asm/unistd.h에서 우리가 추가할 system call인 ptree에 해당하는 번호를 추가했다.    
 
 ```
 #define __NR_ptree                      (__NR_SYSCALL_BASE+382) 
 ```
 b.System call Table에 함수 등록
 
-arch/arm/kernel/calls.S에 우리가 추가하는 System call을 처리할 함수를 등록했다.
+arch/arm/kernel/calls.S에 우리가 추가하는 system call을 처리할 함수를 등록했다.
 이 때 dummy system call인 ni syscall의 번호를 ptree로 바꾸는 식으로 구현해서 system call의 갯수가 4의 배수가 아니면
 OS가 동작하지 않는 문제를 해결했다.  
 ```
@@ -25,7 +25,7 @@ CALL(sys_seccomp)
 
 c.System call 함수 구현
 
-kernel에 ptree.c라는 System call 함수를 구현하고 kernel 폴더의 Makefile에 ptree.o를 추가해서 kernel
+kernel에 ptree.c라는 system call 함수를 구현하고 kernel 폴더의 Makefile에 ptree.o를 추가해서 kernel
 build에 추가 되도록 했다.
 
 ```
