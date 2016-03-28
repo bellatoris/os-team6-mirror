@@ -221,3 +221,11 @@ UDEV  [14085.076809] change   /devices/sec-battery.32/power_supply/battery (powe
  컴포먼트 elm_conformant_add()등 Application을 구성하는 필수적인 요소들을 사전에 
  만들어 놓는다. 이렇게 사전에 만들어 둔 process에 callee Application의 main 함수를 dlsym함수를 
  사용하여 로드한다.
+ 
+** 4.lessons learned **  
+
+ a. task_struct의 구조에 대해 알게 되었고, 이를 다루기 위한 매크로인 list_empty, list_first_entry 등을 파악하였다.  
+ b. copy_to_user(), copy_from_user() 등의 함수를 사용해서 커널과 유저 간 메모리를 전달하는 방식을 파악하였다.  
+ c. 리눅스 커널 여러 곳에 퍼져 있는 시스템콜 관련 헤더들을 찾아냈고, 적절한 변경을 통해 커스텀 시스템콜을 생성할 수 있음을 알았다.  
+ d. 커널에서 발생할 수 있는 다양한 에러를 파악하였고, 유저가 시스템콜 에러를 디버깅하는 방식 (perror) 을 확인하였다.  
+ e. tizen OS 에서 사용자의 클릭이 launchpad 와 launchpad loader 를 통해 실제 프로세스를 실행하는 방식에 대해 이해할 수 있었다.
