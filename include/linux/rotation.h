@@ -12,9 +12,9 @@ struct dev_rotation {
         int degree;     /* 0 <= degree < 360 */
 }; 
 
-asmlinkage int set_rotation(struct dev_rotation __user *rot);
+asmlinkage int sys_set_rotation(struct dev_rotation __user *rot);
 
-asmlinkage int get_rotation(struct dev_rotation __user *rot);
+asmlinkage int sys_get_rotation(struct dev_rotation __user *rot);
 
-asmlinkage int rot_lock_read();
-asmlinkage int rot_lock_write();
+asmlinkage int sys_rot_lock_read();
+asmlinkage int sys_rot_lock_write();
