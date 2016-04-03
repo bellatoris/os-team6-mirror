@@ -394,9 +394,13 @@
 		CALL(sys_ni_syscall)		/* reserved sys_renameat2     */
 		CALL(sys_seccomp)
 /* 384 */	CALL(sys_set_rotation)
-		CALL(sys_get_rotation)
-		CALL(sys_rot_lock_read)
-		CALL(sys_rot_lock_write)
+		CALL(sys_rotlock_read)
+		CALL(sys_rotlock_write)
+		CALL(sys_rotunlock_read)
+/* 388 */	CALL(sys_rotunlock_write)
+		CALL(sys_ni_syscall)
+		CALL(sys_ni_syscall)
+		CALL(sys_ni_syscall)
 #ifndef syscalls_counted
 .equ syscalls_padding, ((NR_syscalls + 3) & ~3) - NR_syscalls
 #define syscalls_counted
