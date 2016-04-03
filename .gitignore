@@ -100,5 +100,5 @@ sprd_nand_param.h
 sprdwl
 
 srcfiles.txt
-system_kernal.tar
-dzImage
+system_kernel.tar
+arch/arm/boot/dzImage
