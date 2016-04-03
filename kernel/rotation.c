@@ -1,4 +1,4 @@
-#include <linux/export.h>
+#include <linux/rotation.h>
 
 struct dev_rotation rotation;
 EXPORT_SYMBOL(rotation);
@@ -9,8 +9,17 @@ asmlinkage int set_rotation(struct dev_rotation __user *rot)
 	return 0;
 }
 
-asmlinkage int get_rotation(struct dev_rotation __uesr *rot)
+asmlinkage int get_rotation(struct dev_rotation __user *rot)
 {
 	put_user(rotation.degree, &rot->degree);
-}
+	return 0;
+};
 
+asmlinkage int rot_lock_read()
+{
+	return 0;
+}
+asmlinkage int rot_lock_write()
+{
+	return 0;
+}

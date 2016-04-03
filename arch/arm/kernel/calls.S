@@ -393,10 +393,10 @@
 		CALL(sys_ni_syscall)		/* reserved sys_sched_getattr */
 		CALL(sys_ni_syscall)		/* reserved sys_renameat2     */
 		CALL(sys_seccomp)
-		CALL(sys_set_rotation)
-		CALL(sys_ni_syscall)
-		CALL(sys_ni_syscall)
-		CALL(sys_ni_syscall)
+/* 384 */	CALL(sys_set_rotation)
+		CALL(sys_get_rotation)
+		CALL(sys_rot_lock_read)
+		CALL(sys_rot_lock_write)
 #ifndef syscalls_counted
 .equ syscalls_padding, ((NR_syscalls + 3) & ~3) - NR_syscalls
 #define syscalls_counted
