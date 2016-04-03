@@ -99,6 +99,6 @@ sprd_nand_param.h
 #unify wlan driver
 sprdwl
 
-./srcfiles.txt
-system_kernal.tar
-dzImage
+srcfiles.txt
+system_kernel.tar
+arch/arm/boot/dzImage
