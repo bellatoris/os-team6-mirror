@@ -1,11 +1,17 @@
 #define SYSCALL_SET_ROTATION 384
 
-#include <linux/rotation.h>
 #include <signal.h>
 #include <sys/syscall.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+struct dev_rotation {
+        int degree;     /* 0 <= degree < 360 */
+};
+
+
+
 
 int notFinished = 1;
 
@@ -27,6 +33,7 @@ void sensor()
 	rotation.degree = 0;
 	while (notFinished) {
 		rotation.degree = (rotation.degree + 30) % 360;
+		printf("%d\n" , rotation.degree);
 		syscall(SYSCALL_SET_ROTATION, &rotation);
 		sleep(2);
 	}
