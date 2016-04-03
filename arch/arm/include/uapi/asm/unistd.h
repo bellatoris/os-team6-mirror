@@ -413,9 +413,9 @@
 */
 #define __NR_seccomp			(__NR_SYSCALL_BASE+383)
 #define __NR_set_rotation		(__NR_SYSCALL_BASE+384)
-#define __NR_dummy1			(__NR_SYSCALL_BASE+385)
-#define __NR_dummy2			(__NR_SYSCALL_BASE+386)
-#define __NR_dummy3			(__NR_SYSCALL_BASE+387)
+#define __NR_get_rotation		(__NR_SYSCALL_BASE+385)
+#define __NR_rot_lock_read		(__NR_SYSCALL_BASE+386)
+#define __NR_rot_locK_write		(__NR_SYSCALL_BASE+387)
 /*
  * This may need to be greater than __NR_last_syscall+1 in order to
  * account for the padding in the syscall table
