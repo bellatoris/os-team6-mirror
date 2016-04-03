@@ -3,14 +3,13 @@
 #include <signal.h>
 #include <sys/syscall.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
 struct dev_rotation {
         int degree;     /* 0 <= degree < 360 */
 };
-
-
 
 
 int notFinished = 1;
