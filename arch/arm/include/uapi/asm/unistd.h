@@ -421,7 +421,7 @@
 #define __NR_dummy2			(__NR_SYSCALL_BASE+390)
 #define __NR_dummy3			(__NR_SYSCALL_BASE+391)
 /*
- * This may need to be greater than __NR_last_sysca2ll+1 in order to
+ * This may need to be greater than __NR_last_syscall+1 in order to
  * account for the padding in the syscall table
  */
 
