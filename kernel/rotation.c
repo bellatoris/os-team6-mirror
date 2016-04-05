@@ -13,22 +13,31 @@ extern spinlock_t rot_lock;
  */
 static void thread_cond_signal(struct thread_cond_t *x)
 {
-	complete(&x->cv);
+	wake_up(&x->wait);
 }
 
 static void thread_cond_broadcast(struct thread_cond_t *x)
 {
-	complete_all(&x->cv);
+	wake_up_all(&x->wait);
 }
 
 static void __sched thread_cond_wait(struct thread_cond_t *x)
 {
 	unsigned long flags;
-	
+	DEFINE_WAIT(wait);
+	wait.flags &= ~WQ_FLAG_EXCLUSIVE;
+
 	//wait을 할 때 lock을 풀고 wait을 한다.
 	spin_unlock_irqrestore(&rot_lock, flags);
-	//wait으로 들어간다.
-	wait_for_completion(&x->cv);
+
+	spin_lock_irqsave(&x->wait.lock, flags);
+	if (list_empty(&wait.task_list)) 
+		__add_wait_queue(&x->wait, &wait);
+	set_current_state(TASK_UNINTERRUPTIBLE);
+	spin_unlock_irqrestore(&x->wait.lock, flags);
+
+	schedule();
+	finish_wait(&x->wait, &wait);
 	//wake_up해서 돌아오면 lock을 다시 잡는다.
 	spin_lock_irqsave(&rot_lock, flags);
 }
@@ -168,6 +177,7 @@ static inline void add_write_runner(struct rotation_range *rot)
 asmlinkage int sys_set_rotation(struct dev_rotation __user *rot) 
 {
 	get_user(rotation.degree, &rot->degree);
+	printk("%d\n", rotation.degree);
 	spin_lock(&rot_lock);
 	if (rot_area.waiting_writers[rotation.degree / 30] > 0) {
 		thread_cond_broadcast(&rotation_write);
@@ -203,6 +213,7 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 	add_write_waiter(&krot);
 	while (write_should_wait(&krot)) {
 		thread_cond_wait(&rotation_write);
+		printk("%s\n", "i want to go to sleep");
 	}
 	remove_write_waiter(&krot);
 	add_write_runner(&krot);

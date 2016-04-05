@@ -6,6 +6,7 @@
 #include <linux/linkage.h>
 #include <asm-generic/uaccess.h>
 #include <linux/kernel.h>
+#include <linux/wait.h>
 #include <linux/sched.h>
 
 struct dev_rotation {
@@ -23,13 +24,19 @@ struct rotation_range {
 
 struct dev_rotation rotation;
 EXPORT_SYMBOL(rotation);
+/*
+DECLARE_WAIT_QUEUE_HEAD(rot_read_wait);
+DECLARE_WAIT_QUEUE_HEAD(rot_write_wait);
 
+EXPORT_SYMBOL(rot_read_wait);
+EXPORT_SYMBOL(rot_write_wait);
+*/
 struct thread_cond_t{
-	struct completion cv;
+	wait_queue_head_t wait;
 };
 
 #define CONDITION_INITIALIZER(work) \
-	{ COMPLETION_INITIALIZER((work).cv) }
+	{ __WAIT_QUEUE_HEAD_INITIALIZER((work).wait) }
 
 #define DECLARE_CONDITION(work) \
 	struct thread_cond_t work = CONDITION_INITIALIZER(work)
