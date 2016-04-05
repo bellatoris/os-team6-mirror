@@ -21,7 +21,7 @@ static void thread_cond_broadcast(struct thread_cond_t *x)
 	complete_all(&x->cv);
 }
 
-static void thread_cond_wait(struct thread_cond_t *x)
+static void __sched thread_cond_wait(struct thread_cond_t *x)
 {
 	unsigned long flags;
 	
