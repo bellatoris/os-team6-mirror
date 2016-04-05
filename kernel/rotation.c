@@ -27,55 +27,6 @@ int waiting_writers;
 int waiting_readers;
 int active_readers;
 int active_writers;
-/*
-static inline long  __sched do_wait_for_cv(struct thread_cond_t *x,
-			long (*action)(long), long timeout, int state)
-{
-	if (!x->done) {
-		DECLARE_WAITQUEUE(wait, current);
-
-		__add_wait_queue_tail_exclusive(&x->wait, &wait);
-		do {
-			if (signal_pending_state(state, current)) {
-				timeout = -ERESTARTSYS;
-				break;
-			}
-			__set_current_state(state);
-			spin_unlock_irq(&x->wait.lock);
-			timeout = action(timeout);
-			spin_lock_irq(&x->wait.lock);
-		} while (!x->done && timeout);
-		__remove_wait_queue(&x->wait, &wait);
-		if (!x->done)
-			return timeout;
-	}
-	x->done--;
-	return timeout ?: 1;
-}
-
-static inline long __sched __wait_for_cv(struct thread_cond_t *x,
-			long (*action)(long), long timeout, int state)
-{
-	might_sleep();
-
-	spin_lock_irq(&x->wait.lock);
-	timout = do_wait_for_cv(x, action, timeout, state);
-	spint_unlock_irq(&x->wait.lock);
-	return timeout;
-}
-
-static long __sched _wait_for_cv(struct thread_cond_t *x, 
-				    long timeout, int state)
-{
-	return __wait_for_cv(x, schedule_timeout, timeout, state);
-}
-
-void __sched wait_for_cv(struct thread_cond_t *x)
-{
-	_wait_for_cv(x, MAX_SCHEDULE_TIMEOUT, TASK_UNINTERRUPTIBLE);
-}
-*/
-
 
 /*
  * signal의 경우 waiting_list가 비어있지 않다면,
