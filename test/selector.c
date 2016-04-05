@@ -15,14 +15,14 @@ void main(int argc, char* argv[])
 	rot.degree=30;
 	FILE* fp;
 	
-	while(1)
+	while(val<10)
 	{
-		syscall(__NR_get_rotation,&rot);
+		//syscall(__NR_rotlock_write,&rot);
 		fp = fopen("integer","w");
-		fprintf("%d ", val);
+		fprintf(fp,"%d", val);
 		fclose(fp);
 		printf("selector : %d\n",val);
-		syscall(__NR_get_rotation,&rot);
+		//syscall(__NR_rotunlock_write,&rot);
 		val+=1;
 	}
 }
