@@ -24,6 +24,35 @@ struct rotation_range {
 struct dev_rotation rotation;
 EXPORT_SYMBOL(rotation);
 
+struct thread_cond_t{
+	struct completion cv;
+};
+
+#define CONDITION_INITIALIZER(work) \
+	{ COMPLETION_INITIALIZER((work).cv) }
+
+#define DECLARE_CONDITION(work) \
+	struct thread_cond_t work = CONDITION_INITIALIZER(work)
+
+DECLARE_CONDITION(rotation_read);
+DECLARE_CONDITION(rotation_write);
+
+EXPORT_SYMBOL(rotation_read);
+EXPORT_SYMBOL(rotation_write);
+
+struct area_descriptor {
+	int waiting_writers[12];
+	int waiting_readers[12];
+	int active_readers[12];
+	int active_writers[12];
+};
+
+struct area_descriptor rot_area = {{0,}, {0,}, {0,}, {0,}};
+EXPORT_SYMBOL(rot_area);
+
+DEFINE_SPINLOCK(rot_lock);
+EXPORT_SYMBOL(rot_lock);
+
 asmlinkage int sys_set_rotation(struct dev_rotation __user *rot);
 
 /* Take a read/or write lock using the given rotation range
