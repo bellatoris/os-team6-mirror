@@ -22,16 +22,28 @@ void main(int argc, char* argv[])
 	range.rot.degree = 30;
 	range.degree_range = 10;
 	FILE* fp;
+	syscall(__NR_rotlock_write,&range);
+	fp = fopen("integer","w");
+	fprintf(fp,"%d", val);
+	fclose(fp);
+	printf("selector : %d\n",val);
+	sleep(1);
+	syscall(__NR_rotunlock_write,&range);
+	val+=1;
+
 	
 	while(1)
 	{
 		syscall(__NR_rotlock_write,&range);
-		fp = fopen("integer","w");
+		fp = fopen("integer","r");
+		fscanf(fp, "%d", &val);
+		fclose(fp);
+		val += 1;
+		fp = fopen("integer", "w");
 		fprintf(fp,"%d", val);
 		fclose(fp);
 		printf("selector : %d\n",val);
 		sleep(1);
 		syscall(__NR_rotunlock_write,&range);
-		val+=1;
 	}
 }

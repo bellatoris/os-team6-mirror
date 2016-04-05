@@ -23,7 +23,7 @@ int main(int argc, char* argv[]){
 	struct rotation_range range;
 	int n;
 	range.rot.degree = 30;
-	range.degree_range = 10;
+	range.degree_range = 60;
 	while(1){
 	syscall(__NR_rotlock_read, &range);
 	FILE* ff = fopen("integer", "r");
@@ -31,7 +31,7 @@ int main(int argc, char* argv[]){
 	fclose(ff);
 	printf("trial : ");
 	print_prime(n);
-	syscall(__NR_rotlock_read, &range);
+	syscall(__NR_rotunlock_read, &range);
 	sleep(1);
 	}
 }
