@@ -102,4 +102,4 @@ sprdwl
 srcfiles.txt
 system_kernel.tar
 arch/arm/boot/dzImage
-test/Makefil
+test/Makefile
