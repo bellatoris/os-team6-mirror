@@ -96,7 +96,7 @@ static inline void add_read_waiter(struct rotation_range *rot)
 
 	min = min % 30 ? min / 30 + 1 : min / 30;
 
-	printk("min = %d max = %d\n", min, max);
+	//printk("min = %d max = %d\n", min, max);
 
 	for (i = min; i <= max; i++) {
 		rot_area.waiting_readers[i % 12] += 1;
@@ -140,7 +140,7 @@ static inline void remove_read_runner(struct rotation_range *rot)
 
 	for (i = min; i <= max; i++) {
 		rot_area.active_readers[i % 12] -= 1;
-		printk("active_reader = %d\n", rot_area.active_readers[i % 12]);
+		//printk("active_reader = %d\n", rot_area.active_readers[i % 12]);
 	}
 }
 
@@ -154,7 +154,7 @@ static inline void add_read_runner(struct rotation_range *rot)
 
 	for (i = min; i <= max; i++) {
 		rot_area.active_readers[i % 12] += 1;
-		printk("active_reader = %d\n", rot_area.active_readers[i % 12]);
+		//printk("active_reader = %d\n", rot_area.active_readers[i % 12]);
 	}
 }
 
@@ -240,12 +240,12 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 	while (write_should_wait(&krot)) {
 		flags = thread_cond_wait(&rotation_write, flags, &wait);
 	}
-	printk("yeah i wake up and num of waiting writer = %d\n",
-		    rot_area.waiting_writers[rotation.degree / 30]);
 	remove_write_waiter(&krot);
 	add_write_runner(&krot);
 	//finish_wait(&rotation_write.wait, &wait);
 	__remove_wait_queue(&rotation_write.wait, &wait);
+	printk("yeah i wake up and num of waiting writer = %d\n",
+		    rot_area.waiting_writers[rotation.degree / 30]);
 	spin_unlock_irqrestore(&rot_lock, flags);
 	return 0;
 }
