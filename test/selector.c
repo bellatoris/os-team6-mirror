@@ -43,7 +43,7 @@ void main(int argc, char* argv[])
 		fprintf(fp,"%d", val);
 		fclose(fp);
 		printf("selector : %d\n",val);
-		sleep(1);
 		syscall(__NR_rotunlock_write,&range);
+		sleep(1);
 	}
 }
