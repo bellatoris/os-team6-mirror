@@ -45,13 +45,14 @@ static int read_should_wait(struct rotation_range *rot)
 {
 	//현재 각도에 write wait or runner가 있으면
 	//내각도가 아니야
-	int cur = rotation.degree;
 	int max = rot->rot.degree + rot->degree_range + 360;
 	int min = rot->rot.degree - (int)rot->degree_range + 360;
+	int cur = ((min <= rotation.degree) && (rotation.degree < 360)) ?
+				    rotation.degree : rotation.degree + 360;
 
-	return (rot_area.active_writers[cur / 30] > 0 ||
-		    rot_area.waiting_writers[cur / 30] > 0 ||
-			    cur + 360 > max || cur + 360 < min);
+	return (rot_area.active_writers[rotation.degree / 30] > 0 ||
+		    rot_area.waiting_writers[rotation.degree /30] > 0 ||
+						cur > max || cur < min);
 }
 
 static int write_should_wait(struct rotation_range *rot)
@@ -59,16 +60,18 @@ static int write_should_wait(struct rotation_range *rot)
 	//현재 각도에 write runner가 있으면
 	//현재 각도에 read runner가 있으면
 	//내각도가 아니야
-	int cur = rotation.degree;
 	int max = rot->rot.degree + rot->degree_range + 360;
 	int min = rot->rot.degree - (int)rot->degree_range + 360;
+	int cur = ((min <= rotation.degree) && (rotation.degree < 360)) ?
+				    rotation.degree : rotation.degree + 360;
 
-	printk("active_writers = %d\n", rot_area.active_writers[cur / 30]);
-	printk("active_readers = %d\n", rot_area.active_readers[cur / 30]);
+	printk("active_writers = %d\n", rot_area.active_writers[rotation.degree / 30]);
+	printk("active_readers = %d\n", rot_area.active_readers[rotation.degree / 30]);
+	printk("current = %d min = %d max = %d\n", cur, min, max);
 
-	return (rot_area.active_writers[cur / 30] > 0 ||
-		    rot_area.active_readers[cur / 30] > 0 ||
-			    cur + 360 > max || cur + 360 < min);
+	return (rot_area.active_writers[rotation.degree / 30] > 0 ||
+		    rot_area.active_readers[rotation.degree / 30] > 0 ||
+						 cur > max || cur < min);
 }
 
 
@@ -237,7 +240,8 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 	while (write_should_wait(&krot)) {
 		flags = thread_cond_wait(&rotation_write, flags, &wait);
 	}
-	printk("yeah i wake up\n");
+	printk("yeah i wake up and num of waiting writer = %d\n",
+		    rot_area.waiting_writers[rotation.degree / 30]);
 	remove_write_waiter(&krot);
 	add_write_runner(&krot);
 	//finish_wait(&rotation_write.wait, &wait);
@@ -250,15 +254,16 @@ asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 {
 	struct rotation_range krot;
 	unsigned long flags;
-	int cur = rotation.degree;
 	int max = rot->rot.degree + rot->degree_range + 360;
 	int min = rot->rot.degree - (int)rot->degree_range + 360;
+	int cur = ((min <= rotation.degree) && (rotation.degree < 360)) ?
+				    rotation.degree : rotation.degree + 360;
 
 	get_user(krot, rot);
 
 	spin_lock_irqsave(&rot_lock, flags);
 	remove_read_runner(&krot);
-	if (cur + 360 < max && cur + 360 > min) {
+	if (cur <= max && cur >= min) {
 		if (rot_area.active_readers[rotation.degree / 30] == 0 &&
 			rot_area.waiting_writers[rotation.degree / 30] > 0) {
 			thread_cond_broadcast(&rotation_write);
@@ -272,15 +277,15 @@ asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot)
 {
 	struct rotation_range krot;
 	unsigned long flags;
-	int cur = rotation.degree;
 	int max = rot->rot.degree + rot->degree_range + 360;
 	int min = rot->rot.degree - (int)rot->degree_range + 360;
-
+	int cur = ((min <= rotation.degree) && (rotation.degree < 360)) ?
+				    rotation.degree : rotation.degree + 360;
 	get_user(krot, rot);
 
 	spin_lock_irqsave(&rot_lock, flags);
 	remove_write_runner(&krot);
-	if (cur + 360 < max && cur + 360 > min) {
+	if (cur <= max && cur >= min) {
 		if (rot_area.waiting_writers[rotation.degree / 30] > 0) {
 			thread_cond_broadcast(&rotation_write);
 			printk("hey wake up!\n");
