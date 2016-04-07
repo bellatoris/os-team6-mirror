@@ -60,6 +60,7 @@ void thread_cond_broadcast(void)
 static unsigned long __sched thread_cond_wait(unsigned long flag)
 {
 	//wait을 할 때 lock을 풀고 wait을 한다.
+
 	spin_unlock_irqrestore(&my_lock, flag);
 
 	set_current_state(TASK_UNINTERRUPTIBLE);
@@ -281,7 +282,7 @@ void exit_rotlock()
 	spin_unlock(&glob_lock);
 }
 
-asmlinkage int sys_set_rotation(struct dev_rotation __user *rot) 
+asmlinkage int sys_set_rotation(struct dev_rotation __user *rot)
 {
 	get_user(rotation.degree, &rot->degree);
 	printk("%d\n", rotation.degree);
@@ -292,8 +293,10 @@ asmlinkage int sys_set_rotation(struct dev_rotation __user *rot)
 
 asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 {
+	/*
 	struct rotation_range krot;
 	unsigned long flags;
+
 	struct rotation_lock *klock = kmalloc(sizeof(struct rotation_lock),
 								GFP_KERNEL);
 	get_user(krot, rot);
@@ -309,10 +312,8 @@ asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 	spin_unlock_irqrestore(&my_lock, flags);
 
 	return 0;
-}
+	*/
 
-asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
-{
 	struct rotation_range krot;
 	unsigned long flags;
 	struct rotation_lock *klock = kmalloc(sizeof(struct rotation_lock),
@@ -331,13 +332,36 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 	
 	spin_unlock_irqrestore(&my_lock, flags);
 	return 0;
+
 }
+
+asmlinkage int sys_rotlock_write(struct rotation_range __user *rot){
+        struct rotation_range krot;
+        unsigned long flags;
+        get_user(krot,rot);
+
+        struct rotation_lock *lock = kmalloc(sizeof(rotation_lock), GFP_KERNEL);
+        init_rotation_lock(lock, current, krot);
+
+        spin_lock_irqsave(&my_lock, flags);
+
+        add_list(waiting_writer, lock);
+        while(write_should_wait(lock)){
+                wait(lock);    //signal을 여기서 받아야됨
+        }
+        remove_list(waiting_writer, lock);
+        add_list(acquire_writer, lock);
+        spin_unlock_irqstore(&my_lock, flags);
+}
+
+
 
 asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 {
 	struct rotation_range krot;
 	struct rotation_lock *klock;
 	unsigned long flags;
+
 	get_user(krot, rot);
 
 	spin_lock_irqsave(&my_lock, flags);
@@ -346,11 +370,14 @@ asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 	thread_cond_signal();
 	spin_unlock_irqrestore(&my_lock, flags);
 	return 0;
+
+
 }
 
-asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot)
-{
+
+asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot){
 	struct rotation_range krot;
+
 	struct rotation_lock *klock;
 	unsigned long flags;
 	printk("sys_unlock_write\n");
@@ -364,3 +391,4 @@ asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot)
 	spin_unlock_irqrestore(&my_lock, flags);
 	return 0;
 }
+
