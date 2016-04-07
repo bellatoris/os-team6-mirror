@@ -205,6 +205,7 @@ asmlinkage int sys_set_rotation(struct dev_rotation __user *rot)
 
 asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 {
+	/*
 	struct rotation_range krot;
 	unsigned long flags;
 	DEFINE_WAIT(wait);
@@ -224,8 +225,34 @@ asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 	__remove_wait_queue(&rotation_read.wait, &wait);
 	spin_unlock_irqrestore(&rot_lock, flags);
 	return 0;
-}
+	*/
 
+	struct rotation_range krot;
+	unsigned long flags;
+	struct rotation_lock *klock = kmalloc(sizeof(struct rotation_lock),GFP_KERNEL);
+
+	//DEFINE_WAIT(wait);
+	//wait.flags &= ~WQ_FLAG_EXCLUSIVE;
+	
+	
+	get_user(krot,rot);
+
+	spin_lock_irqsave(&my_lock,flags);
+	init_rotation_lock(klock,current,krot);	// 
+	
+	add_list(waiting_reader,klock); // 큐에 넣는 함수
+	 
+	while(read_shoud_wait(klock)){
+		wait(klock);
+	}
+	remove_list(waiting_reader,klock); //큐에서 빼는 함수
+	
+	add_list(acquire_reader,klock);
+	//lock을 풀어야 한다. spin_unlock?
+	spin_unlock_irqresotre(&my_lock,flags);
+	return 0;
+		
+}
 asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 {
 	struct rotation_range krot;
@@ -253,24 +280,30 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 {
 	struct rotation_range krot;
+	struct rotation_lock *klock;
 	unsigned long flags;
 	int max = rot->rot.degree + rot->degree_range + 360;
 	int min = rot->rot.degree - (int)rot->degree_range + 360;
 	int cur = ((min <= rotation.degree) && (rotation.degree < 360)) ?
-				    rotation.degree : rotation.degree + 360;
+		rotation.degree : rotation.degree + 360;
 
 	get_user(krot, rot);
 
-	spin_lock_irqsave(&rot_lock, flags);
-	remove_read_runner(&krot);
+	spin_lock_irqsave(&my_lock, flags);
+	klock2 = remove_list(acquire_reader,klock);
+	kfree(klock2);
 	if (cur <= max && cur >= min) {
 		if (rot_area.active_readers[rotation.degree / 30] == 0 &&
 			rot_area.waiting_writers[rotation.degree / 30] > 0) {
 			thread_cond_broadcast(&rotation_write);
 		}
 	}
-	spin_unlock_irqrestore(&rot_lock, flags);
+	
+
+	spin_unlock_irqrestore(&my_lock, flags);
 	return 0;
+	
+	
 }
 
 asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot)
