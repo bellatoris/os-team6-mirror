@@ -63,9 +63,9 @@ static unsigned long __sched thread_cond_wait(unsigned long flag)
 	spin_unlock_irqrestore(&my_lock, flag);
 
 	set_current_state(TASK_UNINTERRUPTIBLE);
-	printk("process go to sleep");
+	printk("process go to sleep\n");
 	schedule();
-	printk("process wake up");
+	printk("process wake up\n");
 
 	//wake_up해서 돌아오면 lock을 다시 잡는다.
 	spin_lock_irqsave(&my_lock, flag);
