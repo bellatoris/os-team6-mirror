@@ -13,19 +13,22 @@ extern spinlock_t glob_lock;
  * signal의 경우 waiting_list가 비어있지 않다면,
  * wake_up시킨다. wake_up함수 자체에 reschedule함수가 존재한다.
  */
-static void thread_cond_signal()
+static int thread_cond_signal()
 {	
 	struct rotation_lock *curr, *next;
+	int i = 1;
 	spin_lock(&glob_lock)
 	list_for_each_entry_safe(curr, next, &waiting_writer.lock_list, 
 								lock_list) {
 		if (rotation.degree <= curr->max && 
 				    rotation.degree >= curr->min) {
 			wake_up_process(pid_task(&curr->pid, PIDTYPE_PID));
+			i = 0;
 			break;
 		}
 	}
 	spin_unlock(&glob_lock);
+	return i;
 }
 
 static void thread_cond_broadcast()
@@ -92,7 +95,7 @@ static int read_should_wait(struct rotation_lock *rot_lock)
 
 static int write_should_wait(struct rotation_lock *rot_lock)
 {
-	//현재 각도에 write acquirer가 있으면
+	//현재 각도에 wrte acquirer가 있으면
 	//현재 각도에 read acquirer가 있으면
 	//내각도가 아니야
 	struct rotation_lock *curr, *next;
@@ -270,22 +273,20 @@ asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 {
 	struct rotation_range krot;
 	unsigned long flags;
-	DEFINE_WAIT(wait);
-	wait.flags &= ~WQ_FLAG_EXCLUSIVE;
-
+	struct rotation_lock *klock = kmalloc(sizeof(struct rotation_lock),
+								GFP_KERNEL);
 	get_user(krot, rot);
+	init_rotation_lock(klock, current, &krot);
 
 	spin_lock_irqsave(&my_lock, flags);
-	add_read_waiter(&krot);
-	printk("i add read waiter\n");
-	while (read_should_wait(&krot)) {
-		flags = thread_cond_wait(&rotation_read, flags, &wait);
+	add_read_waiter(klock);
+	while (read_should_wait(klock)) {
+		flags = thread_cond_wait(flags);
 	}
-	remove_read_waiter(&krot);
-	add_read_acquirer(&krot);
-	//finish_wait(&rotation_read.wait, &wait);
-	__remove_wait_queue(&rotation_read.wait, &wait);
+	remove_read_waiter(klock);
+	add_read_acquirer(klock);
 	spin_unlock_irqrestore(&my_lock, flags);
+
 	return 0;
 }
 
@@ -293,22 +294,19 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 {
 	struct rotation_range krot;
 	unsigned long flags;
-	DEFINE_WAIT(wait);
-	wait.flags &= ~WQ_FLAG_EXCLUSIVE;
-
+	struct rotation_lock *klock = kmalloc(sizeof(struct rotation_lock),
+								GFP_KERNEL);
 	get_user(krot, rot);
+	init_rotation_lock(klock, current, *krot);
 
 	spin_lock_irqsave(&my_lock, flags);
-	add_write_waiter(&krot);
-	while (write_should_wait(&krot)) {
-		flags = thread_cond_wait(&rotation_write, flags, &wait);
+	add_write_waiter(klock);
+	while (write_should_wait(klock)) {
+		flags = thread_cond_wait(flags);
 	}
-	remove_write_waiter(&krot);
-	add_write_acquirer(&krot);
-	//finish_wait(&rotation_write.wait, &wait);
-	__remove_wait_queue(&rotation_write.wait, &wait);
-	printk("yeah i wake up and num of waiting writer = %d\n",
-		    rot_area.waiting_writers[rotation.degree / 30]);
+	remove_write_waiter(klock);
+	add_write_acquirer(klock);
+	
 	spin_unlock_irqrestore(&my_lock, flags);
 	return 0;
 }
@@ -316,22 +314,14 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 {
 	struct rotation_range krot;
+	struct rotation_lock *klock;
 	unsigned long flags;
-	int max = rot->rot.degree + rot->degree_range + 360;
-	int min = rot->rot.degree - (int)rot->degree_range + 360;
-	int cur = ((min <= rotation.degree) && (rotation.degree < 360)) ?
-				    rotation.degree : rotation.degree + 360;
-
 	get_user(krot, rot);
 
 	spin_lock_irqsave(&my_lock, flags);
-	remove_read_acquirer(&krot);
-	if (cur <= max && cur >= min) {
-		if (rot_area.active_readers[rotation.degree / 30] == 0 &&
-			rot_area.waiting_writers[rotation.degree / 30] > 0) {
-			thread_cond_broadcast(&rotation_write);
-		}
-	}
+	klock = remove_read_acquirer(&krot);
+	kfree(klock);
+	thread_cond_signal();
 	spin_unlock_irqrestore(&my_lock, flags);
 	return 0;
 }
@@ -339,23 +329,16 @@ asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot)
 {
 	struct rotation_range krot;
+	struct rotation_lock *klock;
 	unsigned long flags;
-	int max = rot->rot.degree + rot->degree_range + 360;
-	int min = rot->rot.degree - (int)rot->degree_range + 360;
-	int cur = ((min <= rotation.degree) && (rotation.degree < 360)) ?
-				    rotation.degree : rotation.degree + 360;
+
 	get_user(krot, rot);
 
 	spin_lock_irqsave(&my_lock, flags);
-	remove_write_acquirer(&krot);
-	if (cur <= max && cur >= min) {
-		if (rot_area.waiting_writers[rotation.degree / 30] > 0) {
-			thread_cond_broadcast(&rotation_write);
-			printk("hey wake up!\n");
-		} else {
-			thread_cond_broadcast(&rotation_read);
-		}
-	}
+	klock = remove_write_acquirer(&krot);
+	kfree(lock);
+	if (thread_cond_signal())
+		thread_cond_broadcast();
 	spin_unlock_irqrestore(&my_lock, flags);
 	return 0;
 }
