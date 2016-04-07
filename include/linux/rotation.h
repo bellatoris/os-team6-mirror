@@ -2,11 +2,12 @@
  * sets current device rotation in the kernel.
  * syscall number 384 (you may want to check this number!)
  */
-#include <linux/export.h>
 #include <linux/linkage.h>
-#include <asm-generic/uaccess.h>
-#include <linux/kernel.h>
-#include <linux/wait.h>
+#include <asm-generic/uaccess.h>>
+#include <linux/list.h>
+#include <linux/slab.h>
+#include <linux/export.h>
+#include <linux/init.h>
 #include <linux/sched.h>
 
 struct dev_rotation {
@@ -30,19 +31,19 @@ struct rotation_lock {
 	int max;
 	pid_t pid;
 	struct list_head lock_list;
-}
+};
 
 #define ROTATION_LOCK_INITIALIZER(name) \
 	{ 0, 0, 0, LIST_HEAD_INIT((name).lock_list) }
 #define ROTATION_LOCK(name) \
-	struct rot_lock = ROTATION_LOCK_INITIALIZER(name)
+	struct rot_lock name = ROTATION_LOCK_INITIALIZER(name)
 
 inline void init_rotation_lock(struct rotation_lock *lock, 
 			struct task_struct *p, struct rotation_range *rot)
 {
     lock->max = rot->rot.degree + rot->degree_range + 360;
     lock->min = rot->rot.degree - (int)rot->degree_range + 360;
-    pid_t = p->pid;
+    lock->pid = p->pid;
     lock->lock_list.prev = &lock->lock_list;
     lock->lock_list.next = &lock->lock_list;
 }
@@ -50,12 +51,12 @@ inline void init_rotation_lock(struct rotation_lock *lock,
 struct lock_queue {
 	struct list_head lock_list;
 //	spinlock_t = queue_lock;
-}
+};
 
 #define LOCK_QUEUE_INITIALIZER(name) \
 	{ LIST_HEAD_INIT((name).lock_list) }
 #define LOCK_QUEUE(name) \
-	struct lock_queue = LOCK_QUEUE_INITIALIZER(name)
+	struct lock_queue name = LOCK_QUEUE_INITIALIZER(name)
 
 LOCK_QUEUE(waiting_writer);
 LOCK_QUEUE(acquire_writer);
@@ -76,6 +77,8 @@ EXPORT_SYMBOL(my_lock);
 
 DEFINE_SPINLOCK(glob_lock);
 EXPORT_SYMBOL(glob_lock);
+
+void exit_rotlock(void);
 
 asmlinkage int sys_set_rotation(struct dev_rotation __user *rot);
 
