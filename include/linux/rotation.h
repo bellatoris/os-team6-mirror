@@ -24,41 +24,58 @@ struct rotation_range {
 
 struct dev_rotation rotation;
 EXPORT_SYMBOL(rotation);
+
+struct rotation_lock {
+	int min;
+	int max;
+	pid_t pid;
+	struct list_head lock_list;
+}
+
+#define ROTATION_LOCK_INITIALIZER(name) \
+	{ 0, 0, 0, LIST_HEAD_INIT((name).lock_list) }
+#define ROTATION_LOCK(name) \
+	struct rot_lock = ROTATION_LOCK_INITIALIZER(name)
+
+inline void init_rotation_lock(struct rotation_lock *lock, 
+			struct task_struct *p, struct rotation_range *rot)
+{
+    lock->max = rot->rot.degree + rot->degree_range + 360;
+    lock->min = rot->rot.degree - (int)rot->degree_range + 360;
+    pid_t = p->pid;
+    lock->lock_list.prev = &lock->lock_list;
+    lock->lock_list.next = &lock->lock_list;
+}
+
+struct lock_queue {
+	struct list_head lock_list;
+//	spinlock_t = queue_lock;
+}
+
+#define LOCK_QUEUE_INITIALIZER(name) \
+	{ LIST_HEAD_INIT((name).lock_list) }
+#define LOCK_QUEUE(name) \
+	struct lock_queue = LOCK_QUEUE_INITIALIZER(name)
+
+LOCK_QUEUE(waiting_writer);
+LOCK_QUEUE(acquire_writer);
+LOCK_QUEUE(waiting_reader);
+LOCK_QUEUE(acquire_reader);
+
+EXPORT_SYMBOL(waiting_writer);
+EXPORT_SYMBOL(acquire_writer);
+EXPORT_SYMBOL(waiting_reader);
+EXPORT_SYMBOL(acquire_reader);
+
 /*
-DECLARE_WAIT_QUEUE_HEAD(rot_read_wait);
-DECLARE_WAIT_QUEUE_HEAD(rot_write_wait);
+ * Define my_lock for read/wirte lock
+ * Define glob_lock for queue lock
+ */
+DEFINE_SPINLOCK(my_lock);
+EXPORT_SYMBOL(my_lock);
 
-EXPORT_SYMBOL(rot_read_wait);
-EXPORT_SYMBOL(rot_write_wait);
-*/
-struct thread_cond_t{
-	wait_queue_head_t wait;
-};
-
-#define CONDITION_INITIALIZER(work) \
-	{ __WAIT_QUEUE_HEAD_INITIALIZER((work).wait) }
-
-#define DECLARE_CONDITION(work) \
-	struct thread_cond_t work = CONDITION_INITIALIZER(work)
-
-DECLARE_CONDITION(rotation_read);
-DECLARE_CONDITION(rotation_write);
-
-EXPORT_SYMBOL(rotation_read);
-EXPORT_SYMBOL(rotation_write);
-
-struct area_descriptor {
-	int waiting_writers[12];
-	int waiting_readers[12];
-	int active_readers[12];
-	int active_writers[12];
-};
-
-struct area_descriptor rot_area = {{0,}, {0,}, {0,}, {0,}};
-EXPORT_SYMBOL(rot_area);
-
-DEFINE_SPINLOCK(rot_lock);
-EXPORT_SYMBOL(rot_lock);
+DEFINE_SPINLOCK(glob_lock);
+EXPORT_SYMBOL(glob_lock);
 
 asmlinkage int sys_set_rotation(struct dev_rotation __user *rot);
 
