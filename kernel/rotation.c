@@ -231,17 +231,17 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot){
         int flags;
         get_user(krot,rot);
 
-        struct rotation_lock lock = kmalloc(sizeof(rotation_lock), GFP_KERNEL);
-        init_rotation_lock(&lock, current, krot);
+        struct rotation_lock *lock = kmalloc(sizeof(rotation_lock), GFP_KERNEL);
+        init_rotation_lock(lock, current, krot);
 
         spin_lock_irqsave(&my_lock, flags);
 
-        add_list(waiting_writer, &lock);
-        while(write_should_wait(&lock)){
-                wait(&lock);    //signal을 여기서 받아야됨
+        add_list(waiting_writer, lock);
+        while(write_should_wait(lock)){
+                wait(lock);    //signal을 여기서 받아야됨
         }
-        remove_list(waiting_writer, &lock);
-        add_list(acquire_writer, &lock);
+        remove_list(waiting_writer, lock);
+        add_list(acquire_writer, lock);
         spin_unlock_irqstore(&my_lock, flags);
 }
 
@@ -270,23 +270,20 @@ asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 	return 0;
 }
 
-asmlinkage int sys_rotlock_write(struct rotation_range __user *rot){
-        struct rotation_range krot;
-        int flags;
-        get_user(krot,rot);
 
-        struct rotation_lock lock = kmalloc(sizeof(rotation_lock), GFP_KERNEL);
-        init_rotation_lock(&lock, current, krot);
+asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot){
+	struct rotation_range krot;
+        struct rotation_lock *lock = kmalloc(sizeof(rotation_lock), GFP_KERNEL);
+	int flags;
+	;
+	get_user(krot,rot);
+        init_rotation_lock(lock, current, krot);
 
-        spin_lock_irqsave(&my_lock, flags);
-
-        add_list(waiting_writer, &lock);
-        while(write_should_wait(&lock)){
-                wait(&lock);    //signal을 여기서 받아야됨
-        }
-        remove_list(waiting_writer, &lock);
-        add_list(acquire_writer, &lock);
+        spin_lock_irqsave(&my_lock, flags); 
+	
+        remove_list(acquire_writer,lock);//지워
+	traverse(); //깨워
+	
         spin_unlock_irqstore(&my_lock, flags);
 }
-
-
+	
