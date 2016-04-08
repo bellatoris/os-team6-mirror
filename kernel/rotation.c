@@ -51,6 +51,7 @@ void thread_cond_broadcast(void)
 {
 	struct rotation_lock *curr, *next;
 	int cur;
+	printk("thread_cond_broadcast\n");
 	spin_lock(&glob_lock);
 	list_for_each_entry_safe(curr, next, &waiting_reader.lock_list,
 								lock_list) {
@@ -78,6 +79,7 @@ static int traverse_list_safe(struct rotation_lock *rot_lock,
 	struct rotation_lock *curr, *next;
 	list_for_each_entry_safe(curr, next, &queue->lock_list, lock_list) {
 		if (rot_lock->max >= curr->min && rot_lock->min <= curr->max) {
+			printk("range overlap!!\n");
 			return 1;
 		}
 	}
@@ -87,6 +89,7 @@ static int traverse_list_safe(struct rotation_lock *rot_lock,
 static int read_should_wait(struct rotation_lock *rot_lock)
 {
 	int cur;
+	printk("flag = %d\n", rot_lock->flag);
 	if (!rot_lock->flag) {
 		SET_CUR(cur, rot_lock);
 		printk("current = %d min = %d max = %d\n", cur,
