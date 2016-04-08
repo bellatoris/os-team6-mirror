@@ -3,7 +3,7 @@
  * syscall number 384 (you may want to check this number!)
  */
 #include <linux/linkage.h>
-#include <asm-generic/uaccess.h>
+#include <linux/uaccess.h>
 #include <linux/list.h>
 #include <linux/slab.h>
 #include <linux/export.h>

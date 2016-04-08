@@ -61,17 +61,14 @@ void thread_cond_broadcast(void)
 	spin_unlock(&glob_lock);
 }
 
-static unsigned long __sched thread_cond_wait(unsigned long flag)
+static void __sched thread_cond_wait(void)
 {
-	spin_unlock_irqrestore(&my_lock, flag);
-
-	set_current_state(TASK_UNINTERRUPTIBLE);
+	spin_unlock(&my_lock);
+	set_current_state(TASK_INTERRUPTIBLE);
 	printk("process go to sleep\n");
 	schedule();
 	printk("process wake up\n");
-	spin_lock_irqsave(&my_lock, flag);
-
-	return flag;
+	spin_lock(&my_lock);
 }
 
 static int read_should_wait(struct rotation_lock *rot_lock)
@@ -144,7 +141,6 @@ static int write_should_wait(struct rotation_lock *rot_lock)
 static inline void remove_read_waiter(struct rotation_lock *rot_lock)
 {
 	printk("remove_read_waiter\n");
-	__set_current_state(TASK_RUNNING);
 	if (!list_empty_careful(&waiting_reader.lock_list)) {
 		spin_lock(&glob_lock);
 		list_del_init(&rot_lock->lock_list);
@@ -163,7 +159,6 @@ static inline void add_read_waiter(struct rotation_lock *rot_lock)
 static inline void remove_write_waiter(struct rotation_lock *rot_lock)
 {
 	printk("remove_write_waiter\n");
-	__set_current_state(TASK_RUNNING);
 	if (!list_empty_careful(&waiting_writer.lock_list)) {
 		spin_lock(&glob_lock);
 		list_del_init(&rot_lock->lock_list);
@@ -280,7 +275,8 @@ void exit_rotlock()
 
 asmlinkage int sys_set_rotation(struct dev_rotation __user *rot)
 {
-	get_user(rotation.degree, &rot->degree);
+	copy_from_user(&rotation.degree, &rot->degree, 
+				    sizeof(struct dev_rotation));
 	printk("%d\n", rotation.degree);
 	if (thread_cond_signal())
 		thread_cond_broadcast();
@@ -290,21 +286,20 @@ asmlinkage int sys_set_rotation(struct dev_rotation __user *rot)
 asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 {
 	struct rotation_range krot;
-	unsigned long flags;
 	struct rotation_lock *klock = kmalloc(sizeof(struct rotation_lock),
 								GFP_KERNEL);
 	printk("sys_rotlock_write %p\n", klock);
-	get_user(krot, rot);
+	copy_from_user(&krot, rot, sizeof(struct rotation_range));
 	init_rotation_lock(klock, current, &krot);
 
-	spin_lock_irqsave(&my_lock, flags);
+	spin_lock(&my_lock);
 	add_read_waiter(klock);
 	while (read_should_wait(klock)) {
-		flags = thread_cond_wait(flags);
+		thread_cond_wait();
 	}
 	remove_read_waiter(klock);
 	add_read_acquirer(klock);
-	spin_unlock_irqrestore(&my_lock, flags);
+	spin_unlock(&my_lock);
 
 	return 0;
 }
@@ -312,21 +307,20 @@ asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 {
 	struct rotation_range krot;
-	unsigned long flags;
 	struct rotation_lock *klock = kmalloc(sizeof(struct rotation_lock),
 								GFP_KERNEL);
-	get_user(krot, rot);
+	copy_from_user(&krot, rot, sizeof(struct rotation_range));
 	init_rotation_lock(klock, current, &krot);
 
-	spin_lock_irqsave(&my_lock, flags);
+	spin_lock(&my_lock);
 	add_write_waiter(klock);
 	while (write_should_wait(klock)) {
-		flags = thread_cond_wait(flags);
+		thread_cond_wait();
 	}
 	remove_write_waiter(klock);
 	add_write_acquirer(klock);
 
-	spin_unlock_irqrestore(&my_lock, flags);
+	spin_unlock(&my_lock);
 	return 0;
 }
 
@@ -335,15 +329,13 @@ asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 {
 	struct rotation_range krot;
 	struct rotation_lock *klock;
-	unsigned long flags;
+	copy_from_user(&krot, rot, sizeof(struct rotation_range));
 
-	get_user(krot, rot);
-
-	spin_lock_irqsave(&my_lock, flags);
+	spin_lock(&my_lock);
 	klock = remove_read_acquirer(&krot);
 	kfree(klock);
 	thread_cond_signal();
-	spin_unlock_irqrestore(&my_lock, flags);
+	spin_unlock(&my_lock);
 	return 0;
 }
 
@@ -352,15 +344,15 @@ asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot)
 {
 	struct rotation_range krot;
 	struct rotation_lock *klock;
-	unsigned long flags;
-	printk("sys_unlock_write\n");
-	get_user(krot, rot);
 
-	spin_lock_irqsave(&my_lock, flags);
+	printk("sys_unlock_write\n");
+	copy_from_user(&krot, rot, sizeof(struct rotation_range));
+
+	spin_lock(&my_lock);
 	klock = remove_write_acquirer(&krot);
 	kfree(klock);
 	if (thread_cond_signal())
 		thread_cond_broadcast();
-	spin_unlock_irqrestore(&my_lock, flags);
+	spin_unlock(&my_lock);
 	return 0;
 }
