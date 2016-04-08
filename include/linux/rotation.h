@@ -11,7 +11,7 @@
 #include <linux/sched.h>
 
 struct dev_rotation {
-        int degree;     /* 0 <= degree < 360 */
+	int degree;     /* 0 <= degree < 360 */
 };
 /*
  * Defines rotation range. The ranges give the "width" of
@@ -19,7 +19,7 @@ struct dev_rotation {
  * as defining the range (ignored).
  */
 struct rotation_range {
-        struct dev_rotation rot;  /* device rotation */
+	struct dev_rotation rot;  /* device rotation */
 	unsigned int degree_range;      /* lock range = rot.degree ± degree_range */
 };
 
@@ -38,14 +38,14 @@ struct rotation_lock {
 #define ROTATION_LOCK(name) \
 	struct rot_lock name = ROTATION_LOCK_INITIALIZER(name)
 
-inline void init_rotation_lock(struct rotation_lock *lock, 
+inline void init_rotation_lock(struct rotation_lock *lock,
 			struct task_struct *p, struct rotation_range *rot)
 {
-    lock->max = rot->rot.degree + rot->degree_range + 360;
-    lock->min = rot->rot.degree - (int)rot->degree_range + 360;
-    lock->pid = p->pid;
-    lock->lock_list.prev = &lock->lock_list;
-    lock->lock_list.next = &lock->lock_list;
+	lock->max = rot->rot.degree + rot->degree_range + 360;
+	lock->min = rot->rot.degree - (int)rot->degree_range + 360;
+	lock->pid = p->pid;
+	lock->lock_list.prev = &lock->lock_list;
+	lock->lock_list.next = &lock->lock_list;
 }
 
 struct lock_queue {
@@ -91,7 +91,7 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot);
 
 /* Release a read/or write lock using the given rotation range
  * returning 0 on success, -1 on failure.
- * system call numbers 387 and 388 
+ * system call numbers 387 and 388
  */
 asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot);
 asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot);
