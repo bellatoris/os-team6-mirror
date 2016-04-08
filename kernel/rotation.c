@@ -189,24 +189,24 @@ static inline void add_write_waiter(struct rotation_lock *rot_lock)
 static int remove_read_acquirer(struct rotation_range *rot)
 {
 	int flag = -1;
-        int max = rot->rot.degree + rot->degree_range + 360;
-        int min = rot->rot.degree - (int)rot->degree_range + 360;
-        struct rotation_lock *curr, *next;
-        printk("remove_read_acquirer\n");
-        spin_lock(&glob_lock);
-        list_for_each_entry_safe(curr, next, &acquire_reader.lock_list,
-                                                                lock_list) {
-                if (current->pid == curr->pid && max == curr->max &&
-                                                    min == curr->min) {
-                        list_del_init(&curr->lock_list);
+	int max = rot->rot.degree + rot->degree_range + 360;
+	int min = rot->rot.degree - (int)rot->degree_range + 360;
+	struct rotation_lock *curr, *next;
+	printk("remove_read_acquirer\n");
+	spin_lock(&glob_lock);
+	list_for_each_entry_safe(curr, next, &acquire_reader.lock_list,
+								lock_list) {
+		if (current->pid == curr->pid && max == curr->max &&
+						    min == curr->min) {
+			list_del_init(&curr->lock_list);
 			flag = 0;
-                        break;
-                }
-        }
-        spin_unlock(&glob_lock);
-	if(!flag)
+			break;
+		}
+	}
+	spin_unlock(&glob_lock);
+	if (!flag)
 		kfree(curr);
-        return flag;
+	return flag;
 }
 
 static inline void add_read_acquirer(struct rotation_lock *rot_lock)
@@ -220,24 +220,24 @@ static inline void add_read_acquirer(struct rotation_lock *rot_lock)
 static int remove_write_acquirer(struct rotation_range *rot)
 {
 	int flag = -1;
-        int max = rot->rot.degree + rot->degree_range + 360;
-        int min = rot->rot.degree - (int)rot->degree_range + 360;
-        struct rotation_lock *curr, *next;
-        printk("remove_write_acquirer\n");
-        spin_lock(&glob_lock);
-        list_for_each_entry_safe(curr, next, &acquire_writer.lock_list,
-                                                                lock_list) {
-                if (current->pid == curr->pid && max == curr->max &&
-                                                    min == curr->min) {
-                        list_del_init(&curr->lock_list);
+	int max = rot->rot.degree + rot->degree_range + 360;
+	int min = rot->rot.degree - (int)rot->degree_range + 360;
+	struct rotation_lock *curr, *next;
+	printk("remove_write_acquirer\n");
+	spin_lock(&glob_lock);
+	list_for_each_entry_safe(curr, next, &acquire_writer.lock_list,
+								lock_list) {
+		if (current->pid == curr->pid && max == curr->max &&
+							min == curr->min) {
+			list_del_init(&curr->lock_list);
 			flag = 0;
-                        break;
-                }
-        }
-        spin_unlock(&glob_lock);
-	if(!flag)
+			break;
+		}
+	}
+	spin_unlock(&glob_lock);
+	if (!flag)
 		kfree(curr);
-        return flag;
+	return flag;
 }
 
 
@@ -381,33 +381,33 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 
 asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 {
-        struct rotation_range krot;
-        int flag = -1;
+	struct rotation_range krot;
+	int flag = -1;
 
-        copy_from_user(&krot, rot, sizeof(struct rotation_range));
+	copy_from_user(&krot, rot, sizeof(struct rotation_range));
 	krot.rot.degree %= 360;
-        spin_lock(&my_lock);
-        flag = remove_read_acquirer(&krot);
-        if(!flag)
-                thread_cond_signal();
-        spin_unlock(&my_lock);
-        return flag;
+	spin_lock(&my_lock);
+	flag = remove_read_acquirer(&krot);
+	if (!flag)
+		thread_cond_signal();
+	spin_unlock(&my_lock);
+	return flag;
 }
 
 asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot)
 {
-        struct rotation_range krot;
-        int flag = -1;
-        printk("sys_unlock_write\n");
+	struct rotation_range krot;
+	int flag = -1;
+	printk("sys_unlock_write\n");
 	copy_from_user(&krot, rot, sizeof(struct rotation_range));
 	krot.rot.degree %= 360;
 
 	spin_lock(&my_lock);
-        flag = remove_write_acquirer(&krot);
-        if(!flag){
-                if (!thread_cond_signal())
-                        thread_cond_broadcast();
-        }
-        spin_unlock(&my_lock);
-        return flag;
+	flag = remove_write_acquirer(&krot);
+	if (!flag) {
+		if (!thread_cond_signal())
+			thread_cond_broadcast();
+	}
+	spin_unlock(&my_lock);
+	return flag;
 }

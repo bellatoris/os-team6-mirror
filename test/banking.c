@@ -13,8 +13,7 @@ struct rotation_range{
         unsigned int degree_range;      /* lock range = rot.degree ± degree_range */
     /* rot.degree - degree_range <= LOCK RANGE <= rot.degree + degree_range */
 };
-
-int balance = 0;
+int balance;
 
 void* deposit()
 {
@@ -73,9 +72,6 @@ int main()
 	range.degree_range = 150;
 
 	FILE* fp;
-	fp = fopen("balance", "w");
-	fprintf(fp, "%d", balance);
-	fclose(fp);
 
 	if (fork()) {
 	    deposit();
