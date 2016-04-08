@@ -22,8 +22,8 @@ struct rotation_range{
 int main(int argc, char* argv[]){
 	struct rotation_range range;
 	int n;
-	range.rot.degree = 30;
-	range.degree_range = 60;
+	range.rot.degree = atoi(argv[1]);
+	range.degree_range = atoi(argv[2]);
 	while(1){
 	syscall(__NR_rotlock_read, &range);
 	FILE* ff = fopen("integer", "r");

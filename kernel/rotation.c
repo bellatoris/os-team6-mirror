@@ -175,7 +175,7 @@ static inline void add_write_waiter(struct rotation_lock *rot_lock)
 	spin_unlock(&glob_lock);
 }
 
-static struct rotation_lock *remove_read_acquirer(struct rotation_range *rot)
+static int remove_read_acquirer(struct rotation_range *rot)
 {
 	int flag = -1;
         int max = rot->rot.degree + rot->degree_range + 360;
@@ -206,7 +206,7 @@ static inline void add_read_acquirer(struct rotation_lock *rot_lock)
 	spin_unlock(&glob_lock);
 }
 
-static  struct rotation_lock *remove_write_acquirer(struct rotation_range *rot)
+static int remove_write_acquirer(struct rotation_range *rot)
 {
 	int flag = -1;
         int max = rot->rot.degree + rot->degree_range + 360;
@@ -336,36 +336,32 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 {
         struct rotation_range krot;
-        struct rotation_lock *klock;
         unsigned long flags;
         int flag = -1;
 
-        get_user(krot, rot);
+        copy_from_user(&krot, rot, sizeof(struct rotation_range));
 
-        spin_lock_irqsave(&my_lock, flags);
-        empty_flag = remove_read_acquirer(&krot);
+        spin_lock(&my_lock);
+        flag = remove_read_acquirer(&krot);
         if(!flag)
                 thread_cond_signal();
-        spin_unlock_irqrestore(&my_lock, flags);
+        spin_unlock(&my_lock);
         return flag;
 }
 
 asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot)
 {
         struct rotation_range krot;
-        struct rotation_lock *klock;
-        unsigned long flags;
         int flag = -1;
         printk("sys_unlock_write\n");
-        get_user(krot, rot);
-
-        spin_lock_irqsave(&my_lock, flags);
+	copy_from_user(&krot, rot, sizeof(struct rotation_range));
+	spin_lock(&my_lock);
         flag = remove_write_acquirer(&krot);
         if(!flag){
                 if (thread_cond_signal())
                         thread_cond_broadcast();
         }
-        spin_unlock_irqrestore(&my_lock, flags);
+        spin_unlock(&my_lock);
         return flag;
 }
 

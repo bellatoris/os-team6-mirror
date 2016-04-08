@@ -19,8 +19,8 @@ void main(int argc, char* argv[])
 {
 	int val = 4;  //init value
 	struct rotation_range range;
-	range.rot.degree = 30;
-	range.degree_range = 10;
+	range.rot.degree = atoi(argv[1]);
+	range.degree_range = atoi(argv[2]);
 	FILE* fp;
 	syscall(__NR_rotlock_write,&range);
 	fp = fopen("integer","w");
