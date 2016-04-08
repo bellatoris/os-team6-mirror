@@ -9,9 +9,9 @@ extern spinlock_t my_lock;
 extern spinlock_t glob_lock;
 
 #define SET_CUR(name, rot) \
-	name = ((rot->min <= rotation.degree) && \
+	(name = ((rot->min <= rotation.degree) && \
 	(rotation.degree < 360)) ? rotation.degree : \
-	rotation.degree + 360
+	rotation.degree + 360)
 
 #define WAKE_UP(name) \
 	wake_up_process(pid_task(\
@@ -63,24 +63,19 @@ void thread_cond_broadcast(void)
 
 static unsigned long __sched thread_cond_wait(unsigned long flag)
 {
-	//wait을 할 때 lock을 풀고 wait을 한다.
-
 	spin_unlock_irqrestore(&my_lock, flag);
 
 	set_current_state(TASK_UNINTERRUPTIBLE);
 	printk("process go to sleep\n");
 	schedule();
 	printk("process wake up\n");
-
-	//wake_up해서 돌아오면 lock을 다시 잡는다.
 	spin_lock_irqsave(&my_lock, flag);
+
 	return flag;
 }
 
 static int read_should_wait(struct rotation_lock *rot_lock)
 {
-	//현재 각도에 write wait or acquirer가 있으면
-	//내각도가 아니야
 	struct rotation_lock *curr, *next;
 	int cur;
 	SET_CUR(cur, rot_lock);
@@ -114,9 +109,6 @@ static int read_should_wait(struct rotation_lock *rot_lock)
 
 static int write_should_wait(struct rotation_lock *rot_lock)
 {
-	//현재 각도에 wrte acquirer가 있으면
-	//현재 각도에 read acquirer가 있으면
-	//내각도가 아니야
 	struct rotation_lock *curr, *next;
 	int cur;
 	SET_CUR(cur, rot_lock);
