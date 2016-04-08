@@ -29,12 +29,13 @@ EXPORT_SYMBOL(rotation);
 struct rotation_lock {
 	int min;
 	int max;
+	int flag;
 	pid_t pid;
 	struct list_head lock_list;
 };
 
 #define ROTATION_LOCK_INITIALIZER(name) \
-	{ 0, 0, 0, LIST_HEAD_INIT((name).lock_list) }
+	{ 0, 0, 0, 0, LIST_HEAD_INIT((name).lock_list) }
 #define ROTATION_LOCK(name) \
 	struct rot_lock name = ROTATION_LOCK_INITIALIZER(name)
 
