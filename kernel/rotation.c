@@ -405,7 +405,7 @@ asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot)
 	spin_lock(&my_lock);
         flag = remove_write_acquirer(&krot);
         if(!flag){
-                if (thread_cond_signal())
+                if (!thread_cond_signal())
                         thread_cond_broadcast();
         }
         spin_unlock(&my_lock);
