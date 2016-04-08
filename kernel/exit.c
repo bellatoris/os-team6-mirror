@@ -53,11 +53,11 @@
 #include <linux/oom.h>
 #include <linux/writeback.h>
 #include <linux/shm.h>
-
 #include <asm/uaccess.h>
 #include <asm/unistd.h>
 #include <asm/pgtable.h>
 #include <asm/mmu_context.h>
+#include <linux/rotexit.h>
 
 #if defined(CONFIG_SYSTEM_LOAD_ANALYZER)
 #include <linux/load_analyzer.h>
@@ -816,6 +816,7 @@ void do_exit(long code)
 	exit_task_work(tsk);
 	check_stack_usage();
 	exit_thread();
+	exit_rotlock();
 
 	/*
 	 * Flush inherited counters to the parent - before the parent
