@@ -1,4 +1,5 @@
 #include <linux/rotation.h>
+#include <linux/rotexit.h>
 
 extern struct dev_rotation rotation;
 extern struct lock_queue waiting_writer;
