@@ -8,6 +8,14 @@ extern struct lock_queue acquire_reader;
 extern spinlock_t my_lock;
 extern spinlock_t glob_lock;
 
+#define SET_CUR(name, rot) \
+	(name = ((rot->min <= rotation.degree) && \
+	(rotation.degree < 360)) ? rotation.degree : \
+	rotation.degree + 360)
+
+#define WAKE_UP(name) \
+	wake_up_process(pid_task(\
+	find_get_pid(name->pid), PIDTYPE_PID))
 
 /*
  * signal의 경우 waiting_list가 비어있지 않다면,
@@ -22,15 +30,14 @@ int thread_cond_signal(void)
 	spin_lock(&glob_lock);
 	list_for_each_entry_safe(curr, next, &waiting_writer.lock_list,
 								lock_list) {
-		cur = ((curr->min <= rotation.degree) && 
-			(rotation.degree < 360)) ? rotation.degree :	
-						    rotation.degree + 360;
-		printk("cur = %d, min = %d, max = %d\n", cur, curr->min, curr->max);
+		SET_CUR(cur, curr);
+		printk("cur = %d, min = %d, max = %d\n", cur,
+						curr->min, curr->max);
 		printk("traverse waiting_writer %p\n", curr);
 		if (cur <= curr->max && cur >= curr->min) {
-			wake_up_process(pid_task(find_get_pid(curr->pid),
-								PIDTYPE_PID));
-			printk("wake up the waiting writer pid: %d\n", curr->pid);
+			WAKE_UP(curr);
+			printk("wake up the waiting writer pid: %d\n",
+								curr->pid);
 			i = 0;
 			break;
 		}
@@ -46,12 +53,9 @@ void thread_cond_broadcast(void)
 	spin_lock(&glob_lock);
 	list_for_each_entry_safe(curr, next, &waiting_reader.lock_list,
 								lock_list) {
-		cur = ((curr->min <= rotation.degree) && 
-			(rotation.degree < 360)) ? rotation.degree : 
-						    rotation.degree + 360;	
-		if (cur<= curr->max && cur >= curr->min) {
-			wake_up_process(pid_task(find_get_pid(curr->pid),
-								PIDTYPE_PID));
+		SET_CUR(cur, curr);
+		if (cur <= curr->max && cur >= curr->min) {
+			WAKE_UP(curr);
 		}
 	}
 	spin_unlock(&glob_lock);
@@ -59,26 +63,23 @@ void thread_cond_broadcast(void)
 
 static unsigned long __sched thread_cond_wait(unsigned long flag)
 {
-	//wait을 할 때 lock을 풀고 wait을 한다.
 	spin_unlock_irqrestore(&my_lock, flag);
 
 	set_current_state(TASK_UNINTERRUPTIBLE);
-	printk("process go to sleep");
+	printk("process go to sleep\n");
 	schedule();
-	printk("process wake up");
-
-	//wake_up해서 돌아오면 lock을 다시 잡는다.
+	printk("process wake up\n");
 	spin_lock_irqsave(&my_lock, flag);
+
 	return flag;
 }
 
 static int read_should_wait(struct rotation_lock *rot_lock)
 {
-	//현재 각도에 write wait or acquirer가 있으면
-	//내각도가 아니야
 	struct rotation_lock *curr, *next;
-	int cur = ((rot_lock->min <= rotation.degree) && (rotation.degree < 360)) ?
-				    rotation.degree : rotation.degree + 360;
+	int cur;
+	SET_CUR(cur, rot_lock);
+
 	printk("current = %d min = %d max = %d\n", cur,
 				    rot_lock->min, rot_lock->max);
 	if (cur < rot_lock->min || cur > rot_lock->max)
@@ -109,12 +110,10 @@ static int read_should_wait(struct rotation_lock *rot_lock)
 
 static int write_should_wait(struct rotation_lock *rot_lock)
 {
-	//현재 각도에 wrte acquirer가 있으면
-	//현재 각도에 read acquirer가 있으면
-	//내각도가 아니야
 	struct rotation_lock *curr, *next;
-	int cur = ((rot_lock->min <= rotation.degree) && (rotation.degree < 360)) ?
-				    rotation.degree : rotation.degree + 360;
+	int cur;
+	SET_CUR(cur, rot_lock);
+
 	printk("current = %d min = %d max = %d\n", cur,
 				    rot_lock->min, rot_lock->max);
 	if (cur < rot_lock->min || cur > rot_lock->max)
@@ -202,7 +201,7 @@ static struct rotation_lock *remove_read_acquirer(struct rotation_range *rot)
 }
 
 static inline void add_read_acquirer(struct rotation_lock *rot_lock)
-{	
+{
 	printk("add_read_acquirer\n");
 	spin_lock(&glob_lock);
 	list_add_tail(&rot_lock->lock_list, &acquire_reader.lock_list);
@@ -210,7 +209,8 @@ static inline void add_read_acquirer(struct rotation_lock *rot_lock)
 }
 
 static  struct rotation_lock *remove_write_acquirer(struct rotation_range *rot)
-{	
+{
+
 	int max = rot->rot.degree + rot->degree_range + 360;
 	int min = rot->rot.degree - (int)rot->degree_range + 360;
 	struct rotation_lock *curr, *next;
@@ -229,7 +229,7 @@ static  struct rotation_lock *remove_write_acquirer(struct rotation_range *rot)
 }
 
 static inline void add_write_acquirer(struct rotation_lock *rot_lock)
-{	
+{
 	printk("add_write_acquirer\n");
 	spin_lock(&glob_lock);
 	list_add_tail(&rot_lock->lock_list, &acquire_writer.lock_list);
@@ -295,6 +295,7 @@ asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 	unsigned long flags;
 	struct rotation_lock *klock = kmalloc(sizeof(struct rotation_lock),
 								GFP_KERNEL);
+	printk("sys_rotlock_write %p\n", klock);
 	get_user(krot, rot);
 	init_rotation_lock(klock, current, &krot);
 
@@ -316,7 +317,6 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 	unsigned long flags;
 	struct rotation_lock *klock = kmalloc(sizeof(struct rotation_lock),
 								GFP_KERNEL);
-	printk("sys_rotlock_write %p\n", klock);
 	get_user(krot, rot);
 	init_rotation_lock(klock, current, &krot);
 
@@ -332,11 +332,13 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 	return 0;
 }
 
+
 asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 {
 	struct rotation_range krot;
 	struct rotation_lock *klock;
 	unsigned long flags;
+
 	get_user(krot, rot);
 
 	spin_lock_irqsave(&my_lock, flags);
@@ -346,6 +348,7 @@ asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 	spin_unlock_irqrestore(&my_lock, flags);
 	return 0;
 }
+
 
 asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot)
 {

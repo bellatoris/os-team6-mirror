@@ -11,7 +11,7 @@
 #include <linux/sched.h>
 
 struct dev_rotation {
-        int degree;     /* 0 <= degree < 360 */
+	int degree;     /* 0 <= degree < 360 */
 };
 /*
  * Defines rotation range. The ranges give the "width" of
@@ -41,11 +41,11 @@ struct rotation_lock {
 inline void init_rotation_lock(struct rotation_lock *lock,
 			struct task_struct *p, struct rotation_range *rot)
 {
-    lock->max = rot->rot.degree + rot->degree_range + 360;
-    lock->min = rot->rot.degree - (int)rot->degree_range + 360;
-    lock->pid = p->pid;
-    lock->lock_list.prev = &lock->lock_list;
-    lock->lock_list.next = &lock->lock_list;
+	lock->max = rot->rot.degree + rot->degree_range + 360;
+	lock->min = rot->rot.degree - (int)rot->degree_range + 360;
+	lock->pid = p->pid;
+	lock->lock_list.prev = &lock->lock_list;
+	lock->lock_list.next = &lock->lock_list;
 }
 
 struct lock_queue {
