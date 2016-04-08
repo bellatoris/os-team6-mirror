@@ -3,7 +3,7 @@
  * syscall number 384 (you may want to check this number!)
  */
 #include <linux/linkage.h>
-#include <asm-generic/uaccess.h>
+#include <linux/uaccess.h>
 #include <linux/list.h>
 #include <linux/slab.h>
 #include <linux/export.h>
@@ -29,12 +29,13 @@ EXPORT_SYMBOL(rotation);
 struct rotation_lock {
 	int min;
 	int max;
+	int flag;
 	pid_t pid;
 	struct list_head lock_list;
 };
 
 #define ROTATION_LOCK_INITIALIZER(name) \
-	{ 0, 0, 0, LIST_HEAD_INIT((name).lock_list) }
+	{ 0, 0, 0, 0, LIST_HEAD_INIT((name).lock_list) }
 #define ROTATION_LOCK(name) \
 	struct rot_lock name = ROTATION_LOCK_INITIALIZER(name)
 
@@ -77,8 +78,6 @@ EXPORT_SYMBOL(my_lock);
 
 DEFINE_SPINLOCK(glob_lock);
 EXPORT_SYMBOL(glob_lock);
-
-void exit_rotlock(void);
 
 asmlinkage int sys_set_rotation(struct dev_rotation __user *rot);
 
