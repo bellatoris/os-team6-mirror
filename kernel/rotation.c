@@ -294,6 +294,7 @@ asmlinkage int sys_set_rotation(struct dev_rotation __user *rot)
 
 asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 {
+	int flag = 1;
 	struct rotation_range krot;
 	struct rotation_lock *klock = kmalloc(sizeof(struct rotation_lock),
 								GFP_KERNEL);
@@ -315,6 +316,7 @@ asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 
 asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 {
+	int flag = 1;
 	struct rotation_range krot;
 	struct rotation_lock *klock = kmalloc(sizeof(struct rotation_lock),
 								GFP_KERNEL);
@@ -323,7 +325,8 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 
 	spin_lock(&my_lock);
 	add_write_waiter(klock);
-	while (write_should_wait(klock)) {
+	while (write_should_wait(klock) || flag) {
+		flag = 0;
 		thread_cond_wait();
 	}
 	remove_write_waiter(klock);
