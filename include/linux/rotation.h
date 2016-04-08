@@ -52,7 +52,9 @@ inline void init_rotation_lock(struct rotation_lock *lock,
 
 struct lock_queue {
 	struct list_head lock_list;
-//	spinlock_t = queue_lock;
+	/*
+	spinlock_t = queue_lock;
+	*/
 };
 
 #define LOCK_QUEUE_INITIALIZER(name) \

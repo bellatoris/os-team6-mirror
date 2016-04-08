@@ -45,17 +45,16 @@ int main(int argc, char* argv[]){
 	}
 	range.rot.degree = atoi(argv[1]);
 	range.degree_range = atoi(argv[2]);
-	while(1){
+	do {
 	syscall(__NR_rotlock_read, &range);
 	FILE* ff = fopen("integer", "r");
 	fscanf(ff, "%d", &n);
 	fclose(ff);
 	printf("trial : ");
 	print_prime(n);
-	sleep(argv[2]);
+	usleep(atoi(argv[3]) * 1000000);
 	syscall(__NR_rotunlock_read, &range);
-	usleep(1000);
-	}
+	} while(0);
 }
 
 void print_prime(int n){
