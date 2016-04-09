@@ -182,8 +182,10 @@ static void __sched thread_cond_wait(void)
 	unsigned int flags;
 	printk("process go to sleep\n");
 	spin_unlock(&my_lock);
+	printk("spin unlock!\n");		
 	set_current_state(TASK_INTERRUPTIBLE);
 	schedule();
+	printk("i want spin lock\n");
 	spin_lock(&my_lock);
 	printk("process wake up\n");
 }
