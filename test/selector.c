@@ -34,9 +34,9 @@ void main(int argc, char* argv[])
 		fprintf(fp,"%d", val);
 		fclose(fp);
 		printf("selector : %d\n",val);
-		usleep(atoi(argv[3]) * 1000000);
+		sleep(1);
 		syscall(__NR_rotunlock_write,&range);
-	} while(0);
+	} while(1);
 
 	fp = fopen("interger", "w");
 	fprintf(fp, "%d", 0);
