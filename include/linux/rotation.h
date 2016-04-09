@@ -9,6 +9,7 @@
 #include <linux/export.h>
 #include <linux/init.h>
 #include <linux/sched.h>
+#include <asm-generic/errno-base.h>
 
 struct dev_rotation {
 	int degree;     /* 0 <= degree < 360 */
