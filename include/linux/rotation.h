@@ -45,13 +45,16 @@ inline void init_rotation_lock(struct rotation_lock *lock,
 	lock->max = rot->rot.degree + rot->degree_range + 360;
 	lock->min = rot->rot.degree - (int)rot->degree_range + 360;
 	lock->pid = p->pid;
+	lock->flag = 0;
 	lock->lock_list.prev = &lock->lock_list;
 	lock->lock_list.next = &lock->lock_list;
 }
 
 struct lock_queue {
 	struct list_head lock_list;
-//	spinlock_t = queue_lock;
+	/*
+	spinlock_t = queue_lock;
+	*/
 };
 
 #define LOCK_QUEUE_INITIALIZER(name) \

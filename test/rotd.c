@@ -31,10 +31,10 @@ void sensor()
 	struct dev_rotation rotation;
 	rotation.degree = 0;
 	while (notFinished) {
-		rotation.degree = (rotation.degree + 30) % 360;
+		rotation.degree = (rotation.degree + 1) % 360;
 		printf("%d\n" , rotation.degree);
 		syscall(SYSCALL_SET_ROTATION, &rotation);
-		sleep(2);
+		usleep(500 * 1000);
 	}
 }
 
