@@ -52,9 +52,9 @@ int main(int argc, char* argv[]){
 	fclose(ff);
 	printf("trial : ");
 	print_prime(n);
-	usleep(atoi(argv[3]) * 1000000);
+	sleep(1);
 	syscall(__NR_rotunlock_read, &range);
-	} while(0);
+	} while(1);
 }
 
 void print_prime(int n){

@@ -29,13 +29,12 @@ EXPORT_SYMBOL(rotation);
 struct rotation_lock {
 	int min;
 	int max;
-	int flag;
 	pid_t pid;
 	struct list_head lock_list;
 };
 
 #define ROTATION_LOCK_INITIALIZER(name) \
-	{ 0, 0, 0, 0, LIST_HEAD_INIT((name).lock_list) }
+	{ 0, 0, 0, LIST_HEAD_INIT((name).lock_list) }
 #define ROTATION_LOCK(name) \
 	struct rot_lock name = ROTATION_LOCK_INITIALIZER(name)
 
@@ -45,7 +44,6 @@ inline void init_rotation_lock(struct rotation_lock *lock,
 	lock->max = rot->rot.degree + rot->degree_range + 360;
 	lock->min = rot->rot.degree - (int)rot->degree_range + 360;
 	lock->pid = p->pid;
-	lock->flag = 0;
 	lock->lock_list.prev = &lock->lock_list;
 	lock->lock_list.next = &lock->lock_list;
 }
@@ -81,6 +79,9 @@ EXPORT_SYMBOL(my_lock);
 
 DEFINE_SPINLOCK(glob_lock);
 EXPORT_SYMBOL(glob_lock);
+
+int my_flag = 1;
+EXPORT_SYMBOL(my_flag);
 
 asmlinkage int sys_set_rotation(struct dev_rotation __user *rot);
 
