@@ -80,6 +80,9 @@ EXPORT_SYMBOL(my_lock);
 DEFINE_SPINLOCK(glob_lock);
 EXPORT_SYMBOL(glob_lock);
 
+int my_flag = 1;
+EXPORT_SYMBOL(my_flag);
+
 asmlinkage int sys_set_rotation(struct dev_rotation __user *rot);
 
 /* Take a read/or write lock using the given rotation range

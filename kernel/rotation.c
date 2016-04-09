@@ -8,6 +8,7 @@ extern struct lock_queue waiting_reader;
 extern struct lock_queue acquire_reader;
 extern spinlock_t my_lock;
 extern spinlock_t glob_lock;
+extern int my_flag;
 
 #define SET_CUR(name, rot) \
 	(name = (rot->min <= rotation.degree) ? rotation.degree : \
@@ -33,9 +34,11 @@ static int traverse_list_safe(struct rotation_lock *rot_lock,
 static inline void remove_read_waiter(struct rotation_lock *rot_lock)
 {
 	printk("remove_read_waiter\n");
+	spin_lock(&glob_lock);
 	if (!list_empty_careful(&waiting_reader.lock_list)) {
 		list_del_init(&rot_lock->lock_list);
 	}
+	spin_unlock(&glob_lock);
 }
 
 static inline void add_read_waiter(struct rotation_lock *rot_lock)
@@ -49,9 +52,11 @@ static inline void add_read_waiter(struct rotation_lock *rot_lock)
 static inline void remove_write_waiter(struct rotation_lock *rot_lock)
 {
 	printk("remove_write_waiter\n");
+	spin_lock(&glob_lock);
 	if (!list_empty_careful(&waiting_writer.lock_list)) {
 		list_del_init(&rot_lock->lock_list);
 	}
+	spin_unlock(&glob_lock);
 }
 
 static inline void add_write_waiter(struct rotation_lock *rot_lock)
@@ -88,7 +93,9 @@ static int remove_read_acquirer(struct rotation_range *rot)
 static inline void add_read_acquirer(struct rotation_lock *rot_lock)
 {
 	printk("add_read_acquirer\n");
+	spin_lock(&glob_lock);
 	list_add_tail(&rot_lock->lock_list, &acquire_reader.lock_list);
+	spin_unlock(&glob_lock);
 }
 
 static int remove_write_acquirer(struct rotation_range *rot)
@@ -118,7 +125,9 @@ static int remove_write_acquirer(struct rotation_range *rot)
 static inline void add_write_acquirer(struct rotation_lock *rot_lock)
 {
 	printk("add_write_acquirer\n");
+	spin_lock(&glob_lock);
 	list_add_tail(&rot_lock->lock_list, &acquire_writer.lock_list);
+	spin_unlock(&glob_lock);
 }
 
 static int thread_cond_signal(void)
@@ -140,8 +149,6 @@ static int thread_cond_signal(void)
 				printk("wake up the waiting writer pid: %d\n",
 								    curr->pid);
 				WAKE_UP(curr);
-				remove_write_waiter(curr);
-				add_write_acquirer(curr);
 				i = 1;
 				break;
 			}
@@ -167,8 +174,6 @@ static int thread_cond_broadcast(void)
 				printk("wake up the waiting reader pid: %d\n",
 								    curr->pid);
 				WAKE_UP(curr);
-				remove_read_waiter(curr);
-				add_read_acquirer(curr);
 				i++;
 			}
 		}
@@ -179,14 +184,17 @@ static int thread_cond_broadcast(void)
 
 static void __sched thread_cond_wait(void)
 {
-	unsigned int flags;
 	printk("process go to sleep\n");
+	
 	spin_unlock(&my_lock);
 	printk("spin unlock!\n");		
 	set_current_state(TASK_INTERRUPTIBLE);
 	schedule();
 	printk("i want spin lock\n");
 	spin_lock(&my_lock);
+	
+	//set_current_state(TASK_INTERRUPTIBLE);
+	//cond_resched_lock(&my_lock);
 	printk("process wake up\n");
 }
 
@@ -325,6 +333,8 @@ asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 	if (read_should_wait(klock)) {
 		thread_cond_wait();
 	}
+	remove_read_waiter(klock);
+	add_read_acquirer(klock);
 	spin_unlock(&my_lock);
 
 	return 0;
@@ -345,6 +355,8 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 	if (write_should_wait(klock)) {
 		thread_cond_wait();
 	}
+	remove_write_waiter(klock);
+	add_write_acquirer(klock);
 	spin_unlock(&my_lock);
 	return 0;
 }
