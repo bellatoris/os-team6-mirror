@@ -18,12 +18,13 @@ struct rotation_range{
     /* rot.degree - degree_range <= LOCK RANGE <= rot.degree + degree_range */
 };
 
+void print_prime(int n);
 
 int main(int argc, char* argv[]){
 	struct rotation_range range;
 	int n;
-	range.rot.degree = atoi(argv[1]);
-	range.degree_range = atoi(argv[2]);
+	range.rot.degree = 90;
+	range.degree_range = 90;
 	do {
 	syscall(__NR_rotlock_read, &range);
 	FILE* ff = fopen("integer", "r");
@@ -31,7 +32,6 @@ int main(int argc, char* argv[]){
 	fclose(ff);
 	printf("trial : ");
 	print_prime(n);
-	sleep(1);
 	syscall(__NR_rotunlock_read, &range);
 	} while(1);
 }

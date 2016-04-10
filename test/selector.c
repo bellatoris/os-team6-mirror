@@ -17,25 +17,20 @@ struct rotation_range{
 
 void main(int argc, char* argv[])
 {
-	int val;  //init value
+	int val = atoi(argv[1]);  //init value
 	struct rotation_range range;
-	range.rot.degree = atoi(argv[1]);
-	range.degree_range = atoi(argv[2]);
+	range.rot.degree = 90;
+	range.degree_range = 90;
 	FILE* fp;
-	
-	
+
 	do {
 		syscall(__NR_rotlock_write,&range);
-		fp = fopen("integer","r");
-		fscanf(fp, "%d", &val);
-		fclose(fp);
-		val += 1;
 		fp = fopen("integer", "w");
 		fprintf(fp,"%d", val);
 		fclose(fp);
 		printf("selector : %d\n",val);
-		sleep(1);
 		syscall(__NR_rotunlock_write,&range);
+		val++;
 	} while(1);
 
 	fp = fopen("interger", "w");
