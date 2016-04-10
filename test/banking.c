@@ -65,13 +65,18 @@ void* withdraw()
     }
 }
 
-int main()
+int main(int argc, char *argv[])
 {   
 	struct rotation_range range;
 	range.rot.degree = 180;
 	range.degree_range = 150;
 
 	FILE* fp;
+	if(atoi(argv[2]) == 1302) {
+		fp = fopen("balance", "w");
+		fprintf(fp, "%d", 0);
+		fclose(fp);
+	}
 
 	if (fork()) {
 	    deposit();
