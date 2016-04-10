@@ -139,7 +139,8 @@ static int thread_cond_signal(void)
 				!traverse_list_safe(curr, &acquire_reader)) {
 				printk("wake up the waiting writer pid: %d\n",
 								    curr->pid);
-				while(WAKE_UP(curr) != 1);
+				while (WAKE_UP(curr) != 1) {
+				}
 				remove_write_waiter(curr);
 				add_write_acquirer(curr);
 				i = 1;
@@ -166,7 +167,8 @@ static int thread_cond_broadcast(void)
 				!traverse_list_safe(curr, &waiting_writer)) {
 				printk("wake up the waiting reader pid: %d\n",
 								    curr->pid);
-				while(WAKE_UP(curr) != 1);
+				while (WAKE_UP(curr) != 1) {
+				}
 				remove_read_waiter(curr);
 				add_read_acquirer(curr);
 				i++;
@@ -179,15 +181,12 @@ static int thread_cond_broadcast(void)
 
 static void __sched thread_cond_wait(void)
 {
-	unsigned int flags;
 	printk("process go to sleep\n");
 	preempt_disable();
 	spin_unlock(&my_lock);
-	//printk("spin unlock!\n");		
 	set_current_state(TASK_INTERRUPTIBLE);
 	preempt_enable();
 	schedule();
-	//printk("i want spin lock\n");
 	spin_lock(&my_lock);
 	printk("process wake up\n");
 }
@@ -219,7 +218,7 @@ static int read_should_wait(struct rotation_lock *rot_lock)
 	remove_read_waiter(rot_lock);
 	add_read_acquirer(rot_lock);
 	spin_unlock(&glob_lock);
-	
+
 	return 0;
 }
 
