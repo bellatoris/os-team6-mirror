@@ -139,7 +139,7 @@ static int thread_cond_signal(void)
 				!traverse_list_safe(curr, &acquire_reader)) {
 				printk("wake up the waiting writer pid: %d\n",
 								    curr->pid);
-				WAKE_UP(curr);
+				while(WAKE_UP(curr) != 1);
 				remove_write_waiter(curr);
 				add_write_acquirer(curr);
 				i = 1;
@@ -166,7 +166,7 @@ static int thread_cond_broadcast(void)
 				!traverse_list_safe(curr, &waiting_writer)) {
 				printk("wake up the waiting reader pid: %d\n",
 								    curr->pid);
-				WAKE_UP(curr);
+				while(WAKE_UP(curr) != 1);
 				remove_read_waiter(curr);
 				add_read_acquirer(curr);
 				i++;
