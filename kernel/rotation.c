@@ -193,27 +193,27 @@ static void __sched thread_cond_wait(void)
 */
 static void __sched thread_read_wait(struct rotation_lock *rot_lock)
 {
-        printk("process go to sleep\n");
-        //preempt_disable();
-        spin_unlock(&my_lock);
-        set_current_state(TASK_INTERRUPTIBLE);
-        //preempt_enable();
+	printk("process go to sleep\n");
+	//preempt_disable();
+	spin_unlock(&my_lock);
+	set_current_state(TASK_INTERRUPTIBLE);
+	//preempt_enable();
 	add_read_waiter(rot_lock);
-        schedule();
-        spin_lock(&my_lock);
-        printk("process wake up\n");
+	schedule();
+	spin_lock(&my_lock);
+	printk("process wake up\n");
 }
 static void __sched thread_write_wait(struct rotation_lock *rot_lock)
 {
-        printk("process go to sleep\n");
-        //preempt_disable();
-        spin_unlock(&my_lock);
-        set_current_state(TASK_INTERRUPTIBLE);
-        //preempt_enable();
+	printk("process go to sleep\n");
+	//preempt_disable();
+	spin_unlock(&my_lock);
+	set_current_state(TASK_INTERRUPTIBLE);
+	//preempt_enable();
 	add_write_waiter(rot_lock);
-        schedule();
-        spin_lock(&my_lock);
-        printk("process wake up\n");
+	schedule();
+	spin_lock(&my_lock);
+	printk("process wake up\n");
 }
 
 static int read_should_wait(struct rotation_lock *rot_lock)
@@ -325,8 +325,10 @@ void exit_rotlock()
 asmlinkage int sys_set_rotation(struct dev_rotation __user *rot)
 {
 	int i;
-	copy_from_user(&rotation.degree, &rot->degree,
-				    sizeof(struct dev_rotation));
+	//error_check.2  copy_from_user returns 0 when it succeeds.
+	if (copy_from_user(&rotation.degree, &rot->degree,
+				    sizeof(struct dev_rotation))!=0)
+		return -EFAULT;
 	printk("%d\n", rotation.degree);
 	i = thread_cond_signal();
 	if (!i) {
@@ -340,9 +342,23 @@ asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 	struct rotation_range krot;
 	struct rotation_lock *klock = kmalloc(sizeof(struct rotation_lock),
 								GFP_KERNEL);
+	//error_check.1  kmalloc is fine?
+	if (klock == NULL)
+		return -ENOMEM;
 
 	printk("sys_rotlock_write %p\n", klock);
-	copy_from_user(&krot, rot, sizeof(struct rotation_range));
+
+	//error_check.2  copy_from_user returns 0 when it succeeds.
+	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
+		return -EFAULT;
+	//error_check.3  range_degree should be positive + 0;
+	if (krot.degree_range <0)
+		return -EINVAL;
+	//error_check.4  0 =< rot.degree <360
+	if (krot.rot.degree < 0 ||krot.rot.degree > 359)
+		return -EINVAL;
+
+	printk("sys_rotlock_write %p\n", klock);
 	krot.rot.degree %= 360;
 	init_rotation_lock(klock, current, &krot);
 
@@ -362,8 +378,19 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 	struct rotation_range krot;
 	struct rotation_lock *klock = kmalloc(sizeof(struct rotation_lock),
 								GFP_KERNEL);
+	//error_check.1  kmalloc is fine?
+	if (klock == NULL)
+		return -ENOMEM;
+	//error_check.2  copy_from_user returns 0 when it succeeds.
+	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
+		return -EFAULT;
+	//error_check.3  range_degree should be positive + 0;
+	if (krot.degree_range <0)
+		return -EINVAL;
+	//error_check.4  0 =< rot.degree <360
+	if (krot.rot.degree < 0 ||krot.rot.degree > 359)
+		return -EINVAL;
 
-	copy_from_user(&krot, rot, sizeof(struct rotation_range));
 	krot.rot.degree %= 360;
 	init_rotation_lock(klock, current, &krot);
 
@@ -382,7 +409,16 @@ asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 	struct rotation_range krot;
 	int flag = -1;
 
-	copy_from_user(&krot, rot, sizeof(struct rotation_range));
+	//error_check.2  copy_from_user returns 0 when it succeeds.
+	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
+		return -EFAULT;
+	//error_check.3  range_degree should be positive + 0;
+	if (krot.degree_range <0)
+		return -EINVAL;
+	//error_check.4  0 =< rot.degree <360
+	if (krot.rot.degree < 0 ||krot.rot.degree > 359)
+		return -EINVAL;
+
 	krot.rot.degree %= 360;
 	spin_lock(&my_lock);
 	flag = remove_read_acquirer(&krot);
@@ -397,7 +433,17 @@ asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot)
 	struct rotation_range krot;
 	int flag = -1;
 	printk("sys_unlock_write\n");
-	copy_from_user(&krot, rot, sizeof(struct rotation_range));
+
+	//error_check.2  copy_from_user returns 0 when it succeeds.
+	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
+		return -EFAULT;
+	//error_check.3  range_degree should be positive + 0;
+	if (krot.degree_range <0)
+		return -EINVAL;
+	//error_check.4  0 =< rot.degree <360
+	if (krot.rot.degree < 0 ||krot.rot.degree > 359)
+		return -EINVAL;
+
 	krot.rot.degree %= 360;
 
 	spin_lock(&my_lock);
