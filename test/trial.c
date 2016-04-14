@@ -7,7 +7,8 @@
 #define __NR_rotlock_write 386
 #define __NR_rotunlock_read 387
 #define __NR_rotunlock_write 388
-int prime[10000];
+int size = 100000;
+int prime[size];
 
 
 struct dev_rotation{
@@ -21,6 +22,7 @@ struct rotation_range{
     /* rot.degree - degree_range <= LOCK RANGE <= rot.degree + degree_range */
 };
 
+void print_prime(int n);
 
 int main(int argc, char* argv[]){
 	struct rotation_range range;
@@ -28,7 +30,7 @@ int main(int argc, char* argv[]){
 	int i,j;
 	int obj;
 	prime[0]=2;
-	for(i=0;i<10000;i++){
+	for(i=0;i<size;i++){
 	obj = prime[i]+1;
 		for(j=0;j<=i;j++){
 			if(obj%prime[j]==0){
@@ -52,7 +54,6 @@ int main(int argc, char* argv[]){
 	fclose(ff);
 	printf("trial : ");
 	print_prime(n);
-	sleep(1);
 	syscall(__NR_rotunlock_read, &range);
 	} while(1);
 }
@@ -62,7 +63,7 @@ void print_prime(int n){
 	if(n <2){
 		return;
 	}
-	for(i =0; i < 10000 ; i++){
+	for(i =0; i < size ; i++){
 		if(n == prime[i]){
 			printf("%d \n" ,prime[i]);	
 			break;
