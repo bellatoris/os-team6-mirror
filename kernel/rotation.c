@@ -188,20 +188,45 @@ static int thread_cond_broadcast(void)
 	return i;
 }
 
+/*
 static void __sched thread_cond_wait(void)
 {
+        printk("process go to sleep\n");
+        //preempt_disable();
+        spin_unlock(&my_lock);
+        set_current_state(TASK_INTERRUPTIBLE);
+        //preempt_enable();
+        schedule();
+        spin_lock(&my_lock);
+        printk("process wake up\n");
+}
+*/
+
+static void __sched thread_read_wait(struct rotation_lock *rot_lock)
+{
 	printk("process go to sleep\n");
-	preempt_disable();
+	//preempt_disable();
 	spin_unlock(&my_lock);
 	set_current_state(TASK_INTERRUPTIBLE);
-	preempt_enable();
+	//preempt_enable();
+	add_read_waiter(rot_lock);
 	schedule();
 	spin_lock(&my_lock);
-	
-	//set_current_state(TASK_INTERRUPTIBLE);
-	//cond_resched_lock(&my_lock);
 	printk("process wake up\n");
 }
+static void __sched thread_write_wait(struct rotation_lock *rot_lock)
+{
+	printk("process go to sleep\n");
+	//preempt_disable();
+	spin_unlock(&my_lock);
+	set_current_state(TASK_INTERRUPTIBLE);
+	//preempt_enable();
+ 	add_write_waiter(rot_lock);
+	schedule();
+	spin_lock(&my_lock);
+	printk("process wake up\n");
+}
+
 
 static int read_should_wait(struct rotation_lock *rot_lock)
 {
@@ -349,9 +374,10 @@ asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 	init_rotation_lock(klock, current, &krot);
 
 	spin_lock(&my_lock);
-	add_read_waiter(klock);
+	//add_read_waiter(klock);
 	if (read_should_wait(klock)) {
-		thread_cond_wait();
+		thread_read_wait(klock);
+		//thread_cond_wait();
 	}
 	remove_read_waiter(klock);
 	add_read_acquirer(klock);
@@ -385,9 +411,10 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 	init_rotation_lock(klock, current, &krot);
 
 	spin_lock(&my_lock);
-	add_write_waiter(klock);
+	//add_write_waiter(klock);
 	if (write_should_wait(klock)) {
-		thread_cond_wait();
+		thread_write_wait(klock);
+		//thread_cond_wait();
 	}
 	remove_write_waiter(klock);
 	add_write_acquirer(klock);
