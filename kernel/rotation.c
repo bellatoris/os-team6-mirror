@@ -187,7 +187,6 @@ static int thread_cond_broadcast(void)
 	spin_unlock(&glob_lock);
 	return i;
 }
-
 /*
 static void __sched thread_cond_wait(void)
 {
@@ -204,27 +203,27 @@ static void __sched thread_cond_wait(void)
 
 static void __sched thread_read_wait(struct rotation_lock *rot_lock)
 {
-	printk("process go to sleep\n");
-	//preempt_disable();
-	spin_unlock(&my_lock);
-	set_current_state(TASK_INTERRUPTIBLE);
-	//preempt_enable();
+        printk("process go to sleep\n");
+        //preempt_disable();
+        spin_unlock(&my_lock);
+        set_current_state(TASK_INTERRUPTIBLE);
+        //preempt_enable();
 	add_read_waiter(rot_lock);
-	schedule();
-	spin_lock(&my_lock);
-	printk("process wake up\n");
+        schedule();
+        spin_lock(&my_lock);
+        printk("process wake up\n");
 }
 static void __sched thread_write_wait(struct rotation_lock *rot_lock)
 {
-	printk("process go to sleep\n");
-	//preempt_disable();
-	spin_unlock(&my_lock);
-	set_current_state(TASK_INTERRUPTIBLE);
-	//preempt_enable();
- 	add_write_waiter(rot_lock);
-	schedule();
-	spin_lock(&my_lock);
-	printk("process wake up\n");
+        printk("process go to sleep\n");
+        //preempt_disable();
+        spin_unlock(&my_lock);
+        set_current_state(TASK_INTERRUPTIBLE);
+        //preempt_enable();
+	add_write_waiter(rot_lock);
+        schedule();
+        spin_lock(&my_lock);
+        printk("process wake up\n");
 }
 
 

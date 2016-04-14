@@ -29,8 +29,10 @@ void main(int argc, char* argv[])
 		fprintf(fp,"%d", val);
 		fclose(fp);
 		printf("selector : %d\n",val);
-		syscall(__NR_rotunlock_write,&range);
 		val++;
+		usleep(1000 * 100);
+		syscall(__NR_rotunlock_write,&range);
+
 	} while(1);
 
 	fp = fopen("interger", "w");
