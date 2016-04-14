@@ -8,7 +8,6 @@ extern struct lock_queue waiting_reader;
 extern struct lock_queue acquire_reader;
 extern spinlock_t my_lock;
 extern spinlock_t glob_lock;
-extern int my_flag;
 
 #define SET_CUR(name, rot) \
 	(name = (rot->min <= rotation.degree) ? rotation.degree : \
@@ -34,11 +33,9 @@ static int traverse_list_safe(struct rotation_lock *rot_lock,
 static inline void remove_read_waiter(struct rotation_lock *rot_lock)
 {
 	printk("remove_read_waiter\n");
-	spin_lock(&glob_lock);
 	if (!list_empty_careful(&waiting_reader.lock_list)) {
 		list_del_init(&rot_lock->lock_list);
 	}
-	spin_unlock(&glob_lock);
 }
 
 static inline void add_read_waiter(struct rotation_lock *rot_lock)
@@ -52,11 +49,9 @@ static inline void add_read_waiter(struct rotation_lock *rot_lock)
 static inline void remove_write_waiter(struct rotation_lock *rot_lock)
 {
 	printk("remove_write_waiter\n");
-	spin_lock(&glob_lock);
 	if (!list_empty_careful(&waiting_writer.lock_list)) {
 		list_del_init(&rot_lock->lock_list);
 	}
-	spin_unlock(&glob_lock);
 }
 
 static inline void add_write_waiter(struct rotation_lock *rot_lock)
@@ -93,9 +88,7 @@ static int remove_read_acquirer(struct rotation_range *rot)
 static inline void add_read_acquirer(struct rotation_lock *rot_lock)
 {
 	printk("add_read_acquirer\n");
-	spin_lock(&glob_lock);
 	list_add_tail(&rot_lock->lock_list, &acquire_reader.lock_list);
-	spin_unlock(&glob_lock);
 }
 
 static int remove_write_acquirer(struct rotation_range *rot)
@@ -125,9 +118,7 @@ static int remove_write_acquirer(struct rotation_range *rot)
 static inline void add_write_acquirer(struct rotation_lock *rot_lock)
 {
 	printk("add_write_acquirer\n");
-	spin_lock(&glob_lock);
 	list_add_tail(&rot_lock->lock_list, &acquire_writer.lock_list);
-	spin_unlock(&glob_lock);
 }
 
 static int thread_cond_signal(void)
@@ -190,17 +181,16 @@ static int thread_cond_broadcast(void)
 /*
 static void __sched thread_cond_wait(void)
 {
-        printk("process go to sleep\n");
-        //preempt_disable();
-        spin_unlock(&my_lock);
-        set_current_state(TASK_INTERRUPTIBLE);
-        //preempt_enable();
-        schedule();
-        spin_lock(&my_lock);
-        printk("process wake up\n");
+	printk("process go to sleep\n");
+	//preempt_disable();
+	spin_unlock(&my_lock);
+	set_current_state(TASK_INTERRUPTIBLE);
+	//preempt_enable();
+	schedule();
+	spin_lock(&my_lock);
+	printk("process wake up\n");
 }
 */
-
 static void __sched thread_read_wait(struct rotation_lock *rot_lock)
 {
         printk("process go to sleep\n");
@@ -225,7 +215,6 @@ static void __sched thread_write_wait(struct rotation_lock *rot_lock)
         spin_lock(&my_lock);
         printk("process wake up\n");
 }
-
 
 static int read_should_wait(struct rotation_lock *rot_lock)
 {
@@ -336,10 +325,8 @@ void exit_rotlock()
 asmlinkage int sys_set_rotation(struct dev_rotation __user *rot)
 {
 	int i;
-	//error_check.2  copy_from_user returns 0 when it succeeds.
-	if (copy_from_user(&rotation.degree, &rot->degree,
-				    sizeof(struct dev_rotation))!=0)
-		return -EFAULT;
+	copy_from_user(&rotation.degree, &rot->degree,
+				    sizeof(struct dev_rotation));
 	printk("%d\n", rotation.degree);
 	i = thread_cond_signal();
 	if (!i) {
@@ -353,22 +340,9 @@ asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 	struct rotation_range krot;
 	struct rotation_lock *klock = kmalloc(sizeof(struct rotation_lock),
 								GFP_KERNEL);
-	//error_check.1  kmalloc is fine?
-	if (klock == NULL)
-		return -ENOMEM;
-
-	int flag = 1;
 
 	printk("sys_rotlock_write %p\n", klock);
-	//error_check.2  copy_from_user returns 0 when it succeeds.
-	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
-		return -EFAULT;
-	//error_check.3  range_degree should be positive + 0;
-	if (krot.degree_range <0)
-		return -EINVAL;
-	//error_check.4  0 =< rot.degree <360
-	if (krot.rot.degree < 0 ||krot.rot.degree > 359)
-		return -EINVAL;
+	copy_from_user(&krot, rot, sizeof(struct rotation_range));
 	krot.rot.degree %= 360;
 	init_rotation_lock(klock, current, &krot);
 
@@ -388,22 +362,8 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 	struct rotation_range krot;
 	struct rotation_lock *klock = kmalloc(sizeof(struct rotation_lock),
 								GFP_KERNEL);
-	//error_check.1  kmalloc is fine?
-	if (klock == NULL)
-		return -ENOMEM;
 
-	int flag = 1;
-
-	//error_check.2  copy_from_user returns 0 when it succeeds.
-	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
-		return -EFAULT;
-	//error_check.3  range_degree should be positive + 0;
-	if (krot.degree_range <0)
-		return -EINVAL;
-	//error_check.4  0 =< rot.degree <360
-	if (krot.rot.degree < 0 ||krot.rot.degree > 359)
-		return -EINVAL;
-
+	copy_from_user(&krot, rot, sizeof(struct rotation_range));
 	krot.rot.degree %= 360;
 	init_rotation_lock(klock, current, &krot);
 
@@ -422,17 +382,7 @@ asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 	struct rotation_range krot;
 	int flag = -1;
 
-	//error_check.2  copy_from_user returns 0 when it succeeds.
-	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
-		return -EFAULT;
-	//error_check.3  range_degree should be positive + 0;
-	if (krot.degree_range <0)
-		return -EINVAL;
-	//error_check.4  0 =< rot.degree <360
-
-	if (krot.rot.degree < 0 ||krot.rot.degree > 359)
-		return -EINVAL;
-
+	copy_from_user(&krot, rot, sizeof(struct rotation_range));
 	krot.rot.degree %= 360;
 	spin_lock(&my_lock);
 	flag = remove_read_acquirer(&krot);
@@ -447,17 +397,7 @@ asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot)
 	struct rotation_range krot;
 	int flag = -1;
 	printk("sys_unlock_write\n");
-
-	//error_check.2  copy_from_user returns 0 when it succeeds.
-	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
-		return -EFAULT;
-	//error_check.3  range_degree should be positive + 0;
-	if (krot.degree_range <0)
-		return -EINVAL;
-	//error_check.4  0 =< rot.degree <360
-	if (krot.rot.degree < 0 ||krot.rot.degree > 359)
-		return -EINVAL;
-
+	copy_from_user(&krot, rot, sizeof(struct rotation_range));
 	krot.rot.degree %= 360;
 
 	spin_lock(&my_lock);
