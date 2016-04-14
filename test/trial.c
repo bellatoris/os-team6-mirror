@@ -32,6 +32,7 @@ int main(int argc, char* argv[]){
 	fclose(ff);
 	printf("trial : ");
 	print_prime(n);
+	usleep(1000* 100);
 	syscall(__NR_rotunlock_read, &range);
 	} while(1);
 }

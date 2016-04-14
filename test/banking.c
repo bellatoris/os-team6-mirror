@@ -68,8 +68,8 @@ void* withdraw()
 int main(int argc, char *argv[])
 {   
 	struct rotation_range range;
-	range.rot.degree = 180;
-	range.degree_range = 150;
+	range.rot.degree = atoi(argv[1]);
+	range.degree_range = atoi(argv[2]);
 
 	FILE* fp;
 	if(atoi(argv[2]) == 1302) {

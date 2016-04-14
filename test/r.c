@@ -22,16 +22,18 @@ struct rotation_range{
 int main(int argc, char* argv[]){
 	struct rotation_range range;
         int n;
-        range.rot.degree = 180;
-        range.degree_range = 180;
-	int val = atoi(argv[1]);
-	printf("W1 get lock\n"); 
-	syscall(__NR_rotlock_write,&range);
-	FILE* fp= fopen("for_test","w");
-	fprintf(fp,"%d", val);
+	char * name = argv[1];
+        range.rot.degree = atoi(argv[2]);
+        range.degree_range = atoi(argv[3]);
+	printf("%s want lock\n", name ); 
+	syscall(__NR_rotlock_read,&range);
+	printf("%s get lock\n",name);
+	FILE* fp= fopen("for_test","r");
+	fscanf(fp, "%d", &n);
+	printf("%s get : %d\n",name,n);
 	fclose(fp);  
-	printf("W1 go to sleep(10)\n");
+	printf("%s go to sleep(10)\n",name);
 	sleep(10);
-	printf("W1 unlock\n");
-	syscall(__NR_rotunlock_write,&range);
+	printf("%s unlock\n",name);
+	syscall(__NR_rotunlock_read,&range);
 }
