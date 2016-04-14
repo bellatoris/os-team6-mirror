@@ -379,8 +379,6 @@ asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 		thread_read_wait(klock);
 		//thread_cond_wait();
 	}
-	remove_read_waiter(klock);
-	add_read_acquirer(klock);
 	spin_unlock(&my_lock);
 
 	return 0;
@@ -416,8 +414,6 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 		thread_write_wait(klock);
 		//thread_cond_wait();
 	}
-	remove_write_waiter(klock);
-	add_write_acquirer(klock);
 	spin_unlock(&my_lock);
 	return 0;
 }
