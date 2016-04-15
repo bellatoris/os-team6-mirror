@@ -22,15 +22,18 @@ void main(int argc, char* argv[])
 	range.rot.degree = 90;
 	range.degree_range = 90;
 	FILE* fp;
+	int ret;
 
 	do {
-		syscall(__NR_rotlock_write,&range);
+		ret = syscall(__NR_rotlock_write,&range);
 		fp = fopen("integer", "w");
 		fprintf(fp,"%d", val);
 		fclose(fp);
 		printf("selector : %d\n",val);
-		syscall(__NR_rotunlock_write,&range);
 		val++;
+		//usleep(1000 * 100);
+		ret = syscall(__NR_rotunlock_write,&range);
+
 	} while(1);
 
 	fp = fopen("interger", "w");
