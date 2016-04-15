@@ -16,6 +16,10 @@ extern spinlock_t glob_lock;
 #define FIND(name) \
 	pid_task(find_get_pid(name->pid), PIDTYPE_PID)
 
+/*
+ * traverse_list_safe
+ * if ranges overlap, return 1 otherwise return 0.
+ */
 static int traverse_list_safe(struct rotation_lock *rot_lock,
 						struct lock_queue *queue)
 {
@@ -27,12 +31,22 @@ static int traverse_list_safe(struct rotation_lock *rot_lock,
 	return 0;
 }
 
+
+/*
+ * remove_read_waiter
+ * remove the rot_lock in read_waiter_queue
+ */
 static inline void remove_read_waiter(struct rotation_lock *rot_lock)
 {
 	if (!list_empty_careful(&waiting_reader.lock_list))
 		list_del_init(&rot_lock->lock_list);
 }
 
+
+/*
+ * add_read_waiter
+ * add a rot_lock in read_waiter_queue
+ */
 static inline void add_read_waiter(struct rotation_lock *rot_lock)
 {
 	spin_lock(&glob_lock);
@@ -40,12 +54,22 @@ static inline void add_read_waiter(struct rotation_lock *rot_lock)
 	spin_unlock(&glob_lock);
 }
 
+
+/*
+ * remove_write_waiter
+ * remove the lock at the tail of write_waiter_queue
+ */
 static inline void remove_write_waiter(struct rotation_lock *rot_lock)
 {
 	if (!list_empty_careful(&waiting_writer.lock_list))
 		list_del_init(&rot_lock->lock_list);
 }
 
+
+/*
+ * add_write_waiter
+ * add the lock at the tail of write_waiter_queue
+ */
 static inline void add_write_waiter(struct rotation_lock *rot_lock)
 {
 	spin_lock(&glob_lock);
@@ -53,6 +77,11 @@ static inline void add_write_waiter(struct rotation_lock *rot_lock)
 	spin_unlock(&glob_lock);
 }
 
+
+/*
+ * remove_read_acquirer
+ * remove the lock in the acquire_read_queue
+ */
 static int remove_read_acquirer(struct rotation_range *rot)
 {
 	int flag = -1;
@@ -75,6 +104,10 @@ static int remove_read_acquirer(struct rotation_range *rot)
 	return flag;
 }
 
+/*
+ * add_read_acquirer
+ * acquire read_lock
+ */
 static inline void add_read_acquirer(struct rotation_lock *rot_lock)
 {
 	list_add_tail(&rot_lock->lock_list, &acquire_reader.lock_list);
@@ -103,11 +136,19 @@ static int remove_write_acquirer(struct rotation_range *rot)
 }
 
 
+/*
+ * add_write_acquirer
+ *  acquire write lock!
+ */
 static inline void add_write_acquirer(struct rotation_lock *rot_lock)
 {
 	list_add_tail(&rot_lock->lock_list, &acquire_writer.lock_list);
 }
 
+/*
+ * thread_cond_signal
+ * search whether a write_waiter exists and if do, wake up it
+ */
 static int thread_cond_signal(void)
 {
 	struct rotation_lock *curr, *next;
@@ -136,6 +177,10 @@ static int thread_cond_signal(void)
 	return i;
 }
 
+/*
+ * thread_cond_broadcast
+ * wake up read_waiters!
+ */
 static int thread_cond_broadcast(void)
 {
 	struct rotation_lock *curr, *next;
@@ -162,6 +207,10 @@ static int thread_cond_broadcast(void)
 	return i;
 }
 
+/*
+ * thrad_cond_wait
+ * first sleep, and some signal come, wake up!
+ */
 static void __sched thread_cond_wait(void)
 {
 	preempt_disable();
@@ -172,6 +221,11 @@ static void __sched thread_cond_wait(void)
 	spin_lock(&my_lock);
 }
 
+
+/*
+ * read_shoud_wait
+ * test if this read process should sleep
+ */
 static int read_should_wait(struct rotation_lock *rot_lock)
 {
 	int cur;
@@ -198,6 +252,12 @@ static int read_should_wait(struct rotation_lock *rot_lock)
 	return 0;
 }
 
+
+
+/*
+ * write_should_wait
+ * test if this write process should sleep
+ */
 static int write_should_wait(struct rotation_lock *rot_lock)
 {
 	int cur;
@@ -224,6 +284,12 @@ static int write_should_wait(struct rotation_lock *rot_lock)
 	return 0;
 }
 
+
+/*
+ * exit_rotlock
+ * when exit() calls, it check whether the process release a lock,
+ * and  if, compulsory release the lock.
+ */
 void exit_rotlock()
 {
 	struct rotation_lock *curr, *next;
