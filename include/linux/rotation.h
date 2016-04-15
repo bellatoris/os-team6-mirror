@@ -21,7 +21,7 @@ struct dev_rotation {
  */
 struct rotation_range {
 	struct dev_rotation rot;  /* device rotation */
-	unsigned int degree_range;      /* lock range = rot.degree ± degree_range */
+	unsigned int degree_range;/* lock range = rot.degree ± degree_range */
 };
 
 struct dev_rotation rotation;
@@ -62,13 +62,15 @@ struct lock_queue {
 	struct lock_queue name = LOCK_QUEUE_INITIALIZER(name)
 
 LOCK_QUEUE(waiting_writer);
-LOCK_QUEUE(acquire_writer);
-LOCK_QUEUE(waiting_reader);
-LOCK_QUEUE(acquire_reader);
-
 EXPORT_SYMBOL(waiting_writer);
+
+LOCK_QUEUE(acquire_writer);
 EXPORT_SYMBOL(acquire_writer);
+
+LOCK_QUEUE(waiting_reader);
 EXPORT_SYMBOL(waiting_reader);
+
+LOCK_QUEUE(acquire_reader);
 EXPORT_SYMBOL(acquire_reader);
 
 /*

@@ -7,7 +7,9 @@
 #define __NR_rotlock_write 386
 #define __NR_rotunlock_read 387
 #define __NR_rotunlock_write 388
-int prime[10000];
+
+#define N 10000
+int prime[N];
 
 
 struct dev_rotation{
@@ -29,7 +31,7 @@ int main(int argc, char* argv[]){
 	int i,j;
 	int obj;
 	prime[0]=2;
-	for(i=0;i< 10000;i++){
+	for(i=0;i< N;i++){
 	obj = prime[i]+1;
 		for(j=0;j<=i;j++){
 			if(obj%prime[j]==0){
@@ -62,7 +64,7 @@ void print_prime(int n){
 	if(n <2){
 		return;
 	}
-	for(i =0; i < 10000 ; i++){
+	for(i =0; i < N; i++){
 
 		 if(n == prime[i]){
                         printf("%d \n" ,prime[i]);
