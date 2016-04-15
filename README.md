@@ -24,8 +24,8 @@ struct dev_rotation {
 ```
 
 3)sys_set_rotation  
-user level에서 rotation을 받으면 kernel에 devices의 rotation에 해당하는 structure에 rotation을 copy한다.
-또한 해당 rotation에 wait하고 있고 일어 날 수 있는 read/write lock이 존재 한다면 깨우고, 깨운 
+user level에서 rotation을 받으면 kernel의 dev_rotation에 rotation을 copy한다.
+또한 해당 rotation에 wait하고 있고 일어 날 수 있는 read/write l의ock이 존재 한다면 깨우고, 깨운 
 process의 수를 return 한다. 에러가 발생하면 -1을 리턴한다.
 
 3)sys_rotlock_read / sys_rotlock_write  
