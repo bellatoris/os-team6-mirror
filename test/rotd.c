@@ -27,11 +27,11 @@ void sensor()
 	action.sa_handler = term;
 	if (sigaction(SIGTERM, &action, NULL) == -1)
 		exit(-1);
-	
+
 	struct dev_rotation rotation;
 	rotation.degree = 0;
 	while (notFinished) {
-		rotation.degree = (rotation.degree + 10) % 360;
+		rotation.degree = (rotation.degree + 30) % 360;
 		printf("%d\n" , rotation.degree);
 		syscall(SYSCALL_SET_ROTATION, &rotation);
 		sleep(1);

@@ -41,7 +41,7 @@ int main(int argc, char* argv[]){
 				prime[i+1] = obj;
 				break;
 			}
-				
+
 		}
 	}
 	range.rot.degree = 90;
@@ -53,7 +53,7 @@ int main(int argc, char* argv[]){
 	fclose(ff);
 	printf("trial : ");
 	print_prime(n);
-	usleep(1000* 100);
+	//usleep(1000* 100);
 	syscall(__NR_rotunlock_read, &range);
 	} while(1);
 }
@@ -65,13 +65,13 @@ void print_prime(int n){
 	}
 	for(i =0; i < 10000 ; i++){
 		if(n == prime[i]){
-			printf("%d \n" ,prime[i]);	
+			printf("%d \n" ,prime[i]);
 			break;
 		}
 		if( (n % prime[i]) ==0){
 			printf("%d * ",prime[i]);
 			n = (n / prime[i]);
-			i--; 
+			i--;
 		}
-	} 
+	}
 }

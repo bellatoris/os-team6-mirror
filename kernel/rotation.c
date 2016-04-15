@@ -194,11 +194,11 @@ static void __sched thread_cond_wait(void)
 static void __sched thread_read_wait(struct rotation_lock *rot_lock)
 {
 	printk("process go to sleep\n");
-	//preempt_disable();
+	preempt_disable();
+	add_read_waiter(rot_lock);
 	spin_unlock(&my_lock);
 	set_current_state(TASK_INTERRUPTIBLE);
-	//preempt_enable();
-	add_read_waiter(rot_lock);
+	preempt_enable();
 	schedule();
 	spin_lock(&my_lock);
 	printk("process wake up\n");
@@ -206,11 +206,11 @@ static void __sched thread_read_wait(struct rotation_lock *rot_lock)
 static void __sched thread_write_wait(struct rotation_lock *rot_lock)
 {
 	printk("process go to sleep\n");
-	//preempt_disable();
+	preempt_disable();
+	add_write_waiter(rot_lock);
 	spin_unlock(&my_lock);
 	set_current_state(TASK_INTERRUPTIBLE);
-	//preempt_enable();
-	add_write_waiter(rot_lock);
+	preempt_enable();
 	schedule();
 	spin_lock(&my_lock);
 	printk("process wake up\n");
@@ -329,6 +329,10 @@ asmlinkage int sys_set_rotation(struct dev_rotation __user *rot)
 	if (copy_from_user(&rotation.degree, &rot->degree,
 				    sizeof(struct dev_rotation))!=0)
 		return -EFAULT;
+	//error_check.4  0 =< rot.degree <360
+	if (rotation.degree < 0 ||rotation.degree > 359)
+		return -EINVAL;
+
 	printk("%d\n", rotation.degree);
 	i = thread_cond_signal();
 	if (!i) {
@@ -379,8 +383,10 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 	struct rotation_lock *klock = kmalloc(sizeof(struct rotation_lock),
 								GFP_KERNEL);
 	//error_check.1  kmalloc is fine?
-	if (klock == NULL)
+	if (klock == NULL){
+		printk("kmalloc is fails and checked!\n");
 		return -ENOMEM;
+	}
 	//error_check.2  copy_from_user returns 0 when it succeeds.
 	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
 		return -EFAULT;
