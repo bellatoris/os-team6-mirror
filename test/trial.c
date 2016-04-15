@@ -46,8 +46,13 @@ int main(int argc, char* argv[]){
 
 		}
 	}
-	range.rot.degree = 90;
-	range.degree_range = 90;
+	if (argc == 3) {
+		range.rot.degree = atoi(argv[1]);
+		range.degree_range = atoi(argv[2]);
+	} else {
+		range.rot.degree = 90;
+		range.degree_range = 90;
+	}
 	do {
 	syscall(__NR_rotlock_read, &range);
 	FILE* ff = fopen("integer", "r");

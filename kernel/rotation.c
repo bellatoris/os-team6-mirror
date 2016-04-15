@@ -7,7 +7,6 @@ extern struct lock_queue acquire_writer;
 extern struct lock_queue waiting_reader;
 extern struct lock_queue acquire_reader;
 extern spinlock_t my_lock;
-extern spinlock_t glob_lock;
 
 #define SET_CUR(name, rot, degree) \
 	(name = (rot->min <= degree) ? degree : \
@@ -47,9 +46,7 @@ static inline void remove_read_waiter(struct rotation_lock *rot_lock)
  */
 static inline void add_read_waiter(struct rotation_lock *rot_lock)
 {
-	spin_lock(&glob_lock);
 	list_add_tail(&rot_lock->lock_list, &waiting_reader.lock_list);
-	spin_unlock(&glob_lock);
 }
 
 /*
@@ -68,9 +65,7 @@ static inline void remove_write_waiter(struct rotation_lock *rot_lock)
  */
 static inline void add_write_waiter(struct rotation_lock *rot_lock)
 {
-	spin_lock(&glob_lock);
 	list_add_tail(&rot_lock->lock_list, &waiting_writer.lock_list);
-	spin_unlock(&glob_lock);
 }
 
 
@@ -90,7 +85,6 @@ static int remove_read_acquirer(struct rotation_range *rot)
 			    rot->rot.degree - rot->degree_range + 360;
 
 	struct rotation_lock *curr, *next;
-	spin_lock(&glob_lock);
 	list_for_each_entry_safe(curr, next, &acquire_reader.lock_list,
 								lock_list) {
 		if (current->pid == curr->pid && max == curr->max &&
@@ -100,7 +94,6 @@ static int remove_read_acquirer(struct rotation_range *rot)
 			break;
 		}
 	}
-	spin_unlock(&glob_lock);
 	if (!flag)
 		kfree(curr);
 	return flag;
@@ -130,7 +123,6 @@ static int remove_write_acquirer(struct rotation_range *rot)
 			    rot->rot.degree - rot->degree_range + 360;
 
 	struct rotation_lock *curr, *next;
-	spin_lock(&glob_lock);
 	list_for_each_entry_safe(curr, next, &acquire_writer.lock_list,
 								lock_list) {
 		if (current->pid == curr->pid && max == curr->max &&
@@ -140,7 +132,6 @@ static int remove_write_acquirer(struct rotation_range *rot)
 			break;
 		}
 	}
-	spin_unlock(&glob_lock);
 	if (!flag)
 		kfree(curr);
 	return flag;
@@ -167,7 +158,6 @@ static int thread_cond_signal(void)
 	int cur;
 	int degree = rotation.degree;
 
-	spin_lock(&glob_lock);
 	list_for_each_entry_safe(curr, next, &waiting_writer.lock_list,
 								lock_list) {
 		SET_CUR(cur, curr, degree);
@@ -184,7 +174,6 @@ static int thread_cond_signal(void)
 			}
 		}
 	}
-	spin_unlock(&glob_lock);
 	return i;
 }
 
@@ -200,7 +189,6 @@ static int thread_cond_broadcast(void)
 	int i = 0;
 	int degree = rotation.degree;
 
-	spin_lock(&glob_lock);
 	list_for_each_entry_safe(curr, next, &waiting_reader.lock_list,
 								lock_list) {
 		SET_CUR(cur, curr, degree);
@@ -216,7 +204,6 @@ static int thread_cond_broadcast(void)
 			}
 		}
 	}
-	spin_unlock(&glob_lock);
 	return i;
 }
 
@@ -246,20 +233,16 @@ static int read_should_wait(struct rotation_lock *rot_lock)
 	if (cur < rot_lock->min || cur > rot_lock->max)
 		return 1;
 
-	spin_lock(&glob_lock);
 	if (traverse_list_safe(rot_lock, &acquire_writer)) {
-		spin_unlock(&glob_lock);
 		return 1;
 	}
 
 	if (traverse_list_safe(rot_lock, &waiting_writer)) {
-		spin_unlock(&glob_lock);
 		return 1;
 	}
 
 	remove_read_waiter(rot_lock);
 	add_read_acquirer(rot_lock);
-	spin_unlock(&glob_lock);
 
 	return 0;
 }
@@ -276,20 +259,16 @@ static int write_should_wait(struct rotation_lock *rot_lock)
 	if (cur < rot_lock->min || cur > rot_lock->max)
 		return 1;
 
-	spin_lock(&glob_lock);
 	if (traverse_list_safe(rot_lock, &acquire_writer)) {
-		spin_unlock(&glob_lock);
 		return 1;
 	}
 
 	if (traverse_list_safe(rot_lock, &acquire_reader)) {
-		spin_unlock(&glob_lock);
 		return 1;
 	}
 
 	remove_write_waiter(rot_lock);
 	add_write_acquirer(rot_lock);
-	spin_unlock(&glob_lock);
 
 	return 0;
 }
@@ -303,7 +282,7 @@ static int write_should_wait(struct rotation_lock *rot_lock)
 void exit_rotlock()
 {
 	struct rotation_lock *curr, *next;
-	spin_lock(&glob_lock);
+	spin_lock(&my_lock);
 	list_for_each_entry_safe(curr, next, &acquire_writer.lock_list,
 								lock_list) {
 		if (current->pid == curr->pid) {
@@ -335,7 +314,7 @@ void exit_rotlock()
 			kfree(curr);
 		}
 	}
-	spin_unlock(&glob_lock);
+	spin_unlock(&my_lock);
 }
 
 asmlinkage int sys_set_rotation(struct dev_rotation __user *rot)

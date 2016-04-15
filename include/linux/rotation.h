@@ -87,9 +87,6 @@ EXPORT_SYMBOL(acquire_reader);
 DEFINE_SPINLOCK(my_lock);
 EXPORT_SYMBOL(my_lock);
 
-DEFINE_SPINLOCK(glob_lock);
-EXPORT_SYMBOL(glob_lock);
-
 int my_flag = 1;
 EXPORT_SYMBOL(my_flag);
 
