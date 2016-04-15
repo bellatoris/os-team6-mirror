@@ -1,15 +1,15 @@
 # os-team6
 
-제출할 코드는 proj12branch에 모두 merge해 두었습니다.
-System call의 추가와 관련해서
-/arch/arm/include/uapi/asm/unistd.h
-/arch/arm/kernel/calls.S
-/kernel/rotation.c
-/kernel/exit.c
-/kernel/Makefile
-/include/linux/rotation.h
-/include/linux/rotexit.h
-을 변경/생성 하였고 trial, selector 함수는 test폴더에 Makefile과 함께 들어있습니다.
+제출할 코드는 proj12branch에 모두 merge해 두었습니다.  
+System call의 추가와 관련해서  
+/arch/arm/include/uapi/asm/unistd.h  
+/arch/arm/kernel/calls.S  
+/kernel/rotation.c  
+/kernel/exit.c  
+/kernel/Makefile  
+/include/linux/rotation.h  
+/include/linux/rotexit.h  
+을 변경, 생성 하였고 trial, selector 함수는 test폴더에 Makefile과 함께 들어있습니다.
 
 **1.high-level design**  
 rotation 맞춰서 동작하는 read/write lock을 구현하기 위한 4가지 시스템 콜과, 
