@@ -170,3 +170,10 @@ asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot){
 4)exit_loclock
 process가 중간에 종료될 경우
 lock을 잡고 모든 queue에서 해당 process의 pid를 가진 entry를 제거한다
+
+3.lesson learned
+
+멀티쓰레딩 상태에서 Heisenbug의 위험성을 알게 되었다.
+멀티쓰레딩에서 lock의 중요성을 알게 되었다.
+일반  lock에 비해 fine grain lock의 장점을 알게 되었다.
+Preemption과 스케줄을 조절할 수 있다는 것을 알았다.
