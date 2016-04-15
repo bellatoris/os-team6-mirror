@@ -1,16 +1,19 @@
 # os-team6
+
 **1.high-level design (policy)**  
 rotation 맞춰서 동작하는 read/write lock을 구현하기 위한 4가지 시스템 콜과, 
 device의 rotation을 임의로 생성하는 daemon을 위한 시스템콜 하나를 구현했다.
 
 1)policy  
-write의 starvation을 막기 위해서 wait/acquired writer가 존재하는
-range에는 새로운 read lock은 절대로 lock을 잡지 못하도록 했다.
-기다리는 lock이 여럿인 경우에는 lock을 요구한 순서 대로 lock을 갖도록 했다.
+acquire된 lock과 range가 겹치는 lock은 그 Lock이 unlock될 때 까지 wait한다.  
+write의 starvation을 막기 위해서 wait writer가 존재하는 range에는 새로운 read lock은 절대로 lock을 잡지 못하도록 했고
+read가 먼저 lock을 요구 했더라도 write가 먼저 lock을 잡는다  
+예를 들어 (30,60)의 write가 acquired/wait되어 있다면 (10,30)과 (60,100) read는 write와 각각 30 , 60에서 겹치기 때문에 
+(30, 60) write가 사라질 때 까지 lock을 잡을 수 없다.  
+wait하는 lock이 여럿인 경우에는 lock을 요구한 순서 대로 lock을 갖는다.
 
 2)rotation_range, dev_rotation 
-kernel 에 rotation, range를 전달하기 위해 rotation_range와 dev_rotation 이라는 구조체를 사용했다.
-
+kernel에 rotation, range를 전달하기 위해 rotation_range와 dev_rotation 이라는 구조체를 사용했다.
 ```c
 struct rotation_range {
     struct dev_rotation rot;  /* device rotation */
@@ -39,6 +42,8 @@ user level에서 ratation_range를 받으면 해당 각도의 lock을 unlock한�
 시스템 콜 내에서 에러가 나면 -1/ 정상적으로 종료 경우 0을 리턴한다.
 
 **2.implementation**  
+ 
+
 extern을 이용해서 커널 내부에 전역변수로 rotation을 선언한다.
 queue의 경우 waiting_writer,acquire_writer, waitgin_reader, acquire_reader로 4개를 전역 변수로 선언했고
 각 quque에 add/remove하는 함수를 따로 만들어서 사용했다.
