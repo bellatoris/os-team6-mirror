@@ -5,12 +5,13 @@ rotation 맞춰서 동작하는 read/write lock을 구현하기 위한 4가지 �
 device의 rotation을 임의로 생성하는 daemon을 위한 시스템콜 하나를 구현했다.
 
 1)policy  
-acquire된 lock과 range가 겹치는 lock은 그 Lock이 unlock될 때 까지 wait한다.  
-write의 starvation을 막기 위해서 wait writer가 존재하는 range에는 새로운 read lock은 절대로 lock을 잡지 못하도록 했고
-read가 먼저 lock을 요구 했더라도 write가 먼저 lock을 잡는다  
+acquire된 write lock과 range가 겹치는 lock은 그 lock이 unlock될 때 까지 wait한다.  
+read lock은 acquire된 read lock이 있더라도 lock을 acquire 할 수 있다. 
+write의 starvation을 막기 위해서 wait writer가 존재하는 range에는 새로운 read lock은 절대로 lock을 acquire 하지 못하도록 했고
+read가 먼저 lock을 요구 했더라도 write가 먼저 lock을 acquire 한다  
 예를 들어 (30,60)의 write가 acquired/wait되어 있다면 (10,30)과 (60,100) read는 write와 각각 30 , 60에서 겹치기 때문에 
-(30, 60) write가 사라질 때 까지 lock을 잡을 수 없다.  
-wait하는 lock이 여럿인 경우에는 lock을 요구한 순서 대로 lock을 갖는다.
+(30, 60) write가 사라질 때 까지 lock을 acquire 할 수 없다.  
+wait하는 lock이 여럿인 경우에는 lock을 요구한 순서 대로 lock을 acquire 한다.
 
 2)rotation_range, dev_rotation 
 kernel에 rotation, range를 전달하기 위해 rotation_range와 dev_rotation 이라는 구조체를 사용했다.
