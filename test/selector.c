@@ -19,8 +19,13 @@ void main(int argc, char* argv[])
 {
 	int val = atoi(argv[1]);  //init value
 	struct rotation_range range;
-	range.rot.degree = 90;
-	range.degree_range = 90;
+	if (argc == 4) {
+		range.rot.degree = atoi(argv[2]);
+		range.degree_range = atoi(argv[3]);
+	} else {
+		range.rot.degree = 90;
+		range.degree_range = 90;
+	}
 	FILE* fp;
 	int ret;
 
