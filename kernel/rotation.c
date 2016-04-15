@@ -56,8 +56,14 @@ static inline void add_write_waiter(struct rotation_lock *rot_lock)
 static int remove_read_acquirer(struct rotation_range *rot)
 {
 	int flag = -1;
-	int max = rot->rot.degree + rot->degree_range + 360;
-	int min = rot->rot.degree - (int)rot->degree_range + 360;
+	int max = rot->rot.degree + rot->degree_range > 360 ?
+			    rot->rot.degree + rot->degree_range :
+			    rot->rot.degree + rot->degree_range + 360;
+
+	int min = rot->rot.degree + rot->degree_range > 360 ?
+			    rot->rot.degree - rot->degree_range :
+			    rot->rot.degree - rot->degree_range + 360;
+
 	struct rotation_lock *curr, *next;
 	spin_lock(&glob_lock);
 	list_for_each_entry_safe(curr, next, &acquire_reader.lock_list,
@@ -83,8 +89,14 @@ static inline void add_read_acquirer(struct rotation_lock *rot_lock)
 static int remove_write_acquirer(struct rotation_range *rot)
 {
 	int flag = -1;
-	int max = rot->rot.degree + rot->degree_range + 360;
-	int min = rot->rot.degree - (int)rot->degree_range + 360;
+	int max = rot->rot.degree + rot->degree_range > 360 ?
+			    rot->rot.degree + rot->degree_range :
+			    rot->rot.degree + rot->degree_range + 360;
+
+	int min = rot->rot.degree + rot->degree_range > 360 ?
+			    rot->rot.degree - rot->degree_range :
+			    rot->rot.degree - rot->degree_range + 360;
+
 	struct rotation_lock *curr, *next;
 	spin_lock(&glob_lock);
 	list_for_each_entry_safe(curr, next, &acquire_writer.lock_list,
@@ -295,7 +307,7 @@ asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
 		return -EFAULT;
 
-	if (krot.degree_range < 0)
+	if (krot.degree_range <= 0)
 		return -EINVAL;
 
 	if (krot.degree_range >= 180)
@@ -327,7 +339,7 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
 		return -EFAULT;
 
-	if (krot.degree_range < 0)
+	if (krot.degree_range <= 0)
 		return -EINVAL;
 
 	if (krot.degree_range >= 180)
@@ -355,7 +367,7 @@ asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
 		return -EFAULT;
 
-	if (krot.degree_range < 0)
+	if (krot.degree_range <= 0)
 		return -EINVAL;
 
 	if (krot.degree_range >= 180)
@@ -380,7 +392,7 @@ asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot)
 	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
 		return -EFAULT;
 
-	if (krot.degree_range < 0)
+	if (krot.degree_range <= 0)
 		return -EINVAL;
 
 	if (krot.degree_range >= 180)
