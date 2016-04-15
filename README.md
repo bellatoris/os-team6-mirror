@@ -43,7 +43,7 @@ extern을 이용해서 커널 내부에 전역변수로 rotation을 선언한다
 queue의 경우 waiting_writer,acquire_writer, waitgin_reader, acquire_reader로 4개를 전역 변수로 선언했고
 각 quque에 add/remove하는 함수를 따로 만들어서 사용했다.
 ```c
-extern struct dev_rotation rotation; 로
+extern struct dev_rotation rotation;
 extern struct lock_queue waiting_writer;
 extern struct lock_queue acquire_writer;
 extern struct lock_queue waiting_reader;
