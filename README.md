@@ -149,9 +149,6 @@ asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 	if (krot.degree_range <= 0)
 		return -EINVAL;
 
-	if (krot.degree_range >= 180)
-		krot.degree_range = 180;
-
 	if (krot.rot.degree < 0 || krot.rot.degree > 359)
 		return -EINVAL;
 
@@ -193,18 +190,12 @@ unlock\_write는 signal, broadcast 둘 다 호출한다.
 ```c
 asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 {
-	struct rotation_range krot;
-	int flag = -1;
-
 	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
 		return -EFAULT;
 
 	if (krot.degree_range <= 0)
 		return -EINVAL;
-
-	if (krot.degree_range >= 180)
-		krot.degree_range = 180;
-
+		
 	if (krot.rot.degree < 0 || krot.rot.degree > 359)
 		return -EINVAL;
 
@@ -225,13 +216,6 @@ Braodcast는 waiting reader queue를 돌면서 깨어날 수 있는 모든 reade
 ```c
 static int thread_cond_broadcast(void)
 {
-	struct rotation_lock *curr, *next;
-	struct task_struct *task;
-	int cur;
-	int i = 0;
-	int degree = rotation.degree;
-
-	spin_lock(&glob_lock);
 	list_for_each_entry_safe(curr, next, &waiting_reader.lock_list,
 								lock_list) {
 		SET_CUR(cur, curr, degree);
@@ -247,7 +231,6 @@ static int thread_cond_broadcast(void)
 			}
 		}
 	}
-	spin_unlock(&glob_lock);
 	return i;
 }
 ```
@@ -260,30 +243,6 @@ void exit_rotlock()
 	struct rotation_lock *curr, *next;
 	spin_lock(&glob_lock);
 	list_for_each_entry_safe(curr, next, &acquire_writer.lock_list,
-								lock_list) {
-		if (current->pid == curr->pid) {
-			list_del_init(&curr->lock_list);
-			kfree(curr);
-		}
-	}
-
-	list_for_each_entry_safe(curr, next, &waiting_writer.lock_list,
-								lock_list) {
-		if (current->pid == curr->pid) {
-			list_del_init(&curr->lock_list);
-			kfree(curr);
-		}
-	}
-
-	list_for_each_entry_safe(curr, next, &acquire_reader.lock_list,
-								lock_list) {
-		if (current->pid == curr->pid) {
-			list_del_init(&curr->lock_list);
-			kfree(curr);
-		}
-	}
-
-	list_for_each_entry_safe(curr, next, &waiting_reader.lock_list,
 								lock_list) {
 		if (current->pid == curr->pid) {
 			list_del_init(&curr->lock_list);
