@@ -5,11 +5,11 @@ device의 rotation을 임의로 생성하는 daemon을 위한 시스템콜 하�
 
 1)policy  
 이번 구현에서는 write의 starvation을 막기 위해서 wait하고 있는 read lock과 range가 겹치는
-writer가 하나라도 존재 할 경우 해당 read lock은 절대로 일어 날 수 없게 했다. 이는 device 의 rotation과는 상관없이 write 와 read의 range가 겹치는 경우에 write가 우선 lock을 가지게 하기 위함이다.
+writer가 하나라도 존재 할 경우 해당 read lock은 절대로 lock을 잡지 못한다. 이는 device 의 rotation과는 상관없이 write 와 read의 range가 겹치는 경우에 write가 우선 lock을 가지게 하기 위함이다.
 기다리는 lock이 여럿인 경우에는 lock을 요구한 순서 대로 lock을 갖도록 했다.
 
 2)rotation_range, dev_rotation  
-rotation, range의 전달을 위해서 rotation_range와 dev_rotation이라는 구조체를 사용했다.
+kernel 에 rotation, range를 전달하기 위해 rotation_range와 dev_rotation이라는 구조체를 사용했다.
 
 ```c
 struct rotation_range {
