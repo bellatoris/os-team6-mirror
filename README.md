@@ -1,5 +1,5 @@
 # os-team6
-1.high-level design (policy)  
+**1.high-level design (policy)**  
 rotation 맞춰서 동작하는 read/write lock을 구현하기 위한 4가지 시스템 콜과, 
 device의 rotation을 임의로 생성하는 daemon을 위한 시스템콜 하나를 구현했다.
 
@@ -8,8 +8,8 @@ write의 starvation을 막기 위해서 wait/acquired writer가 존재하는
 range에는 새로운 read lock은 절대로 lock을 잡지 못하도록 했다.
 기다리는 lock이 여럿인 경우에는 lock을 요구한 순서 대로 lock을 갖도록 했다.
 
-2)rotation_range, dev_rotation  
-kernel 에 rotation, range를 전달하기 위해 rotation_range와 dev_rotation이라는 구조체를 사용했다.
+2)rotation_range, dev_rotation 
+kernel 에 rotation, range를 전달하기 위해 rotation_range와 dev_rotation 이라는 구조체를 사용했다.
 
 ```c
 struct rotation_range {
@@ -20,7 +20,8 @@ struct rotation_range {
 
 struct dev_rotation {
     int degree;     /* 0 <= degree < 360 */
-}; 
+};
+
 ```
 
 3)sys_set_rotation  
@@ -37,7 +38,7 @@ range가 겹치고 acquired 된 Lock이 이미 존재하거나/ 해당 각도가
 user level에서 ratation_range를 받으면 해당 각도의 lock을 unlock한다. unlock은 어느 시점에서도 가능하다. unlock 후 깨어날 수 있는 process가 존재하면 확인 하고 signal을 보낸다.
 시스템 콜 내에서 에러가 나면 -1/ 정상적으로 종료 경우 0을 리턴한다.
 
-2.implementation  
+**2.implementation**  
 extern을 이용해서 커널 내부에 rotation을 선언한다.
 queue의 경우 waiting_writer,acquire_writer, waitgin_reader, acquire_reader로 4개를 전역 변수로 선언했고
 각 quque에 add/remove하는 함수를 따로 만들어서 사용했다.
@@ -49,7 +50,7 @@ extern struct lock_queue waiting_reader;
 extern struct lock_queue acquire_reader;
 ```
 단 queue의 첫번째 entry가 현재 rotation_lock을 range에 포함하는지 탐색하는 함수는 하나로 만들었다.
-```
+```c
 static int traverse_list_safe(struct rotation_lock *rot_lock,
                                                 struct lock_queue *queue)
 {
@@ -64,7 +65,42 @@ static int traverse_list_safe(struct rotation_lock *rot_lock,
 }
 ```
 
-1)sys_set_rotation  
+1)range 계산을 위한 struct, macro, fuction들   
+range의 계산을 편하게 하기 위해서  rotation_lock structure를 정의했다.
+```c
+struct rotation_lock {
+        int min;
+        int max;
+        pid_t pid;
+        struct list_head lock_list;
+};
+```
+rotation_lock를 초기화 할 때 다음과 같은 함수를 사용했다.
+```c
+inline void init_rotation_lock(struct rotation_lock *lock,
+                        struct task_struct *p, struct rotation_range *rot)
+{     
+        lock->max = rot->rot.degree + rot->degree_range + 360;
+        lock->min = rot->rot.degree - (int)rot->degree_range + 360;
+        lock->pid = p->pid;
+        lock->lock_list.prev = &lock->lock_list; 
+        lock->lock_list.next = &lock->lock_list;
+}   
+```
+rotation_lock과 현재 rotation이 같은지 비교하기 전에 아래의 매크로함수로 사용했다.
+rotation의 degree가 rotation_lock의 min 보다 작으면 360 +degree, 크면 degree를 name에게 초기화하는 매크로이다.
+```c
+#define SET_CUR(name, rot) \
+        (name = (rot->min <= rotation.degree) ? rotation.degree : \
+        rotation.degree + 360)
+```
+초기화된 rotation_lock 안에 name이 존재 하는지 확인하면 range에 포함되는지를 알 수 있다.
+```c
+	rot_lock->max >= name->min && rot_lock->min <= name->max
+```
+
+
+2)sys_set_rotation  
 copy_from_user를 이용해서 커널 내부의 rotation에 값을 넣고
 잘못된 rotation값에 대해서 error를 출력한다. 
 ```c
@@ -97,7 +133,7 @@ static int thread_cond_broadcast(void)
 	}
 }
 ```
-2) sys_rotlock_read / sys_rotlock_write  
+3) sys_rotlock_read / sys_rotlock_write  
 
 잘못된 rotation으로 lock을 잡으려고 하거나, kernel에 메모리가 부족한 경우 에러를 리턴한다.
 ```c
@@ -135,7 +171,7 @@ static void __sched thread_write_wait(){
 
 ```
 
-3) sys_rotunlock_read / sys_rotunlock_write  
+4) sys_rotunlock_read / sys_rotunlock_write  
 잘못된 rotation으로 unlock하려고 할때 에러를 리턴한다.
 
 ```c
@@ -167,11 +203,11 @@ asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot){
 }
 
 ```
-4)exit_loclock
+5)exit_loclock
 process가 중간에 종료될 경우
 lock을 잡고 모든 queue에서 해당 process의 pid를 가진 entry를 제거한다
 
-3.lesson learned
+**3.lesson learned**  
 
 멀티쓰레딩 상태에서 Heisenbug의 위험성을 알게 되었다.
 멀티쓰레딩에서 lock의 중요성을 알게 되었다.
