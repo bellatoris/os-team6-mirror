@@ -4,8 +4,8 @@ rotation 맞춰서 동작하는 read/write lock을 구현하기 위한 4가지 �
 device의 rotation을 임의로 생성하는 daemon을 위한 시스템콜 하나를 구현했다.
 
 1)policy  
-이번 구현에서는 write의 starvation을 막기 위해서 wait하고 있는 read lock과 range가 겹치는
-writer가 하나라도 존재 할 경우 해당 read lock은 절대로 lock을 잡지 못한다. 이는 device 의 rotation과는 상관없이 write 와 read의 range가 겹치는 경우에 write가 우선 lock을 가지게 하기 위함이다.
+write의 starvation을 막기 위해서 wait/acquired writer가 존재하는
+range에는 새로운 read lock은 절대로 lock을 잡지 못하도록 했다.
 기다리는 lock이 여럿인 경우에는 lock을 요구한 순서 대로 lock을 갖도록 했다.
 
 2)rotation_range, dev_rotation  
@@ -166,7 +166,7 @@ asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot){
     ...
 }
 
-```다
+```
 4)exit_loclock
 process가 중간에 종료될 경우
 lock을 잡고 모든 queue에서 해당 process의 pid를 가진 entry를 제거한다
