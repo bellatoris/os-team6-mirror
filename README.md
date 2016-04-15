@@ -6,7 +6,7 @@ device의 rotation을 임의로 생성하는 daemon을 위한 시스템콜 하�
 
 1)policy  
 acquire된 write lock과 range가 겹치는 lock은 그 lock이 unlock될 때 까지 wait한다.  
-read lock은 acquire된 read lock이 있더라도 lock을 acquire 할 수 있다. 
+read lock은 acquire된 read lock이 있더라도 lock을 acquire 할 수 있다.   
 write의 starvation을 막기 위해서 wait writer가 존재하는 range에는 새로운 read lock은 절대로 lock을 acquire 하지 못하도록 했고
 read가 먼저 lock을 요구 했더라도 write가 먼저 lock을 acquire 한다  
 예를 들어 (30,60)의 write가 acquired/wait되어 있다면 (10,30)과 (60,100) read는 write와 각각 30 , 60에서 겹치기 때문에 
