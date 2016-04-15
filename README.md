@@ -253,7 +253,46 @@ static int thread_cond_broadcast(void)
 ```
 
 * Exit\_lock  
-process가 중간에 종료될 경우, spinlock을 잡고 모든 queue에서 해당 process의 pid를 가진 entry를 제거한다
+process가 중간에 종료될 경우, spinlock을 잡고 모든 queue에서 해당 process의 pid를 가진 entry를 제거한다.
+```c
+void exit_rotlock()
+{
+	struct rotation_lock *curr, *next;
+	spin_lock(&glob_lock);
+	list_for_each_entry_safe(curr, next, &acquire_writer.lock_list,
+								lock_list) {
+		if (current->pid == curr->pid) {
+			list_del_init(&curr->lock_list);
+			kfree(curr);
+		}
+	}
+
+	list_for_each_entry_safe(curr, next, &waiting_writer.lock_list,
+								lock_list) {
+		if (current->pid == curr->pid) {
+			list_del_init(&curr->lock_list);
+			kfree(curr);
+		}
+	}
+
+	list_for_each_entry_safe(curr, next, &acquire_reader.lock_list,
+								lock_list) {
+		if (current->pid == curr->pid) {
+			list_del_init(&curr->lock_list);
+			kfree(curr);
+		}
+	}
+
+	list_for_each_entry_safe(curr, next, &waiting_reader.lock_list,
+								lock_list) {
+		if (current->pid == curr->pid) {
+			list_del_init(&curr->lock_list);
+			kfree(curr);
+		}
+	}
+	spin_unlock(&glob_lock);
+}
+```
 
 **3.lesson learned**  
 
