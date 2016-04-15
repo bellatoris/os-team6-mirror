@@ -13,16 +13,9 @@ extern spinlock_t glob_lock;
 	(name = (rot->min <= rotation.degree) ? rotation.degree : \
 	rotation.degree + 360)
 
-#define WAKE_UP(name) \
-	wake_up_process(pid_task(\
-	find_get_pid(name->pid), PIDTYPE_PID))
-
 #define FIND(name) \
 	pid_task(find_get_pid(name->pid), PIDTYPE_PID)
 
-/*
- * Traverse lock_queue safely and check the range
- */
 static int traverse_list_safe(struct rotation_lock *rot_lock,
 						struct lock_queue *queue)
 {
@@ -36,10 +29,8 @@ static int traverse_list_safe(struct rotation_lock *rot_lock,
 
 static inline void remove_read_waiter(struct rotation_lock *rot_lock)
 {
-	spin_lock(&glob_lock);
 	if (!list_empty_careful(&waiting_reader.lock_list))
 		list_del_init(&rot_lock->lock_list);
-	spin_unlock(&glob_lock);
 }
 
 static inline void add_read_waiter(struct rotation_lock *rot_lock)
@@ -51,10 +42,8 @@ static inline void add_read_waiter(struct rotation_lock *rot_lock)
 
 static inline void remove_write_waiter(struct rotation_lock *rot_lock)
 {
-	spin_lock(&glob_lock);
 	if (!list_empty_careful(&waiting_writer.lock_list))
 		list_del_init(&rot_lock->lock_list);
-	spin_unlock(&glob_lock);
 }
 
 static inline void add_write_waiter(struct rotation_lock *rot_lock)
@@ -88,9 +77,7 @@ static int remove_read_acquirer(struct rotation_range *rot)
 
 static inline void add_read_acquirer(struct rotation_lock *rot_lock)
 {
-	spin_lock(&glob_lock);
 	list_add_tail(&rot_lock->lock_list, &acquire_reader.lock_list);
-	spin_unlock(&glob_lock);
 }
 
 static int remove_write_acquirer(struct rotation_range *rot)
@@ -118,9 +105,7 @@ static int remove_write_acquirer(struct rotation_range *rot)
 
 static inline void add_write_acquirer(struct rotation_lock *rot_lock)
 {
-	spin_lock(&glob_lock);
 	list_add_tail(&rot_lock->lock_list, &acquire_writer.lock_list);
-	spin_unlock(&glob_lock);
 }
 
 static int thread_cond_signal(void)
@@ -176,7 +161,7 @@ static int thread_cond_broadcast(void)
 	return i;
 }
 
-static void __sched thread_cond_wait(struct rotation_lock *rot_lock)
+static void __sched thread_cond_wait(void)
 {
 //	preempt_disable();
 	spin_unlock(&my_lock);
@@ -207,9 +192,11 @@ static int read_should_wait(struct rotation_lock *rot_lock)
 		return 1;
 	}
 	spin_unlock(&glob_lock);
-
+    
+	spin_lock(&glob_lock);
 	remove_read_waiter(rot_lock);
 	add_read_acquirer(rot_lock);
+	spin_unlock(&glob_lock);
 
 	return 0;
 }
@@ -236,8 +223,10 @@ static int write_should_wait(struct rotation_lock *rot_lock)
 	}
 	spin_unlock(&glob_lock);
 
+	spin_lock(&glob_lock);
 	remove_write_waiter(rot_lock);
 	add_write_acquirer(rot_lock);
+	spin_unlock(&glob_lock);
 
 	return 0;
 }
@@ -295,10 +284,13 @@ asmlinkage int sys_set_rotation(struct dev_rotation __user *rot)
 
 	if (rotation.degree < 0 || rotation.degree > 359)
 		return -EINVAL;
-
+	
+	spin_lock(&my_lock);
 	i = thread_cond_signal();
 	if (!i)
 		i = thread_cond_broadcast();
+	spin_unlock(&my_lock);
+
 	return i;
 }
 
@@ -324,10 +316,10 @@ asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 
 	init_rotation_lock(klock, current, &krot);
 
-	add_read_waiter(klock);
 	spin_lock(&my_lock);
+	add_read_waiter(klock);
 	if (read_should_wait(klock))
-		thread_cond_wait(klock);
+		thread_cond_wait();
 	spin_unlock(&my_lock);
 
 	return 0;
@@ -356,10 +348,10 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 
 	init_rotation_lock(klock, current, &krot);
 
-	add_write_waiter(klock);
 	spin_lock(&my_lock);
+	add_write_waiter(klock);
 	if (write_should_wait(klock))
-		thread_cond_wait(klock);
+		thread_cond_wait();
 	spin_unlock(&my_lock);
 
 	return 0;
