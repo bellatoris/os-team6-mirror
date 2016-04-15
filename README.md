@@ -19,7 +19,7 @@ device의 rotation을 임의로 생성하는 daemon을 위한 시스템콜 하�
 기본적인 policy는 `reader가 acquire한 lock이 writer가 원하는 lock일 때만 그 writer와 겹치는
 reader가 오면 그 reader는 wait해야 한다` 였다. 그러나 이러한 policy는 사용자에게 혼란을 준다고 생각하였고, (같은
 범위의 reader lock이어도 온 순서에 따라 혹은 현재 어떤 lock이 잡고 있느냐에 따라 lock을 잡을 수도 있고 못잡을 수도 있으므로)
-그래서 우리는 policy를 'reader가 waiting인 writer와 range가 overlap될 경우 wait한다.' 로 결정하였다. 즉 언제나 writer를 최우선으로 두며 writer와 range가 overlap되는 reader는 언제나 wait한다.
+그래서 우리는 policy를 `reader가 waiting인 writer와 range가 overlap될 경우 wait한다.` 로 결정하였다. 즉 언제나 writer를 최우선으로 두며 writer와 range가 overlap되는 reader는 언제나 wait한다.
 
 * rotation\_range, dev\_rotation   
 kernel에 rotation, range를 전달하기 위해 rotation\_range와 dev\_rotation 이라는 구조체를 사용했다.
