@@ -9,8 +9,8 @@ extern struct lock_queue acquire_reader;
 extern spinlock_t my_lock;
 extern spinlock_t glob_lock;
 
-#define SET_CUR(name, rot) \
-	(name = (rot->min <= rotation.degree) ? rotation.degree : \
+#define SET_CUR(name, rot, degree) \
+	(name = (rot->min <= degree) ? degree : \
 	rotation.degree + 360)
 
 #define FIND(name) \
@@ -114,11 +114,12 @@ static int thread_cond_signal(void)
 	struct task_struct *task;
 	int i = 0;
 	int cur;
+	int degree = rotation.degree;
 
 	spin_lock(&glob_lock);
 	list_for_each_entry_safe(curr, next, &waiting_writer.lock_list,
 								lock_list) {
-		SET_CUR(cur, curr);
+		SET_CUR(cur, curr, degree);
 		if (cur <= curr->max && cur >= curr->min) {
 			if (!traverse_list_safe(curr, &acquire_writer) &&
 				!traverse_list_safe(curr, &acquire_reader)) {
@@ -142,10 +143,12 @@ static int thread_cond_broadcast(void)
 	struct task_struct *task;
 	int cur;
 	int i = 0;
+	int degree = rotation.degree;
+
 	spin_lock(&glob_lock);
 	list_for_each_entry_safe(curr, next, &waiting_reader.lock_list,
 								lock_list) {
-		SET_CUR(cur, curr);
+		SET_CUR(cur, curr, degree);
 		if (cur <= curr->max && cur >= curr->min) {
 			if (!traverse_list_safe(curr, &acquire_writer) &&
 				!traverse_list_safe(curr, &waiting_writer)) {
@@ -175,7 +178,7 @@ static void __sched thread_cond_wait(void)
 static int read_should_wait(struct rotation_lock *rot_lock)
 {
 	int cur;
-	SET_CUR(cur, rot_lock);
+	SET_CUR(cur, rot_lock, rotation.degree);
 
 	if (cur < rot_lock->min || cur > rot_lock->max)
 		return 1;
@@ -201,7 +204,7 @@ static int read_should_wait(struct rotation_lock *rot_lock)
 static int write_should_wait(struct rotation_lock *rot_lock)
 {
 	int cur;
-	SET_CUR(cur, rot_lock);
+	SET_CUR(cur, rot_lock, rotation.degree);
 
 	if (cur < rot_lock->min || cur > rot_lock->max)
 		return 1;
