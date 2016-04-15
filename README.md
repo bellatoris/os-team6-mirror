@@ -49,8 +49,8 @@ Writer의 경우 자신과 range와 overlap되는 acquired reader, acquired writ
 시스템 콜 내에서 에러가 나면 -1, 정상적으로 종료된 경우 0을 리턴한다.
 
 * sys\_rotunlock\_read / sys\_rotunlock\_write  
-User level에서 rotation\_range를 받으면 해당 각도의 lock을 unlock한다. Unlock은 어느 시점에서도 가능하다. unlock 후 waiting writer에게 signal을 보내 깨어날 수 있는 waiting writer가 있으면 깨우고, 없다면 waiting reader에게 broadcast하여 깨어날 수 있는 모든 reader들을 다 깨운다 (reader의 경우 signal만 이루어 진다).
-시스템 콜 내에서 에러가 나면 -1, 정상적으로 종료 경우 0을 리턴한다.
+User level에서 rotation\_range를 받으면 해당 rotation의 lock을 unlock한다. Unlock은 어느 시점에서도 가능하다. unlock 후 waiting writer에게 signal을 보내 깨어날 수 있는 waiting writer가 있으면 깨우고, 없다면 waiting reader에게 broadcast하여 깨어날 수 있는 모든 reader들을 다 깨운다 (reader의 경우 signal만 이루어 진다).
+시스템 콜 내에서 에러가 나면 -1, 정상적으로 종료될 경우 0을 리턴한다.
 
 **2.implementation**  
 * Area descriptor  
@@ -94,7 +94,7 @@ inline void init_rotation_lock(struct rotation_lock *lock,
         degree + 360)
 ```
 
-* Wait queue, Acquire queue
+* Wait queue, Acquire queue  
 Queue의 경우 각각의 경우 마다 정의하여 4가지로 다음과 같이 정의 하였다.
 경우마다 traverse해야하는 queue가 다르기 때문이다. 이 queue에 접근 하는 부분은
 모두 spinlock (global한) 을 사용하여 critical section으로 만들어 두었다. 
@@ -106,108 +106,158 @@ extern struct lock_queue acquire_reader;
 ```  
 
 * sys\_set\_rotation  
-copy\_from\_user를 이용해서 커널 내부의 rotation에 값을 넣고
-잘못된 rotation값에 대해서 에러를 출력한다. 
+copy\_from\_user를 이용해서 커널 내부의 rotation에 값을 넣고 잘못된 rotation값에 대해서 에러를 출력한다. 
+
 ```c
 asmlinkage int sys_set_rotation(struct dev_rotation __user *rot)
 {
+	int i;
+	if (copy_from_user(&rotation.degree, &rot->degree,
+				    sizeof(struct dev_rotation)) != 0)
+		return -EFAULT;
 
- 	if (copy_from_user(&rotation.degree, &rot->degree, sizeof(struct dev_rotation))!=0)
-                return -EFAULT;
+	if (rotation.degree < 0 || rotation.degree > 359)
+		return -EINVAL;
 
-	if (rotation.degree < 0 ||rotation.degree > 359)
-                return -EINVAL;
+	spin_lock(&my_lock);
+	i = thread_cond_signal();
+	if (!i)
+		i = thread_cond_broadcast();
+	spin_unlock(&my_lock);
+
+	return i;
 }
+
 ```
 
-* Read lock, Write lock 
+* sys\_rotlock\_read / sys\_rotlock\_write
 잘못된 rotation으로 lock을 잡으려고 하거나, kernel에 메모리가 부족한 경우 에러를 리턴한다.
-```c
-asmlinkage int sys_rotlock_read(struct rotation_range __user *rot){
-	//error_check.1  kmalloc is fine?
-        if (klock == NULL)
-                return -ENOMEM;
-
-        printk("sys_rotlock_write %p\n", klock);
-
-        //error_check.2  copy_from_user returns 0 when it succeeds.
-        if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
-                return -EFAULT;
-        //error_check.3  range_degree should be positive + 0;
-        if (krot.degree_range <0)
-                return -EINVAL;
-        //error_check.4  0 =< rot.degree <360
-        if (krot.rot.degree < 0 ||krot.rot.degree > 359)
-                return -EINVAL;
-   }
-```
 my\_lock을 spin\_lock으로 잡은 후에 queue에 접근하도록 해서 wating, acquire queue에 동시에 접근하는
-일을 막았다. 현재 rot\_lock을 잡을 수 있는지 판단 후 잡을 수 있다면 spin\_lock을 풀고 잡을 수 없다면
-spin\_lock을 풀고 schedule되어 signal을 기다린다. 
+일을 막았다. 
+```c
+asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
+{
+	struct rotation_range krot;
+	struct rotation_lock *klock = kmalloc(sizeof(struct rotation_lock),
+								GFP_KERNEL);
+	if (klock == NULL)
+		return -ENOMEM;
+
+	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
+		return -EFAULT;
+
+	if (krot.degree_range <= 0)
+		return -EINVAL;
+
+	if (krot.degree_range >= 180)
+		krot.degree_range = 180;
+
+	if (krot.rot.degree < 0 || krot.rot.degree > 359)
+		return -EINVAL;
+
+	init_rotation_lock(klock, current, &krot);
+
+	spin_lock(&my_lock);
+	add_read_waiter(klock);
+	if (read_should_wait(klock))
+		thread_cond_wait();
+	spin_unlock(&my_lock);
+
+	return 0;
+}
+```
+* thread\_cond\_wait  
+현재 rot\_lock을 잡을 수 있는지 판단 후 잡을 수 있다면 spin\_lock을 풀고 잡을 수 없다면
+spin\_lock을 풀고 schedule되어 signal을 기다린다. 다만 spin\_unlock을 하고 그 사이에 다른
+process가 spin\_lock을 잡는 경우 scheduing에 따라 문제가 될 수 있으므로 preemption을 disable해
+바로 잠들수 있게 하였다.
 
 ```c
-static void __sched thread_cond_wait(){
-        spin_unlock(&my_lock);
-        set_current_state(TASK_INTERRUPTIBLE);
-        schedule();
+static void __sched thread_cond_wait(void)
+{
+	preempt_disable();
+	spin_unlock(&my_lock);
+	set_current_state(TASK_INTERRUPTIBLE);
+	preempt_enable();
+	schedule();
+	spin_lock(&my_lock);
 }
 
 ```
 
-* Read unlock, Write unlock
-잘못된 rotation으로 unlock하려고 할때 에러를 리턴한다.
-
-```c
-asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot){
- 				...
-	//error_check.2  copy_from_user returns 0 when it succeeds.
-        if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
-                return -EFAULT;
-        //error_check.3  range_degree should be positive + 0;
-        if (krot.degree_range <0)
-                return -EINVAL;
-        //error_check.4  0 =< rot.degree <360
-        if (krot.rot.degree < 0 ||krot.rot.degree > 359)
-                return -EINVAL;
-                ...
-}
-```
-lock과 마찬가지로 my\_lock으로 spin\_lock을 잡고 queue에 접근한다.
+* Read unlock, Write unlock  
+잘못된 rotation으로 unlock하려고 할때 에러를 리턴한다. my\_lock으로 spin\_lock을 잡고 queue에 접근한다.
 reader에 block되는 것은 writer 뿐이므로 unlock\_read는 signal함수만을 호출하고
-unlock\_write는 signal/broadcast 둘 다 호출한다.
-```c
-asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot){
-	...
+unlock\_write는 signal, broadcast 둘 다 호출한다.
 
+```c
+asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
+{
+	struct rotation_range krot;
+	int flag = -1;
+
+	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
+		return -EFAULT;
+
+	if (krot.degree_range <= 0)
+		return -EINVAL;
+
+	if (krot.degree_range >= 180)
+		krot.degree_range = 180;
+
+	if (krot.rot.degree < 0 || krot.rot.degree > 359)
+		return -EINVAL;
+
+	spin_lock(&my_lock);
+	flag = remove_read_acquirer(&krot);
 	if (!flag)
-    	thread_cond_signal();
-    ...
+		thread_cond_signal();
+	spin_unlock(&my_lock);
+	return flag;
 }
 ```
-* Wake up
+
+* thread\_cond\_signal / thread\_cond\_broadcas 
 Process를 깨우는 것은 thread\_cond\_signal, thread\_cond\_broadcast를 이용해서 구현했다.
 Signal은 waiting writer queue를 돌며 깨어날 수 있는 첫번째 process를 깨운다.
 Braodcast는 waiting reader queue를 돌면서 깨어날 수 있는 모든 reader들을 깨운다.
+다만 이때 acquire queue에 추가하여, 깨어나야 하는 process가 혹시라도 scheduling 때문에 lock을 못얻을 가능성을 배제하였다.
 ```c
 static int thread_cond_broadcast(void)
-{ 
-	...
-	if (cur <= curr->max && cur >= curr->min) {
-		if (!traverse_list_safe(curr, &acquire_writer) && !traverse_list_safe(curr, &acquire_reader)){
-			while (WAKE_UP(curr) != 1) 
-				continue; // queue에는 존재하지만 아직 schedule되지 않았을 경우를 위해서 반복문을 돈다
-  		}
+{
+	struct rotation_lock *curr, *next;
+	struct task_struct *task;
+	int cur;
+	int i = 0;
+	int degree = rotation.degree;
+
+	spin_lock(&glob_lock);
+	list_for_each_entry_safe(curr, next, &waiting_reader.lock_list,
+								lock_list) {
+		SET_CUR(cur, curr, degree);
+		if (cur <= curr->max && cur >= curr->min) {
+			if (!traverse_list_safe(curr, &acquire_writer) &&
+				!traverse_list_safe(curr, &waiting_writer)) {
+				task = FIND(curr);
+				while (wake_up_process(task) != 1)
+					continue;
+				remove_read_waiter(curr);
+				add_read_acquirer(curr);
+				i++;
+			}
+		}
 	}
+	spin_unlock(&glob_lock);
+	return i;
 }
 ```
 
-* Exit\_lock
-process가 중간에 종료될 경우
-lock을 잡고 모든 queue에서 해당 process의 pid를 가진 entry를 제거한다
+* Exit\_lock  
+process가 중간에 종료될 경우, spinlock을 잡고 모든 queue에서 해당 process의 pid를 가진 entry를 제거한다
 
 **3.lesson learned**  
 
-멀티쓰레딩 상태에서 Heisenbug의 위험성을 알게 되었다.  
-멀티쓰레딩에서 lock의 중요성을 알게 되었다.  
-일반 lock에 비해 fine grained locking의 장점을 알게 되었다.  
-Preemption과 스케줄을 조절할 수 있다는 것을 알았다.
+* 멀티쓰레딩 상태에서 Heisenbug의 위험성을 알게 되었다.  
+* 멀티쓰레딩에서 lock의 중요성을 알게 되었다.  
+* 일반 lock에 비해 fine grained locking의 장점을 알게 되었다.  
+* Preemption과 스케줄을 조절할 수 있다는 것을 알았다.
