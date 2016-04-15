@@ -76,23 +76,32 @@ struct rotation_lock {
 };
 ```
 rotation_lock를 초기화 할 때 다음과 같은 함수를 사용했다.
+degree + range 가 360보다 작으면 360을 더하고 max,min에 할당한다.
 ```c
 inline void init_rotation_lock(struct rotation_lock *lock,
                         struct task_struct *p, struct rotation_range *rot)
 {     
-        lock->max = rot->rot.degree + rot->degree_range + 360;
-        lock->min = rot->rot.degree - (int)rot->degree_range + 360;
+        lock->max = rot->rot.degree + rot->degree_range > 360 ?
+                            rot->rot.degree + rot->degree_range : 
+                            rot->rot.degree + rot->degree_range + 360;
+    
+        lock->min = rot->rot.degree + rot->degree_range > 360 ?
+                            rot->rot.degree - rot->degree_range :
+                            rot->rot.degree - rot->degree_range + 360;
+    
+    
         lock->pid = p->pid;
-        lock->lock_list.prev = &lock->lock_list; 
+        lock->lock_list.prev = &lock->lock_list;
         lock->lock_list.next = &lock->lock_list;
-}   
+}
+
 ```
 현재 rotation도 비교하기 전에 초기화 하기 위해 아래의 매크로를 사용했다.
 rotation의 degree가 rotation_lock의 min 보다 작으면 360 +degree, 크면 degree를 name에게 초기화하는 매크로이다.
 ```c
-#define SET_CUR(name, rot) \
-        (name = (rot->min <= rotation.degree) ? rotation.degree : \
-        rotation.degree + 360)
+#define SET_CUR(name, rot, degree) \
+        (name = (rot->min <= degree) ? degree : \
+        degree + 360)
 ```
 초기화된 rotation_lock 안에 name이 존재 하는지 확인하면 range에 포함되는지를 알 수 있다.
 ```c
