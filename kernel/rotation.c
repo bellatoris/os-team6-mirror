@@ -11,7 +11,7 @@ extern spinlock_t glob_lock;
 
 #define SET_CUR(name, rot, degree) \
 	(name = (rot->min <= degree) ? degree : \
-	rotation.degree + 360)
+	degree + 360)
 
 #define FIND(name) \
 	pid_task(find_get_pid(name->pid), PIDTYPE_PID)
