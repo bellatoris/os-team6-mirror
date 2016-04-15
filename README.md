@@ -1,10 +1,21 @@
 # os-team6
 
+제출할 코드는 proj12branch에 모두 merge해 두었습니다.
+System call의 추가와 관련해서
+/arch/arm/include/uapi/asm/unistd.h
+/arch/arm/kernel/calls.S
+/kernel/rotation.c
+/kernel/exit.c
+/kernel/Makefile
+/include/linux/rotation.h
+/include/linux/rotexit.h
+을 변경/생성 하였고 trial, selector 함수는 test폴더에 Makefile과 함께 들어있습니다.
+
 **1.high-level design (policy)**  
 rotation 맞춰서 동작하는 read/write lock을 구현하기 위한 4가지 시스템 콜과, 
 device의 rotation을 임의로 생성하는 daemon을 위한 시스템콜 하나를 구현했다.
 
-1)policy  
+1. policy  
 acquire된 write lock과 range가 겹치는 lock은 그 lock이 unlock될 때 까지 wait한다.  
 read lock은 acquire된 read lock이 있더라도 lock을 acquire 할 수 있다.   
 write의 starvation을 막기 위해서 wait writer가 존재하는 range에는 새로운 read lock은 절대로 lock을 acquire 하지 못하도록 했고
@@ -13,7 +24,7 @@ read가 먼저 lock을 요구 했더라도 write가 먼저 lock을 acquire 한�
 (30, 60) write가 사라질 때 까지 lock을 acquire 할 수 없다.  
 wait하는 lock이 여럿인 경우에는 lock을 요구한 순서 대로 lock을 acquire 한다.
 
-2)rotation_range, dev_rotation 
+2. rotation_range, dev_rotation 
 kernel에 rotation, range를 전달하기 위해 rotation_range와 dev_rotation 이라는 구조체를 사용했다.
 ```c
 struct rotation_range {
@@ -28,17 +39,17 @@ struct dev_rotation {
 
 ```
 
-3)sys_set_rotation  
+3. sys_set_rotation  
 user level에서 rotation을 받으면 kernel의 dev_rotation에 rotation을 copy한다.
 또한 해당 rotation에 wait하고 있고 일어 날 수 있는 read/write l의ock이 존재 한다면 깨우고, 깨운 
 process의 수를 return 한다. 에러가 발생하면 -1을 리턴한다.
 
-3)sys_rotlock_read / sys_rotlock_write  
+4. sys_rotlock_read / sys_rotlock_write  
 user level에서 ratation_range를 받으면 해당 각도에 lock을 잡는다. 
 range가 겹치고 acquired 된 Lock이 이미 존재하거나/ 해당 각도가 아닌 경우 schdule되고 signal을 기다린다.
 시스템 콜 내에서 에러가 나면 -1/ 정상적으로 종료된 경우 0을 리턴한다.
 
-4)sys_rotunlock_read / sys_rotunlock_write  
+5. sys_rotunlock_read / sys_rotunlock_write  
 user level에서 ratation_range를 받으면 해당 각도의 lock을 unlock한다. unlock은 어느 시점에서도 가능하다. unlock 후 깨어날 수 있는 process가 존재하면 확인 하고 signal을 보낸다.
 시스템 콜 내에서 에러가 나면 -1/ 정상적으로 종료 경우 0을 리턴한다.
 
@@ -71,7 +82,7 @@ static int traverse_list_safe(struct rotation_lock *rot_lock,
 }
 ```
 
-1)range 계산을 위한 struct, macro, fuction들   
+1. range 계산을 위한 struct, macro, fuction들   
 range의 계산을 편하게 하기 위해서  rotation_lock structure를 정의했다.
 ```c
 struct rotation_lock {
@@ -115,7 +126,7 @@ rotation의 degree가 rotation_lock의 min 보다 작으면 360 +degree, 크면 
 ```
 
 
-2)sys_set_rotation  
+2. sys_set_rotation  
 copy_from_user를 이용해서 커널 내부의 rotation에 값을 넣고
 잘못된 rotation값에 대해서 error를 출력한다. 
 ```c
@@ -148,7 +159,7 @@ static int thread_cond_broadcast(void)
 	}
 }
 ```
-3) sys_rotlock_read / sys_rotlock_write  
+3. sys_rotlock_read / sys_rotlock_write  
 
 잘못된 rotation으로 lock을 잡으려고 하거나, kernel에 메모리가 부족한 경우 에러를 리턴한다.
 ```c
@@ -186,7 +197,7 @@ static void __sched thread_write_wait(){
 
 ```
 
-4) sys_rotunlock_read / sys_rotunlock_write  
+4. sys_rotunlock_read / sys_rotunlock_write  
 잘못된 rotation으로 unlock하려고 할때 에러를 리턴한다.
 
 ```c
@@ -218,7 +229,7 @@ asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot){
 }
 
 ```
-5)exit_loclock
+5. exit_loclock
 process가 중간에 종료될 경우
 lock을 잡고 모든 queue에서 해당 process의 pid를 가진 entry를 제거한다
 
