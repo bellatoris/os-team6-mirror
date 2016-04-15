@@ -9,9 +9,9 @@ extern struct lock_queue acquire_reader;
 extern spinlock_t my_lock;
 extern spinlock_t glob_lock;
 
-#define SET_CUR(name, rot) \
-	(name = (rot->min <= rotation.degree) ? rotation.degree : \
-	rotation.degree + 360)
+#define SET_CUR(name, rot, degree) \
+	(name = (rot->min <= degree) ? degree : \
+	degree + 360)
 
 #define FIND(name) \
 	pid_task(find_get_pid(name->pid), PIDTYPE_PID)
@@ -85,8 +85,14 @@ static inline void add_write_waiter(struct rotation_lock *rot_lock)
 static int remove_read_acquirer(struct rotation_range *rot)
 {
 	int flag = -1;
-	int max = rot->rot.degree + rot->degree_range + 360;
-	int min = rot->rot.degree - (int)rot->degree_range + 360;
+	int max = rot->rot.degree + rot->degree_range > 360 ?
+			    rot->rot.degree + rot->degree_range :
+			    rot->rot.degree + rot->degree_range + 360;
+
+	int min = rot->rot.degree + rot->degree_range > 360 ?
+			    rot->rot.degree - rot->degree_range :
+			    rot->rot.degree - rot->degree_range + 360;
+
 	struct rotation_lock *curr, *next;
 	spin_lock(&glob_lock);
 	list_for_each_entry_safe(curr, next, &acquire_reader.lock_list,
@@ -116,8 +122,14 @@ static inline void add_read_acquirer(struct rotation_lock *rot_lock)
 static int remove_write_acquirer(struct rotation_range *rot)
 {
 	int flag = -1;
-	int max = rot->rot.degree + rot->degree_range + 360;
-	int min = rot->rot.degree - (int)rot->degree_range + 360;
+	int max = rot->rot.degree + rot->degree_range > 360 ?
+			    rot->rot.degree + rot->degree_range :
+			    rot->rot.degree + rot->degree_range + 360;
+
+	int min = rot->rot.degree + rot->degree_range > 360 ?
+			    rot->rot.degree - rot->degree_range :
+			    rot->rot.degree - rot->degree_range + 360;
+
 	struct rotation_lock *curr, *next;
 	spin_lock(&glob_lock);
 	list_for_each_entry_safe(curr, next, &acquire_writer.lock_list,
@@ -155,11 +167,12 @@ static int thread_cond_signal(void)
 	struct task_struct *task;
 	int i = 0;
 	int cur;
+	int degree = rotation.degree;
 
 	spin_lock(&glob_lock);
 	list_for_each_entry_safe(curr, next, &waiting_writer.lock_list,
 								lock_list) {
-		SET_CUR(cur, curr);
+		SET_CUR(cur, curr, degree);
 		if (cur <= curr->max && cur >= curr->min) {
 			if (!traverse_list_safe(curr, &acquire_writer) &&
 				!traverse_list_safe(curr, &acquire_reader)) {
@@ -187,10 +200,12 @@ static int thread_cond_broadcast(void)
 	struct task_struct *task;
 	int cur;
 	int i = 0;
+	int degree = rotation.degree;
+
 	spin_lock(&glob_lock);
 	list_for_each_entry_safe(curr, next, &waiting_reader.lock_list,
 								lock_list) {
-		SET_CUR(cur, curr);
+		SET_CUR(cur, curr, degree);
 		if (cur <= curr->max && cur >= curr->min) {
 			if (!traverse_list_safe(curr, &acquire_writer) &&
 				!traverse_list_safe(curr, &waiting_writer)) {
@@ -229,7 +244,7 @@ static void __sched thread_cond_wait(void)
 static int read_should_wait(struct rotation_lock *rot_lock)
 {
 	int cur;
-	SET_CUR(cur, rot_lock);
+	SET_CUR(cur, rot_lock, rotation.degree);
 
 	if (cur < rot_lock->min || cur > rot_lock->max)
 		return 1;
@@ -261,7 +276,7 @@ static int read_should_wait(struct rotation_lock *rot_lock)
 static int write_should_wait(struct rotation_lock *rot_lock)
 {
 	int cur;
-	SET_CUR(cur, rot_lock);
+	SET_CUR(cur, rot_lock, rotation.degree);
 
 	if (cur < rot_lock->min || cur > rot_lock->max)
 		return 1;
@@ -358,7 +373,7 @@ asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
 		return -EFAULT;
 
-	if (krot.degree_range < 0)
+	if (krot.degree_range <= 0)
 		return -EINVAL;
 
 	if (krot.degree_range >= 180)
@@ -390,7 +405,7 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
 		return -EFAULT;
 
-	if (krot.degree_range < 0)
+	if (krot.degree_range <= 0)
 		return -EINVAL;
 
 	if (krot.degree_range >= 180)
@@ -418,7 +433,7 @@ asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
 		return -EFAULT;
 
-	if (krot.degree_range < 0)
+	if (krot.degree_range <= 0)
 		return -EINVAL;
 
 	if (krot.degree_range >= 180)
@@ -443,7 +458,7 @@ asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot)
 	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
 		return -EFAULT;
 
-	if (krot.degree_range < 0)
+	if (krot.degree_range <= 0)
 		return -EINVAL;
 
 	if (krot.degree_range >= 180)
