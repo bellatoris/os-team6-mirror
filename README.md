@@ -87,7 +87,7 @@ inline void init_rotation_lock(struct rotation_lock *lock,
         lock->lock_list.next = &lock->lock_list;
 }   
 ```
-rotation_lock과 현재 rotation이 같은지 비교하기 전에 아래의 매크로함수로 사용했다.
+현재 rotation도 비교하기 전에 초기화 하기 위해 아래의 매크로를 사용했다.
 rotation의 degree가 rotation_lock의 min 보다 작으면 360 +degree, 크면 degree를 name에게 초기화하는 매크로이다.
 ```c
 #define SET_CUR(name, rot) \
