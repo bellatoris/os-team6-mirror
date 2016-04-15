@@ -31,7 +31,6 @@ static int traverse_list_safe(struct rotation_lock *rot_lock,
 	return 0;
 }
 
-
 /*
  * remove_read_waiter
  * remove the rot_lock in read_waiter_queue
@@ -41,7 +40,6 @@ static inline void remove_read_waiter(struct rotation_lock *rot_lock)
 	if (!list_empty_careful(&waiting_reader.lock_list))
 		list_del_init(&rot_lock->lock_list);
 }
-
 
 /*
  * add_read_waiter
@@ -54,7 +52,6 @@ static inline void add_read_waiter(struct rotation_lock *rot_lock)
 	spin_unlock(&glob_lock);
 }
 
-
 /*
  * remove_write_waiter
  * remove the lock at the tail of write_waiter_queue
@@ -64,7 +61,6 @@ static inline void remove_write_waiter(struct rotation_lock *rot_lock)
 	if (!list_empty_careful(&waiting_writer.lock_list))
 		list_del_init(&rot_lock->lock_list);
 }
-
 
 /*
  * add_write_waiter
@@ -119,6 +115,9 @@ static inline void add_read_acquirer(struct rotation_lock *rot_lock)
 	list_add_tail(&rot_lock->lock_list, &acquire_reader.lock_list);
 }
 
+/*
+ * remove write acquirer
+ */
 static int remove_write_acquirer(struct rotation_range *rot)
 {
 	int flag = -1;
@@ -146,7 +145,6 @@ static int remove_write_acquirer(struct rotation_range *rot)
 		kfree(curr);
 	return flag;
 }
-
 
 /*
  * add_write_acquirer
@@ -236,7 +234,6 @@ static void __sched thread_cond_wait(void)
 	spin_lock(&my_lock);
 }
 
-
 /*
  * read_shoud_wait
  * test if this read process should sleep
@@ -266,8 +263,6 @@ static int read_should_wait(struct rotation_lock *rot_lock)
 
 	return 0;
 }
-
-
 
 /*
  * write_should_wait
