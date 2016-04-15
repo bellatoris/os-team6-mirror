@@ -11,7 +11,7 @@ System call의 추가와 관련해서
 /include/linux/rotexit.h
 을 변경/생성 하였고 trial, selector 함수는 test폴더에 Makefile과 함께 들어있습니다.
 
-**1.high-level design (policy)**  
+**1.high-level design**  
 rotation 맞춰서 동작하는 read/write lock을 구현하기 위한 4가지 시스템 콜과, 
 device의 rotation을 임의로 생성하는 daemon을 위한 시스템콜 하나를 구현했다.
 
@@ -38,12 +38,11 @@ struct dev_rotation {
 
 * sys\_set\_rotation  
 User level에서 rotation을 받으면 kernel의 dev\_rotation에 rotation을 copy한다.
-또한 깨어날 수 있는 waiting writer/reader들을 깨운다. `(여기서 "깨어날 수 있다"는 말의 의미는 현재 각도가 range안에 들어와
-있으며, reader의 경우 자신의 range와 overlap되는  waiting writer, acquired writer가 없을 경우,  writer의 경우 자신의 range와 overlap되는 acquired reader, acquired writer가 없을 경우를 말한다. 앞으로 쓰이는 "깨어날 수 있다"는 동일한 의미로 쓰인다.)`
+또한 깨어날 수 있는 waiting writer/reader들을 깨운다. `(여기서 "깨어날 수 있다"는 말의 의미는 현재 rotation이 range안에 들어와 있으며, reader의 경우 자신의 range와 overlap되는  waiting writer, acquired writer가 없을 경우,  writer의 경우 자신의 range와 overlap되는 acquired reader, acquired writer가 없을 경우를 말한다. 앞으로 쓰이는 "깨어날 수 있다"는 동일한 의미로 쓰인다.)`
 마지막으로 깨어난 process의 수를 return 한다. 에러가 발생하면 -1을 리턴한다.
 
 * sys\_rotlock\_read / sys\_rotlock\_write   
-User level에서 rotation\_range를 받으면 현재 각도가 range안에 들어 왔을 때 다음 조건을 만족하면 lock을 잡는다. 
+User level에서 rotation\_range를 받으면 현재 rotation이 range안에 들어 왔을 때 다음 조건을 만족하면 lock을 잡는다. 
 Reader의 경우 자신의 range와 overlap되는 waiting writer, acquired writer가 없을 경우 lock을 잡을 수 있으며
 Writer의 경우 자신과 range와 overlap되는 acquired reader, acquired writer가 없을 경우 lock을 잡을 수 있다.
 그러나 이러한 조건을 만족 하지 못할 경우 자신의 area descriptor를 wait queue에 넣고, signal이나 broadcast가 올 때까지 sleep한다.
@@ -97,7 +96,8 @@ inline void init_rotation_lock(struct rotation_lock *lock,
 
 * Wait queue, Acquire queue
 Queue의 경우 각각의 경우 마다 정의하여 4가지로 다음과 같이 정의 하였다.
-경우마다 traverse해야하는 queue가 다르기 때문이다.
+경우마다 traverse해야하는 queue가 다르기 때문이다. 이 queue에 접근 하는 부분은
+모두 spinlock (global한) 을 사용하여 critical section으로 만들어 두었다. 
 ```c
 extern struct lock_queue waiting_writer;
 extern struct lock_queue acquire_writer;
