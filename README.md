@@ -39,12 +39,34 @@ user level에서 ratation_range를 받으면 해당 각도의 lock을 unlock한�
 
 2.implementation  
 extern을 이용해서 커널 내부에 rotation을 선언한다.
+queue의 경우 waiting_writer,acquire_writer, waitgin_reader, acquire_reader로 4개를 전역 변수로 선언했고
+각 quque에 add/remove하는 함수를 따로 만들어서 사용했다.
 ```c
 extern struct dev_rotation rotation; 
+extern struct lock_queue waiting_writer;
+extern struct lock_queue acquire_writer;
+extern struct lock_queue waiting_reader;
+extern struct lock_queue acquire_reader;
 ```
+단 queue의 첫번째 entry가 현재 rotation_lock을 range에 포함하는지 탐색하는 함수는 하나로 만들었다.
+```
+static int traverse_list_safe(struct rotation_lock *rot_lock,
+                                                struct lock_queue *queue)
+{
+        struct rotation_lock *curr, *next;
+        list_for_each_entry_safe(curr, next, &queue->lock_list, lock_list) {
+                if (rot_lock->max >= curr->min && rot_lock->min <= curr->max) {
+                        printk("range overlap!!\n");
+                        return 1;
+                }
+        }
+        return 0;
+}
+```
+
 1)sys_set_rotation  
 copy_from_user를 이용해서 커널 내부의 rotation에 값을 넣고
-잘못된 rotation값에 대해서 error를 출력한다.
+잘못된 rotation값에 대해서 error를 출력한다. 
 ```c
 asmlinkage int sys_set_rotation(struct dev_rotation __user *rot)
 {
@@ -54,24 +76,26 @@ asmlinkage int sys_set_rotation(struct dev_rotation __user *rot)
 
  if (rotation.degree < 0 ||rotation.degree > 359)
                 return -EINVAL;
+
+
 }
 ```
 
 Process를 깨우는 것은 thread_cond_signal, thread_cond_broadcast를 이용해서 구현했다.
 signal은 writer들의 waiting queue를 돌며 현재 조건에서 일어 날수 있는 첫번째 process를 
-while문을 돌면서 깨운다.
+while문을 돌면서 깨운다.이 때 일어 날 수 없는 조건은 현재 rotation이 range에 포함 되지 않거나
+현재 rotation에 acquire_writer,acquire_reader가 존재하는 경우이다
 thread_cond_braodcast는 일어 날 수 있는 모든 reader들을 while문을 돌면서 깨운다.
 ```c
 static int thread_cond_broadcast(void)
-{
-  ...
-  
-  while (WAKE_UP(curr) != 1) { // queue에는 존재하지만 아직 schedule되지 않았을 경우를 위해서 반복문을 돈다
-  }
-  
-  ...
+{ 
+	...
+	if (cur <= curr->max && cur >= curr->min) {
+		if (!traverse_list_safe(curr, &acquire_writer) && !traverse_list_safe(curr, &acquire_reader)){
+			while (WAKE_UP(curr) != 1) {}// queue에는 존재하지만 아직 schedule되지 않았을 경우를 위해서 반복문을 돈다
+  		}
+	}
 }
-
 ```
 2) sys_rotlock_read / sys_rotlock_write  
 
@@ -142,4 +166,7 @@ asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot){
     ...
 }
 
-```
+```다
+4)exit_loclock
+process가 중간에 종료될 경우
+lock을 잡고 모든 queue에서 해당 process의 pid를 가진 entry를 제거한다
