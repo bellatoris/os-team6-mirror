@@ -164,10 +164,9 @@ asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 }
 ```
 * thread\_cond\_wait  
-현재 rot\_lock을 잡을 수 있는지 판단 후 잡을 수 있다면 spin\_lock을 풀고 잡을 수 없다면
-spin\_lock을 풀고 schedule되어 signal을 기다린다. 다만 spin\_unlock을 하고 그 사이에 다른
-process가 spin\_lock을 잡는 경우 scheduing에 따라 문제가 될 수 있으므로 preemption을 disable해
-바로 잠들수 있게 하였다.
+현재 rot\_lock을 잡을 수 있는지 판단 후  잡을 수 없다면 spin\_lock을 풀고 schedule되어 signal을 기다린다. 다만
+spin\_unlock을 하고 그 사이에 다른 process가 spin\_lock을 잡는 경우 scheduing에 따라 문제가 될 수 있으므로 preemption을
+disable해 바로 잠들수 있게 하였다.
 
 ```c
 static void __sched thread_cond_wait(void)
