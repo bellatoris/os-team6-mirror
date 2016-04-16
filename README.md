@@ -1,6 +1,6 @@
 # os-team6
 
-제출할 코드는 proj12branch에 모두 merge해 두었습니다.  
+제출할 코드는 proj2 branch에 모두 merge해 두었습니다.  
 System call의 추가와 관련해서  
 /arch/arm/include/uapi/asm/unistd.h  
 /arch/arm/kernel/calls.S  
