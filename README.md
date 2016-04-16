@@ -130,7 +130,7 @@ asmlinkage int sys_set_rotation(struct dev_rotation __user *rot)
 
 ```
 
-* sys\_rotlock\_read / sys\_rotlock\_write
+* sys\_rotlock\_read / sys\_rotlock\_write  
 잘못된 rotation으로 lock을 잡으려고 하거나, kernel에 메모리가 부족한 경우 에러를 리턴한다.
 my\_lock을 spin\_lock으로 잡은 후에 queue에 접근하도록 해서 wating, acquire queue에 동시에 접근하는
 일을 막았다. 
@@ -208,7 +208,7 @@ asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 }
 ```
 
-* thread\_cond\_signal / thread\_cond\_broadcas 
+* thread\_cond\_signal / thread\_cond\_broadcast  
 Process를 깨우는 것은 thread\_cond\_signal, thread\_cond\_broadcast를 이용해서 구현했다.
 Signal은 waiting writer queue를 돌며 깨어날 수 있는 첫번째 process를 깨운다.
 Braodcast는 waiting reader queue를 돌면서 깨어날 수 있는 모든 reader들을 깨운다.
