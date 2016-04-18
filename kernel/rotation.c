@@ -213,10 +213,8 @@ static int thread_cond_broadcast(void)
  */
 static void __sched thread_cond_wait(void)
 {
-	preempt_disable();
-	spin_unlock(&my_lock);
 	set_current_state(TASK_INTERRUPTIBLE);
-	preempt_enable();
+	spin_unlock(&my_lock);
 	schedule();
 	spin_lock(&my_lock);
 }
