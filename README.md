@@ -240,7 +240,7 @@ process가 중간에 종료될 경우, spinlock을 잡고 모든 queue에서 해
 void exit_rotlock()
 {
 	struct rotation_lock *curr, *next;
-	spin_lock(&glob_lock);
+	spin_lock(&my_lock);
 	list_for_each_entry_safe(curr, next, &acquire_writer.lock_list,
 								lock_list) {
 		if (current->pid == curr->pid) {
@@ -248,7 +248,7 @@ void exit_rotlock()
 			kfree(curr);
 		}
 	}
-	spin_unlock(&glob_lock);
+	spin_unlock(&my_lock);
 }
 ```
 
