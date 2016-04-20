@@ -14,7 +14,8 @@ System call의 추가와 관련해서
 trial은 integer파일에 들어 있는 정수를 소인수 분해해서 출력합니다.  
 trial은 trail-divesion을 사용해서 1 만번째 소수까지 미리 구하고 이를 이용해서 소인수 분해를 합니다.  
 trial은 인자를 넣지 않으면 소인수 분해 결과값에 prefix로 "trial: " 이 출력되고 인자를 넣을 경우 printf("trial%d :" ,인자) 처럼 출력됩니다.  
-selector는 반드시 인자를 넣어야 하고 그 인자에 +0,1,2,3 ...한 값을 계속해서 integer에 입력합니다.
+selector는 반드시 인자를 넣어야 하고 그 인자에 +0,1,2,3 ...한 값을 계속해서 integer에 입력합니다.  
+그리고 입력한 integer값을 "selector: " prefix와 함께 출력합니다.
 
 **1.high-level design**  
 rotation 맞춰서 동작하는 read/write lock을 구현하기 위한 4가지 시스템 콜과, 
