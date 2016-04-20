@@ -16,7 +16,6 @@ struct dev_rotation{
 	int degree;
 };
 
-
 struct rotation_range{
 	struct dev_rotation rot;	/* device rotation */
 	unsigned int degree_range;	/* lock range = rot.degree ± degree_range */
@@ -30,6 +29,9 @@ int main(int argc, char* argv[]){
 	int n;
 	int i,j;
 	int obj;
+	int id;
+	if(argc == 2)
+		id = atoi(argv[1]);
 	prime[0]=2;
 	for(i=0;i< N;i++){
 	obj = prime[i]+1;
@@ -58,7 +60,7 @@ int main(int argc, char* argv[]){
 	FILE* ff = fopen("integer", "r");
 	fscanf(ff, "%d", &n);
 	fclose(ff);
-	printf("trial : ");
+	printf("trial%d: ",id);
 	print_prime(n);
 	syscall(__NR_rotunlock_read, &range);
 	} while(1);
