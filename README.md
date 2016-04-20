@@ -254,4 +254,4 @@ void exit_rotlock()
 * 멀티쓰레딩 상태에서 Heisenbug의 위험성을 알게 되었다.  
 * 멀티쓰레딩에서 lock의 중요성을 알게 되었다.  
 * 일반 lock에 비해 fine grained locking의 장점을 알게 되었다.  
-* 프로세스의 state를 변경해서 스케줄을 조절할 수 있다는 것을 알았다.
+* process의 state를 변경해서 스케줄을 조절할 수 있다는 것을 알았다.
