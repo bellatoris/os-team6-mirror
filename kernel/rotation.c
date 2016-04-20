@@ -75,7 +75,7 @@ static inline void add_write_waiter(struct rotation_lock *rot_lock)
  */
 static int remove_read_acquirer(struct rotation_range *rot)
 {
-	int flag = -1;
+	int flag = -EINVAL;
 	int max = rot->rot.degree + rot->degree_range > 360 ?
 			    rot->rot.degree + rot->degree_range :
 			    rot->rot.degree + rot->degree_range + 360;
@@ -113,7 +113,7 @@ static inline void add_read_acquirer(struct rotation_lock *rot_lock)
  */
 static int remove_write_acquirer(struct rotation_range *rot)
 {
-	int flag = -1;
+	int flag = -EINVAL;
 	int max = rot->rot.degree + rot->degree_range > 360 ?
 			    rot->rot.degree + rot->degree_range :
 			    rot->rot.degree + rot->degree_range + 360;
@@ -400,7 +400,7 @@ asmlinkage int sys_rotlock_write(struct rotation_range __user *rot)
 asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 {
 	struct rotation_range krot;
-	int flag = -1;
+	int flag = -EINVAL;
 
 	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
 		return -EFAULT;
@@ -425,7 +425,7 @@ asmlinkage int sys_rotunlock_read(struct rotation_range __user *rot)
 asmlinkage int sys_rotunlock_write(struct rotation_range __user *rot)
 {
 	struct rotation_range krot;
-	int flag = -1;
+	int flag = -EINVAL;
 
 	if (copy_from_user(&krot, rot, sizeof(struct rotation_range)) != 0)
 		return -EFAULT;
