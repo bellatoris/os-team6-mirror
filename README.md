@@ -164,17 +164,14 @@ asmlinkage int sys_rotlock_read(struct rotation_range __user *rot)
 }
 ```
 * thread\_cond\_wait  
-현재 rot\_lock을 잡을 수 있는지 판단 후  잡을 수 없다면 spin\_lock을 풀고 schedule되어 signal을 기다린다. 다만
-spin\_unlock을 하고 그 사이에 다른 process가 spin\_lock을 잡는 경우 scheduing에 따라 문제가 될 수 있으므로 preemption을
-disable해 바로 잠들수 있게 하였다.
+spin_lock을 풀기 전에 set_current_state를 호출해서 state를 TASK_INTERRUPTIBLE로 변경한다. spin_lock을 풀고, schedule을  호출해서 state가 TASK_INTERRUPTIBLE이라면 run_queue에서 빠진다.
+state가 TASK_RUNNING이 되면 다시 spin_lock을 잡고 wait을 끝낸다.  
 
 ```c
 static void __sched thread_cond_wait(void)
 {
-	preempt_disable();
-	spin_unlock(&my_lock);
 	set_current_state(TASK_INTERRUPTIBLE);
-	preempt_enable();
+	spin_unlock(&my_lock);
 	schedule();
 	spin_lock(&my_lock);
 }
@@ -257,4 +254,4 @@ void exit_rotlock()
 * 멀티쓰레딩 상태에서 Heisenbug의 위험성을 알게 되었다.  
 * 멀티쓰레딩에서 lock의 중요성을 알게 되었다.  
 * 일반 lock에 비해 fine grained locking의 장점을 알게 되었다.  
-* Preemption과 스케줄을 조절할 수 있다는 것을 알았다.
+* 프로세스의 state를 변경해서 스케줄을 조절할 수 있다는 것을 알았다.
