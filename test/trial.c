@@ -29,7 +29,7 @@ int main(int argc, char* argv[]){
 	int n;
 	int i,j;
 	int obj;
-	int id;
+	int id = 0;
 	if(argc == 2)
 		id = atoi(argv[1]);
 	prime[0]=2;
@@ -60,7 +60,10 @@ int main(int argc, char* argv[]){
 	FILE* ff = fopen("integer", "r");
 	fscanf(ff, "%d", &n);
 	fclose(ff);
-	printf("trial%d: ",id);
+	if(argc == 2)
+		printf("trial%d: ",id);
+	else
+		printf("trial : ");
 	print_prime(n);
 	syscall(__NR_rotunlock_read, &range);
 	} while(1);
