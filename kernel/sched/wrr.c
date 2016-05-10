@@ -1,76 +1,113 @@
-static void enqueue_task_wrr (struct rq *rq, struct task_struct *p, int flags);
-static void dequeue_task_wrr (struct rq *rq, struct task_struct *p, int flags);
-static void yield_task_wrr (struct rq *rq);
-static bool yield_to_task_wrr (struct rq *rq, struct task_struct *p, bool preempt); // bool possible?
-
-static void check_preempt_curr_wrr (struct rq *rq, struct task_struct *p, int flags);
-
-static struct task_struct * pick_next_task_wrr (struct rq *rq);
-static void put_prev_task_wrr (struct rq *rq, struct task_struct *p);
-
-#ifdef CONFIG_SMP
-static int  select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags);
-static void migrate_task_rq_wrr(struct task_struct *p, int next_cpu);
-
-static void pre_schedule_wrr (struct rq *this_rq, struct task_struct *task);
-static void post_schedule_wrr (struct rq *this_rq);
-static void task_waking_wrr (struct task_struct *task);
-static void task_woken_wrr (struct rq *this_rq, struct task_struct *task);
-
-static void set_cpus_allowed_wrr (struct task_struct *p,
-				 const struct cpumask *newmask);
-
-static void rq_online_wrr(struct rq *rq);
-static void rq_offline_wrr(struct rq *rq);
-#endif
-
-static void set_curr_task_wrr (struct rq *rq);
-static void task_tick_wrr (struct rq *rq, struct task_struct *p, int queued);
-static void task_fork_wrr (struct task_struct *p);
-
-static void switched_from_wrr (struct rq *this_rq, struct task_struct *task);
-static void switched_to_wrr (struct rq *this_rq, struct task_struct *task);
-static void prio_changed_wrr (struct rq *this_rq, struct task_struct *task,
-			     int oldprio);
-
-static unsigned int get_rr_interval_wrr (struct rq *rq,
-					 struct task_struct *task);
-
-
-#ifdef CONFIG_FAIR_GROUP_SCHED
-	void task_move_group_wrr (struct task_struct *p, int on_rq);
-#endif
-};
-
+#include "sched.h"
 
 const struct sched_class wrr_sched_class = {
-	.next			= &fair_sched_class,
-	.enqueue_task		= enqueue_task_wrr,
-	.dequeue_task		= dequeue_task_wrr,
+	.next 			= &cfs_sched_class,
+	.enqueue_task 		= enqueue_task_wrr,
+	.dequeue_task 		= dequeue_task_wrr,
 	.yield_task		= yield_task_wrr,
 
-	.check_preempt_curr	= check_preempt_curr_wrr,
+	.check_preempt_curr 	= check_preempt_curr_wrr,
 
-	.pick_next_task		= pick_next_task_wrr,
+	.pick_next_task 	= pick_next_task_wrr
 	.put_prev_task		= put_prev_task_wrr,
 
-#ifdef CONFIG_SMP
-	.select_task_rq		= select_task_rq_wrr,
-
-	.set_cpus_allowed       = set_cpus_allowed_wrr,
-	.rq_online              = rq_online_wrr,
-	.rq_offline             = rq_offline_wrr,
-	.pre_schedule		= pre_schedule_wrr,
-	.post_schedule		= post_schedule_wrr,
-	.task_woken		= task_woken_wrr,
-	.switched_from		= switched_from_wrr,
-#endif
-
-	.set_curr_task          = set_curr_task_wrr,
+	.set_curr_task		= set_curr_task_wrr,
 	.task_tick		= task_tick_wrr,
-
-	.get_rr_interval	= get_rr_interval_wrr,
+	.task_fork		= task_fork_wrr,
 
 	.prio_changed		= prio_changed_wrr,
-	.switched_to		= switched_to_wrr,
+	.switched_from          = switched_from_fair,
+	.switched_to            = switched_to_fair,
+
+	.get_rr_interval        = get_rr_interval_fair,
 };
+
+static inline struct wrr_rq *wrr_rq_of_se(struct sched_wrr_entity *wrr_se)
+{
+        return wrr_se->wrr_rq;
+}
+
+
+static void __enqueue_wrr_entity(struct sched_wrr_entity *wrr_se, bool head)
+{
+	struct wrr_rq *wrr_rq = wrr_rq_of_se(wrr_se);
+	if(head)
+		list_add(&wrr_se->run_list,&wrr_rq->head);
+	else
+		list_add_tail(&wrr_se->run_list, &wrr_rq->head); 
+}
+
+static void enqueue_wrr_entity(struct sched_wrr_entity *wrr_se, bool head)
+{
+	__enqueue_wrr_entity(wrr_se, head);
+}
+static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
+{
+	struct sched_wrr_entity *wrr_se = &p->wrr_se;
+	enqueue_wrr_entity(wrr_se, flags & ENQUEUE_HEAD);
+	inc_nr_running(rq);	
+	
+}
+
+static inline int on_wrr_rq(struct sched_wrr_entity *wrr_se)
+{
+        return !list_empty(&wrr_se->run_list);
+}
+
+static void __dequeue_wrr_entity(struct sched_wrr_entity *wrr_se)
+{
+	struct wrr_rq *wrr_rq = wrr_rq_of_se(wrr_se);
+	list_del_init(&wrr_se->run_list);
+}
+
+static void dequeue_wrr_entity(struct sched_wrr_entity *wrr_se)
+{
+	if(on_wrr_rq(wrr_se))
+		__dequeue_wrr_entity(wrr_se);
+}
+static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
+{
+	struct sched_wrr_entity *wrr_se = &p->wrr_se;
+	dequeue_wrr_entity(wrr_se);
+	dec_nr_running(rq);
+}
+
+requeue_wrr_entity(struct wrr_rq *wrr_rq, struct sched_wrr_entity *wrr_se, int head)
+{
+	if(on_wrr_rq(wrr_se)){
+		struct 
+	}
+}
+
+static void requeue_task_wrr(struct rq *rq, truct task_struct *p, int head)
+{
+	struct sched_wrr_entity *wrr_se = &p->wrr_se;
+	struct wrr_sq *wrr_rq;
+	wrr_rq = wrr_rq_of_se(wrr_se);
+	requeue_wrr_entity(wrr_rq, wrr_se, head);
+}
+
+static void yield_task_wrr(struct rq *rq)
+{
+	requeue_task_wrr(rq, rq->curr, 0);
+}
+static void check_preemt_curr_wrr(struct rq *rq, struct task_struct *p, int flag)
+{}
+static struct task_struct *pick_next_task_wrr(struct rq *rq)
+{}
+static void put_prev_task_wrr(struct rq *rq, struct task_struct *p)
+{}
+static void set_curr_task_wrr(struct rq *rq)
+{}
+
+
+
+static void enqueue_entity(struct wrr_rq *wrr_rq, struct sched_wrr_entity *wrr, int flags)
+{
+	
+}
+
+static inline struct wrr_rq *wrr_rq_of(struct sched_wrr_entity *wrr)
+{
+	return wrr->wrr_rq;
+}
