@@ -358,6 +358,13 @@ struct rt_rq {
 #endif
 };
 
+struct wrr_rq {
+	int wrr_nr_running;
+	u64 wrr_time;
+	u64 wrr_runtime;
+	struct list_head *head;
+}
+
 #ifdef CONFIG_SMP
 
 /*
@@ -422,7 +429,7 @@ struct rq {
 
 	struct cfs_rq cfs;
 	struct rt_rq rt;
-
+	struct wrr_rq wrr;
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	/* list of leaf cfs_rq on this cpu: */
 	struct list_head leaf_cfs_rq_list;
@@ -1029,7 +1036,7 @@ extern const struct sched_class stop_sched_class;
 extern const struct sched_class rt_sched_class;
 extern const struct sched_class fair_sched_class;
 extern const struct sched_class idle_sched_class;
-
+extern const struct sched_class wrr_sched_class;
 
 #ifdef CONFIG_SMP
 
