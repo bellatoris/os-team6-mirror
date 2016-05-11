@@ -1,6 +1,7 @@
 #include "sched.h"
+#include <kernel/molude.h>
 
-#define BASE_TIMESLICE (10 * HZ / 1000)
+#define BASE_TIMESLICE 10
 #define DEFAULT_WEIGHT 10
 
 void init_wrr_rq(struct wrr_rq *wrr_rq)
@@ -13,8 +14,9 @@ void init_wrr_rq(struct wrr_rq *wrr_rq)
 	//plist_head_init
 #endif
 }
+EXPORT_SYMBOL(init_wrr_rq);
 
-__init void init_sched_fair_class(void)
+__init void init_sched_wrr_class(void)
 {
 #ifdef CONFIG_SMP
         open_softirq(SCHED_SOFTIRQ, run_rebalance_domains);
@@ -31,7 +33,7 @@ __init void init_sched_fair_class(void)
 #endif /* SMP */
 
 }
-
+EXPORT_SYMBOL(init_wrr_rq);
 
 const struct sched_class wrr_sched_class = {
 	.next 			= &cfs_sched_class,
@@ -56,6 +58,7 @@ const struct sched_class wrr_sched_class = {
 	.get_rr_interval        = get_rr_interval_wrr,
 
 };
+EXPORT_SYMBOL(wrr_sched_class);
 static inline void inc_wrr_running(struct wrr_rq *wrr_rq)
 {
 	wrr_rq->wrr_nr_running++;
