@@ -1,6 +1,6 @@
 #include "sched.h"
 #include <kernel/molude.h>
-
+#include <linux/linkage.h>
 #define BASE_TIMESLICE 10
 #define DEFAULT_WEIGHT 10
 
@@ -8,7 +8,7 @@ void init_wrr_rq(struct wrr_rq *wrr_rq)
 {
 	wrr_rq->wrr_nr_running = 0;
 	INIT_LIST_HEAD(&wrr_rq->head);
-	
+
 #ifdef CONFIG_SMP
 	wrr_rq->wrr_nr_running = 0;
 	//plist_head_init
@@ -68,7 +68,7 @@ static inline void dec_wrr_tasks(struct wrr_rq *wrr_rq)
 	wrr_rq->wrr_nr_runnging--;
 }
 
-static void 
+static void
 
 static inline struct wrr_rq *wrr_rq_of_se(struct sched_wrr_entity *wrr_se)
 {
@@ -79,7 +79,7 @@ static inline struct wrr_rq *wrr_rq_of_se(struct sched_wrr_entity *wrr_se)
 static void __enqueue_wrr_entity(struct sched_wrr_entity *wrr_se)
 {
 	struct wrr_rq *wrr_rq = wrr_rq_of_se(wrr_se);
-	list_add_tail(&wrr_se->run_list, &wrr_rq->head); 
+	list_add_tail(&wrr_se->run_list, &wrr_rq->head);
 }
 
 static void enqueue_wrr_entity(struct sched_wrr_entity *wrr_se)
@@ -145,8 +145,8 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct sched_wrr_entity *wrr_se = &p->wrr_se;
 
-	update_curr_wrr(rq);	
-	
+	update_curr_wrr(rq);
+
 	if(on_wrr_rq(wrr_se)){
 		dequeue_wrr_entity(wrr_se);
 		dec_wrr_running(rq);
@@ -156,8 +156,8 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 
 static void requeue_wrr_entity(struct wrr_rq *wrr_rq, struct sched_wrr_entity *wrr_se)
 {
-	list_move_tail(&wrr_se->run_list, &wrr_rq->head); 
-	
+	list_move_tail(&wrr_se->run_list, &wrr_rq->head);
+
 }
 
 static void requeue_task_wrr(struct rq *rq, truct task_struct *p)
@@ -200,9 +200,9 @@ static struct task_struct *__pick_next_task_wrr(struct rq *rq)
 	struct sched_wrr_entity *wrr_se;
 	struct task_struct *p;
 	struct wrr_rq *wrr_rq;
-	
+
 	wrr_rq = &rq->wrr;
-	
+
 	if(!wrr_rq->wrr_nr_running)
 		return NULL;
 	wrr_se = pick_next_wrr_entity(wrr_rq);
@@ -217,7 +217,7 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq)
 	if(p)
 		__dequeue_plist(&(rq->wrr), p);
 	return p;
-	
+
 }
 static void put_prev_task_wrr(struct rq *rq, struct task_struct *p)
 {
@@ -252,7 +252,7 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 {
 	struct sched_wrr_entity *wrr_se = &p->wrr;
 	update_curr_wrr(rq);
-	
+
 	if (--p->wrr.time_slice > 0)
 		return;
 	p->wrr.time_slice = get_wrr_timeslice(p->wrr_weight);
@@ -266,7 +266,7 @@ static void task_fork_wrr(struct task_struct *p)
 {
 	struct sched_wrr_entity *wrr_se;
 	struct rq *rq;
-	
+
 	rq = this_rq();
 
 	wrr_se = &p->wrr_se;
