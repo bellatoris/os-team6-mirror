@@ -1,7 +1,8 @@
 #include <linux/linkage.h>
 #include <linux/types.h>
+#include <linux/sched.h>
 asmlinkage int sys_sched_setweight(pid_t pid, int weight);
-asmlinkage int sys_sched_getweight(pid_t pid, int weight);
+asmlinkage int sys_sched_getweight(pid_t pid);
 asmlinkage int sys_dummy1(void);
 asmlinkage int sys_dummy2(void);
 
@@ -10,6 +11,16 @@ asmlinkage int sys_dummy2(void);
  * System call number 384.
  */
 asmlinkage int sys_sched_setweight(pid_t pid, int weight){
+	struct task_struct *tsk;
+	struct pid *p;
+	p = find_get_pid(pid);
+	tsk = pid_task(p, PIDTYPE_PID);
+	if (pid == 0){
+		current->wrr_weight = weight;
+	}
+	else{
+		tsk->wrr_weight = weight;
+	}
 	return 0;
 }
 
@@ -17,8 +28,21 @@ asmlinkage int sys_sched_setweight(pid_t pid, int weight){
  * If 'pid' is 0, return the weight of the calling process.
  * System call number 385.
  */
-asmlinkage int sys_sched_getweight(pid_t pid, int weight){
-	return 0;
+
+ // need to check whether policy is WRR or not.
+asmlinkage int sys_sched_getweight(pid_t pid){
+	struct task_struct *tsk;
+	int weight;
+	struct pid *p;
+	p = find_get_pid(pid);
+	tsk = pid_task(p, PIDTYPE_PID);
+	if (pid == 0){
+		weight = current->wrr_weight;
+	}
+	else{
+		weight = tsk->wrr_weight;
+	}
+	return weight;
 }
 
 asmlinkage int sys_dummy1(void){
