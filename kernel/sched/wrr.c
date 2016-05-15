@@ -1,11 +1,11 @@
+#include <linux/slab.h>
+
 #include "sched.h"
-#include <linux/cpumask.h>
-static void update_curr_wrr(struct rq *rq);
+
+static void update_curr_wrr( struct rq *rq);
 static void enqueue_pushable_task(struct rq *rq, struct task_struct *p);
-/*
-static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p, int flag);
-static void __dequeue_plist_task(struct wrr_rq *wrr_rq, struct task_struct *p);
-*/
+
+
 void init_wrr_rq(struct wrr_rq *wrr_rq)
 {
 	wrr_rq->wrr_nr_running = 0;
@@ -13,11 +13,13 @@ void init_wrr_rq(struct wrr_rq *wrr_rq)
 
 #ifdef CONFIG_SMP
 	wrr_rq->wrr_nr_running = 0;
-	//plist_head_init
+	plist_head_init(&wrr_rq->movable_tasks);
 #endif
 }
 
 
+/*
+>>>>>>> sangwon3
 __init void init_sched_wrr_class(void)
 {
 #ifdef CONFIG_SMP
@@ -35,6 +37,20 @@ __init void init_sched_wrr_class(void)
 #endif
 
 }
+
+*/
+static DEFINE_PER_CPU(cpumask_var_t, local_cpu_mask);
+
+void init_sched_wrr_class(void)
+{
+        unsigned int i;
+
+        for_each_possible_cpu(i) {
+                zalloc_cpumask_var_node(&per_cpu(local_cpu_mask, i),
+                                        GFP_KERNEL, cpu_to_node(i));
+        }
+}
+
 
 static inline void inc_wrr_running(struct wrr_rq *wrr_rq)
 {
@@ -127,7 +143,9 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 		dec_wrr_running(wrr_rq);
 		__dequeue_plist_task(wrr_rq, p);
 	}
+
 }
+
 
 static void requeue_wrr_entity(struct wrr_rq *wrr_rq, struct sched_wrr_entity *wrr_se)
 {
@@ -152,12 +170,14 @@ static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p, int fla
 
 #define wrr_entity_is_task(wrr_se) (1)
 
-static inline struct task_struct *wrr_task_of(struct sched_wrr_entity *wrr_se)
+
+static inline struct task_struct *wrr_task_of(struct sched_wrr_entity *wrr)
+
 {
 #ifdef CONFIG_SCHED_DEBUG
         WARN_ON_ONCE(!wrr_entity_is_task(wrr_se));
 #endif
-        return container_of(wrr_se, struct task_struct, wrr_se);
+        return container_of(wrr, struct task_struct, wrr_se);
 }
 
 
@@ -201,9 +221,9 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *p)
 	if(on_wrr_rq(&p->wrr_se) && p->nr_cpus_allowed >1)
 		enqueue_pushable_task(rq,p);
 }
+
 static void enqueue_pushable_task(struct rq *rq, struct task_struct *p)
-{
-}
+{}
 
 static void set_curr_task_wrr(struct rq *rq)
 {
@@ -264,18 +284,17 @@ static void update_curr_wrr(struct rq *rq)
 	schedstat_set(curr->se.statistics.exec_max,
 		max(curr->se.statistics.exec_max, delta_exec));
 
-
-	/* Update the entity's runtime */
 	curr->se.sum_exec_runtime += delta_exec;
 
 	account_group_exec_runtime(curr, delta_exec);
 
-	/* Reset the start time */
 	curr->se.exec_start = rq->clock_task;
 
 	cpuacct_charge(curr, delta_exec);
-
 }
+
+
+
 
 const struct sched_class wrr_sched_class = {
         .next                   = &fair_sched_class,
@@ -300,4 +319,3 @@ const struct sched_class wrr_sched_class = {
         .get_rr_interval        = get_rr_interval_wrr,
 
 };
-
