@@ -109,6 +109,7 @@ extern struct mutex sched_domains_mutex;
 
 struct cfs_rq;
 struct rt_rq;
+struct wrr_rq;
 
 extern struct list_head task_groups;
 
@@ -360,11 +361,12 @@ struct rt_rq {
 };
 
 struct wrr_rq {
+	struct plist_head movable_tasks;
 	int wrr_nr_running;
 	u64 wrr_time;
 	u64 wrr_runtime;
 	int weight_sum;
-	struct list_head *head;
+	struct list_head head;
 };
 
 #ifdef CONFIG_SMP
