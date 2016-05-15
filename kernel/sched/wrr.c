@@ -1,6 +1,11 @@
 #include "sched.h"
-
-
+#include <linux/cpumask.h>
+static void update_curr_wrr(struct rq *rq);
+static void enqueue_pushable_task(struct rq *rq, struct task_struct *p);
+/*
+static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p, int flag);
+static void __dequeue_plist_task(struct wrr_rq *wrr_rq, struct task_struct *p);
+*/
 void init_wrr_rq(struct wrr_rq *wrr_rq)
 {
 	wrr_rq->wrr_nr_running = 0;
@@ -12,7 +17,7 @@ void init_wrr_rq(struct wrr_rq *wrr_rq)
 #endif
 }
 
-/*
+
 __init void init_sched_wrr_class(void)
 {
 #ifdef CONFIG_SMP
@@ -30,7 +35,7 @@ __init void init_sched_wrr_class(void)
 #endif
 
 }
-*/
+
 static inline void inc_wrr_running(struct wrr_rq *wrr_rq)
 {
 	wrr_rq->wrr_nr_running++;
@@ -133,7 +138,7 @@ static void requeue_wrr_entity(struct wrr_rq *wrr_rq, struct sched_wrr_entity *w
 static void requeue_task_wrr(struct rq *rq, struct task_struct *p)
 {
 	struct sched_wrr_entity *wrr_se = &p->wrr_se;
-	struct wrr_sq *wrr_rq = wrr_rq_of_se(wrr_se);
+	struct wrr_rq *wrr_rq = wrr_rq_of_se(wrr_se);
 	requeue_wrr_entity(wrr_rq, wrr_se);
 	__enqueue_plist_task(&rq->wrr , p);
 }
@@ -142,12 +147,12 @@ static void yield_task_wrr(struct rq *rq)
 {
 	requeue_task_wrr(rq, rq->curr);
 }
-static void check_preemt_curr_wrr(struct rq *rq, struct task_struct *p, int flag)
+static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p, int flag)
 {}
 
 #define wrr_entity_is_task(wrr_se) (1)
 
-static inline struct task_struct *wrr_task_of(struct sched_rt_entity *wrr_se)
+static inline struct task_struct *wrr_task_of(struct sched_wrr_entity *wrr_se)
 {
 #ifdef CONFIG_SCHED_DEBUG
         WARN_ON_ONCE(!wrr_entity_is_task(wrr_se));
@@ -162,6 +167,7 @@ static struct sched_wrr_entity *pick_next_wrr_entity(struct wrr_rq *wrr_rq)
 	struct list_head queue;
 	queue = wrr_rq->head;
 	next = list_entry(queue.next, struct sched_wrr_entity, run_list);
+	return next;
 }
 
 static struct task_struct *__pick_next_task_wrr(struct rq *rq)
@@ -184,7 +190,7 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq)
 {
 	struct task_struct *p = __pick_next_task_wrr(rq);
 	if(p)
-		__dequeue_plist(&(rq->wrr), p);
+		__dequeue_plist_task(&(rq->wrr), p);
 	return p;
 
 }
@@ -272,14 +278,14 @@ static void update_curr_wrr(struct rq *rq)
 }
 
 const struct sched_class wrr_sched_class = {
-        .next                   = &cfs_sched_class,
+        .next                   = &fair_sched_class,
         .enqueue_task           = enqueue_task_wrr,
         .dequeue_task           = dequeue_task_wrr,
         .yield_task             = yield_task_wrr,
 
         .check_preempt_curr     = check_preempt_curr_wrr,
 
-        .pick_next_task         = pick_next_task_wrr
+        .pick_next_task         = pick_next_task_wrr,
         .put_prev_task          = put_prev_task_wrr,
 
         .set_curr_task          = set_curr_task_wrr,
