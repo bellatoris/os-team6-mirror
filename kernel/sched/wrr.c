@@ -293,7 +293,9 @@ static void update_curr_wrr(struct rq *rq)
 	cpuacct_charge(curr, delta_exec);
 }
 
-
+static void switched_to_wrr(struct rq *rq,struct task_struct *p){
+	p->wrr_weight = 10;
+}
 
 
 const struct sched_class wrr_sched_class = {
@@ -311,11 +313,11 @@ const struct sched_class wrr_sched_class = {
         .task_tick              = task_tick_wrr,
 
         .task_fork              = task_fork_wrr,
-/*
-        .prio_changed           = prio_changed_wrr,
-        .switched_from          = switched_from_wrr,
+
+//        .prio_changed           = prio_changed_wrr,
+//        .switched_from          = switched_from_wrr,
         .switched_to            = switched_to_wrr,
-*/
+
         .get_rr_interval        = get_rr_interval_wrr,
 
 };

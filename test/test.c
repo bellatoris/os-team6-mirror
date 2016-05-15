@@ -7,17 +7,15 @@
 #define __NR_sched_getweight 385
 #define SCHED_WRR 6
 
-struct sched_param {
+const struct sched_param {
 	int sched_priority;
 };
-
-struct sched_param param;
-
 
 int main(int argc, char *argv[]){
 	int policy;
 	pid_t pid;
-
+	int weight;
+	struct sched_param param;
 	param.sched_priority = 0;
 
 	pid = atoi(argv[1]);
@@ -26,11 +24,16 @@ int main(int argc, char *argv[]){
 	perror("before");
 	printf("before change policy : %d\n", policy);
 
-	syscall(__NR_sched_setscheduler, SCHED_WRR, &param);
+	syscall(__NR_sched_setscheduler,pid, SCHED_WRR, &param);
 	perror("set WRR");
 
 	policy = syscall(__NR_sched_getscheduler, pid);
 	perror("after");
 	printf("after change policy : %d\n",policy);
 
+	weight = syscall(__NR_sched_getweight,pid);
+	printf("weight : %d\n",weight);
+	perror("getweight");
+
+	return 0;
 }
