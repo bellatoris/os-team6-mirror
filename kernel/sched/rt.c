@@ -2080,7 +2080,7 @@ const struct sched_class rt_sched_class = {
 	.pick_next_task		= pick_next_task_rt,
 	.put_prev_task		= put_prev_task_rt,
 
-#if defined CONFIG_SMP
+#ifdef CONFIG_SMP
 	.select_task_rq		= select_task_rq_rt,
 
 	.set_cpus_allowed       = set_cpus_allowed_rt,

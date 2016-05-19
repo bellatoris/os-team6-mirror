@@ -393,6 +393,10 @@
 		CALL(sys_ni_syscall)		/* reserved sys_sched_getattr */
 		CALL(sys_ni_syscall)		/* reserved sys_renameat2     */
 		CALL(sys_seccomp)
+/* 384 */	CALL(sys_sched_setwait)
+		CALL(sys_sched_getwait)
+		CALL(sys_ni_syscall)
+		CALL(sys_ni_syscall)
 
 #ifndef syscalls_counted
 .equ syscalls_padding, ((NR_syscalls + 3) & ~3) - NR_syscalls
