@@ -72,6 +72,12 @@ extern __read_mostly int scheduler_running;
  */
 #define RUNTIME_INF	((u64)~0ULL)
 
+/*
+ * Default timeslice is 10 msecs (used only for SCHED_WRR tasks).
+ * Timeslices get refilled after they expire.
+ */
+#define WRR_TIMESLICE		(10 * HZ / 1000)
+
 static inline int rt_policy(int policy)
 {
 	if (policy == SCHED_FIFO || policy == SCHED_RR)
@@ -225,6 +231,17 @@ extern void sched_destroy_group(struct task_group *tg);
 extern void sched_offline_group(struct task_group *tg);
 
 extern void sched_move_task(struct task_struct *tsk);
+
+/* WRR-related fields in a runqueue */
+struct wrr_rq {
+	unsigned int wrr_nr_running;
+	struct list_head wrr_queue;
+	struct list_head *wrr_lb_head, *wrr_lb_curr;
+	/*
+	 *   wrr_load is sum of all weights in this queue
+	 */
+	unsigned long wrr_load;
+};
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
 extern int sched_group_set_shares(struct task_group *tg, unsigned long shares);
@@ -422,6 +439,8 @@ struct rq {
 
 	struct cfs_rq cfs;
 	struct rt_rq rt;
+	/* add wrr_rq */
+	struct wrr_rq wrr;
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	/* list of leaf cfs_rq on this cpu: */
@@ -1029,6 +1048,7 @@ extern const struct sched_class stop_sched_class;
 extern const struct sched_class rt_sched_class;
 extern const struct sched_class fair_sched_class;
 extern const struct sched_class idle_sched_class;
+extern const struct sched_class wrr_sched_class;
 
 
 #ifdef CONFIG_SMP
@@ -1326,6 +1346,7 @@ extern void print_cfs_stats(struct seq_file *m, int cpu);
 extern void print_rt_stats(struct seq_file *m, int cpu);
 
 extern void init_cfs_rq(struct cfs_rq *cfs_rq);
+extern void init_wrr_rq(struct wrr_rq *wrr_rq);
 extern void init_rt_rq(struct rt_rq *rt_rq, struct rq *rq);
 
 extern void cfs_bandwidth_usage_inc(void);

@@ -1682,6 +1682,11 @@ static void __sched_fork(struct task_struct *p)
 	p->numa_scan_period = sysctl_numa_balancing_scan_delay;
 	p->numa_work.next = &p->numa_work;
 #endif /* CONFIG_NUMA_BALANCING */
+
+	/* init sched_wrr_entity */
+	INIT_LIST_HEAD(&p->wrr.run_list);
+	p->wrr.weight = current->wrr.weight;
+	p->wrr.time_slice = p->wrr.weight * WRR_TIMESLICE;
 }
 
 #ifdef CONFIG_NUMA_BALANCING
@@ -1745,7 +1750,10 @@ void sched_fork(struct task_struct *p)
 		p->sched_reset_on_fork = 0;
 	}
 
-	if (!rt_prio(p->prio))
+	/*
+	 * Make sure we do not leak PI boosting priority to the child.
+	 */
+	if (!rt_prio(p->prio) && (p->sched_class != &wrr_sched_class))
 		p->sched_class = &fair_sched_class;
 
 	if (p->sched_class->task_fork)
@@ -3201,6 +3209,40 @@ asmlinkage void __sched preempt_schedule_irq(void)
 
 #endif /* CONFIG_PREEMPT */
 
+asmlinkage int sched_setweight(pid_t pid, int weight)
+{
+	/* weight 검사 해야함 */
+	struct task_struct *task;
+	long curr_uid = current->real_cred->uid;
+	long curr_euid = current->real_cred->euid;
+
+	if (pid == 0)
+		task = current;
+	else
+		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
+
+	if (curr_euid == 0) {	
+		copy_from_user(&task->wrr.weight, &weight, sizeof(int));
+	} else if (curr_uid == task->real_cred->uid) {
+		if (task->wrr.weight > weight)
+			copy_from_user(&task->wrr.weight,
+						&weight, sizeof(int));
+	}
+	return 0;    
+}
+
+asmlinkage int sched_getweight(pid_t pid)
+{
+	struct task_struct *task;
+	
+	if (pid == 0)
+		task = current;
+	else
+		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
+
+	return task->wrr.weight;
+}
+
 int default_wake_function(wait_queue_t *curr, unsigned mode, int wake_flags,
 			  void *key)
 {
@@ -3693,8 +3735,12 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 
 	if (rt_prio(prio))
 		p->sched_class = &rt_sched_class;
-	else
-		p->sched_class = &fair_sched_class;
+	else {
+		if (prev_class == &wrr_sched_class)
+			p->sched_class = &wrr_sched_class;
+		else
+			p->sched_class = &fair_sched_class;
+	}
 
 	p->prio = prio;
 
@@ -7048,6 +7094,8 @@ void __init sched_init(void)
 		rq->calc_load_active = 0;
 		rq->calc_load_update = jiffies + LOAD_FREQ;
 		init_cfs_rq(&rq->cfs);
+		/* WRR */
+		init_wrr_rq(&rq->wrr);
 		init_rt_rq(&rq->rt, rq);
 #ifdef CONFIG_FAIR_GROUP_SCHED
 		root_task_group.shares = ROOT_TASK_GROUP_LOAD;

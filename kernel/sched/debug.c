@@ -248,6 +248,11 @@ void print_cfs_rq(struct seq_file *m, int cpu, struct cfs_rq *cfs_rq)
 #endif
 }
 
+void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq *wrr_rq)
+{
+	SEQ_printf(m, "\nwrr_rq[%d]:\n", cpu);
+}
+
 void print_rt_rq(struct seq_file *m, int cpu, struct rt_rq *rt_rq)
 {
 #ifdef CONFIG_RT_GROUP_SCHED

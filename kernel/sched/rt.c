@@ -197,7 +197,7 @@ err:
 	return 0;
 }
 
-#else /* CONFIG_RT_GROUP_SCHED */
+#else /* !CONFIG_RT_GROUP_SCHED */
 
 #define rt_entity_is_task(rt_se) (1)
 
@@ -2069,7 +2069,8 @@ static unsigned int get_rr_interval_rt(struct rq *rq, struct task_struct *task)
 }
 
 const struct sched_class rt_sched_class = {
-	.next			= &fair_sched_class,
+	/* modify hierarchy */
+	.next			= &wrr_sched_class,
 	.enqueue_task		= enqueue_task_rt,
 	.dequeue_task		= dequeue_task_rt,
 	.yield_task		= yield_task_rt,
@@ -2079,7 +2080,7 @@ const struct sched_class rt_sched_class = {
 	.pick_next_task		= pick_next_task_rt,
 	.put_prev_task		= put_prev_task_rt,
 
-#ifdef CONFIG_SMP
+#if defined CONFIG_SMP
 	.select_task_rq		= select_task_rq_rt,
 
 	.set_cpus_allowed       = set_cpus_allowed_rt,
