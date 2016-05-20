@@ -1,13 +1,14 @@
 #include <stdio.h>
 #include <linux/unistd.h>
+#include <sched.h>
 #include <math.h>
 #include <unistd.h>
 #include <time.h>
 #include <sched.h>
 
 #define __NR_sched_setweight 384
-
-#define N 20000
+#define __NR_sched_getweight 385
+#define N 10000
 int prime[N];
 
 void print_prime(int n);
@@ -25,13 +26,18 @@ int main(int argc, char* argv[]){
 	weight = atoi(argv[1]);
 
 	start = clock();
-	syscall(__NR_sched_setweight,0,weight);
-	perror("sched_setweight");
+	
 
 	struct sched_param param;
 	param.sched_priority = 0;
-	sched_setscheduler(0,6,&param);
-
+	sched_setscheduler(0, 6, &param);
+	
+	syscall(__NR_sched_setweight, 0, weight);
+	perror("sched_setweight");
+	
+	weight = syscall(__NR_sched_getweight, 0);
+	perror("sched_getweight");
+	printf("process's weight = %d\n", syscall(__NR_sched_getweight,0));
 	for(i=0;i< N;i++){
 	obj = prime[i]+1;
 		for(j=0;j<=i;j++){
@@ -49,14 +55,14 @@ int main(int argc, char* argv[]){
 	}
 	end = clock();
 	printf("weight : %d, execution time : %f\n",weight,(double)(end-start)/(CLOCKS_PER_SEC));
-
+	/*
 	do {
 	printf("trial : ");
 	print_prime(n);
 	n++;
 	sleep(1);
 	} while(1);
-	
+	*/
 }
 
 void print_prime(int n){

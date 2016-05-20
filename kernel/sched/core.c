@@ -8192,7 +8192,7 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 	/* weight 검사 해야함 */
 	struct task_struct *task;
 	long curr_uid = current->real_cred->uid;
-	long curr_euid = current->real_cred->euid;
+	long curr_euid = current->real_cred->euid; 
 
 	if (pid == 0)
 		task = current;
@@ -8200,11 +8200,10 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
 
 	if (curr_euid == 0) {	
-		copy_from_user(&task->wrr.weight, &weight, sizeof(int));
-	} else if (curr_uid == task->real_cred->uid) {
+		task->wrr.weight = weight;
+	} else if (pid == 0) {
 		if (task->wrr.weight > weight)
-			copy_from_user(&task->wrr.weight,
-						&weight, sizeof(int));
+			task ->wrr.weight = weight;
 	}
 	return 0;    
 }
