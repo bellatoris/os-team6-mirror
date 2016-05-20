@@ -1,252 +1,71 @@
+
+/*
+ * Weighted Round Robin Scheduling (WRR) Class (SCHED_WRR)
+ *
+ * Copyright 2016 Doogie Min <bellatoris@snu.ac.kr>
+ *
+ */
+
+
 #include <linux/sched.h>
 #include <linux/cpumask.h>
 
+
 #include "sched.h"
 
-
+/*
+ * The bawrr time slice (quantum) is 10ms.
+ * Weights of tasks can range between 1 and 20
+ */
 
 void init_wrr_rq(struct wrr_rq *wrr_rq)
 {
 	wrr_rq->wrr_nr_running = 0;
 	INIT_LIST_HEAD(&wrr_rq->wrr_queue);
-	wrr_rq->wrr_load=0;
+	wrr_rq->wrr_load = 0;
 }
-/*wrr을 가진 task_struct를 return한다*/
+
+/*
+ * wrr을 가진 task_struct를 return한다.
+ */
 static inline struct task_struct *task_of(struct sched_wrr_entity *wrr)
 {
-	return container_of(wrr, struct task_truct, wrr);
+	return container_of(wrr, struct task_struct, wrr);
 }
 
-static DEFINE_PER_CPU(cpumask_var_t, local_cpu_mask);
-
-void init_sched_wrr_class(void)
-{
-        unsigned int i;
-
-        for_each_possible_cpu(i) {
-                zalloc_cpumask_var_node(&per_cpu(local_cpu_mask, i),
-                                        GFP_KERNEL, cpu_to_node(i));
-        }
-}
-
-
-static inline void inc_wrr_running(struct wrr_rq *wrr_rq)
-{
-	wrr_rq->wrr_nr_running++;
-}
-static inline void dec_wrr_running(struct wrr_rq *wrr_rq)
-{
-	wrr_rq->wrr_nr_running--;
-}
-
-
-static inline struct wrr_rq *wrr_rq_of_se(struct sched_wrr_entity *wrr_se)
-{
-        return wrr_se->wrr_rq;
-}
-
-
-static void __enqueue_wrr_entity(struct sched_wrr_entity *wrr_se)
-{
-	struct wrr_rq *wrr_rq = wrr_rq_of_se(wrr_se);
-	list_add_tail(&wrr_se->run_list, &wrr_rq->head);
-}
-
-static void enqueue_wrr_entity(struct sched_wrr_entity *wrr_se)
-{
-	__enqueue_wrr_entity(wrr_se);
-}
-
-#ifdef CONFIG_SMP
-
-static void __enqueue_plist_task(struct wrr_rq *wrr_rq,
-				struct task_struct *p)
-{
-	plist_del(&p->pushable_tasks, &wrr_rq->movable_tasks);
-	plist_node_init(&p->pushable_tasks, p->wrr_weight);
-	plist_add(&p->pushable_tasks, &wrr_rq->movable_tasks);
-}
-
-static void __dequeue_plist_task(struct wrr_rq *wrr_rq,
-				struct task_struct *p)
-{
-	plist_del(&p->pushable_tasks, &wrr_rq->movable_tasks);
-}
-
-#else
-
-static void __enqueue_plist_task(struct wrr_rq *wrr_rq, struct task_struct *p)
-{
-}
-
-static void __dequeue_plist_task(struct wrr_rq *wrr_rq, struct task_struct *p)
-{
-}
-
-#endif
-
-static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
-{
-	struct sched_wrr_entity *wrr_se = &p->wrr_se;
-	struct wrr_rq *wrr_rq = wrr_rq_of_se(wrr_se);
-	enqueue_wrr_entity(wrr_se);
-	inc_wrr_running(wrr_rq);
-	if(!task_current(rq, p))
-		__enqueue_plist_task(wrr_rq, p);
-}
-
-static inline int on_wrr_rq(struct sched_wrr_entity *wrr_se)
-{
-        return !list_empty(&wrr_se->run_list);
-}
-
-static void __dequeue_wrr_entity(struct sched_wrr_entity *wrr_se)
-{
-	list_del_init(&wrr_se->run_list);
-}
-
-static void dequeue_wrr_entity(struct sched_wrr_entity *wrr_se)
-{
-	if(on_wrr_rq(wrr_se))
-		__dequeue_wrr_entity(wrr_se);
-}
-static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
-{
-	struct sched_wrr_entity *wrr_se = &p->wrr_se;
-	struct wrr_rq *wrr_rq = wrr_rq_of_se(wrr_se);
-	update_curr_wrr(rq);
-
-	if(on_wrr_rq(wrr_se)){
-		dequeue_wrr_entity(wrr_se);
-		dec_wrr_running(wrr_rq);
-		__dequeue_plist_task(wrr_rq, p);
-	}
-
-}
-
-
-static void requeue_wrr_entity(struct wrr_rq *wrr_rq, struct sched_wrr_entity *wrr_se)
-{
-	list_move_tail(&wrr_se->run_list, &wrr_rq->head);
-
-}
-
-static void requeue_task_wrr(struct rq *rq, struct task_struct *p)
-{
-	struct sched_wrr_entity *wrr_se = &p->wrr_se;
-	struct wrr_rq *wrr_rq = wrr_rq_of_se(wrr_se);
-	requeue_wrr_entity(wrr_rq, wrr_se);
-	__enqueue_plist_task(&rq->wrr , p);
-}
-
-static void yield_task_wrr(struct rq *rq)
-{
-	requeue_task_wrr(rq, rq->curr);
-}
-static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p, int flag)
-{}
-
-#define wrr_entity_is_task(wrr_se) (1)
-
-
-static inline struct task_struct *wrr_task_of(struct sched_wrr_entity *wrr)
+/*
+ * wrr_rq를 가진 rq를 return한다.
+ */
+static inline struct rq *rq_of(struct wrr_rq *wrr_rq)
 
 {
-#ifdef CONFIG_SCHED_DEBUG
-        WARN_ON_ONCE(!wrr_entity_is_task(wrr_se));
-#endif
-        return container_of(wrr, struct task_struct, wrr_se);
+	return container_of(wrr_rq, struct rq, wrr);
 }
 
-
-static struct sched_wrr_entity *pick_next_wrr_entity(struct wrr_rq *wrr_rq)
+/*
+ * p의 rq에 접근해서 rq의 wrr_rq를 retrun 한다.
+ */
+static inline struct wrr_rq *task_wrr_rq(struct task_struct *p)
 {
-	struct sched_wrr_entity *next = NULL;
-	struct list_head queue;
-	queue = wrr_rq->head;
-	next = list_entry(queue.next, struct sched_wrr_entity, run_list);
-	return next;
+	return &task_rq(p)->wrr;
 }
 
-static struct task_struct *__pick_next_task_wrr(struct rq *rq)
+/*
+ * wrr을 가진 task_struct p를 구하고, p의 rq에 접근해 rq의
+ * wrr_rq를 return한다.
+ */
+static inline struct wrr_rq *wrr_rq_of(struct sched_wrr_entity *wrr)
 {
-	struct sched_wrr_entity *wrr_se;
-	struct task_struct *p;
-	struct wrr_rq *wrr_rq;
+	struct task_struct *p = task_of(wrr);
+	struct rq *rq = task_rq(p);
 
-	wrr_rq = &rq->wrr;
-
-	if(!wrr_rq->wrr_nr_running)
-		return NULL;
-	wrr_se = pick_next_wrr_entity(wrr_rq);
-	//BUG_ON(!wrr_se);
-	p = wrr_task_of(wrr_se);
-	return p;
+	return &rq->wrr;
 }
 
-static struct task_struct *pick_next_task_wrr(struct rq *rq)
-{
-	struct task_struct *p = __pick_next_task_wrr(rq);
-	if(p)
-		__dequeue_plist_task(&(rq->wrr), p);
-	return p;
-
-}
-static void put_prev_task_wrr(struct rq *rq, struct task_struct *p)
-{
-	update_curr_wrr(rq);
-
-	if(on_wrr_rq(&p->wrr_se) && p->nr_cpus_allowed >1)
-		enqueue_pushable_task(rq,p);
-}
-
-static void enqueue_pushable_task(struct rq *rq, struct task_struct *p)
-{}
-
-static void set_curr_task_wrr(struct rq *rq)
-{
-	struct task_struct *p = rq->curr;
-	//p->se.exec_start = rq->clock_task;
-	__dequeue_plist_task(&(rq->wrr), p);
-}
-
-static unsigned int get_wrr_timeslice(int weight)
-{
-	return BASE_TIMESLICE * weight;
-}
-
-static unsigned int get_rr_interval_wrr(struct rq *rq, struct task_struct *task)
-{
-	return task->wrr_se.time_slice;
-}
-
-
-static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
-{
-	update_curr_wrr(rq);
-
-	if (--p->wrr_se.time_slice > 0)
-		return;
-	p->wrr_se.time_slice = get_wrr_timeslice(p->wrr_weight);
-
-	if (p->wrr_se.run_list.prev != p->wrr_se.run_list.next) {
-		requeue_task_wrr(rq, p);
-		set_tsk_need_resched(p);
-	}
-}
-static void task_fork_wrr(struct task_struct *p)
-{
-	struct sched_wrr_entity *wrr_se;
-	struct rq *rq;
-
-	rq = this_rq();
-
-	wrr_se = &p->wrr_se;
-	wrr_se->time_slice = get_wrr_timeslice(p->wrr_weight);
-
-}
-
-
+/*
+ * Update the current task's runtime statistics. Skip current tasks that
+ * are not in our scheduling class.
+ */
 static void update_curr_wrr(struct rq *rq)
 {
 	struct task_struct *curr = rq->curr;
@@ -263,39 +82,270 @@ static void update_curr_wrr(struct rq *rq)
 		max(curr->se.statistics.exec_max, delta_exec));
 
 	curr->se.sum_exec_runtime += delta_exec;
-
 	account_group_exec_runtime(curr, delta_exec);
 
 	curr->se.exec_start = rq->clock_task;
-
 	cpuacct_charge(curr, delta_exec);
 }
 
-static void switched_to_wrr(struct rq *rq,struct task_struct *p){
-	p->wrr_weight = 10;
+/*
+ * wrr_se를 wrr_rq에 추가하고, wrr_rq의 load를 wrr_se의 weight만큼
+ * 증가시킨다. 이 함수는 process가 sleeping state에서 runnable state로
+ * 바뀔때 불린다.
+ */
+static void __enqueue_wrr_entity(struct wrr_rq *wrr_rq,
+				struct sched_wrr_entity *wrr_se)
+{
+	list_add_tail(&wrr_se->run_list, &wrr_rq->wrr_queue);
+	wrr_rq->wrr_load += wrr_se->weight;
+}
+
+static void enqueue_wrr_entity(struct wrr_rq *wrr_rq,
+			struct sched_wrr_entity *wrr_se, int flags)
+{
+	update_curr_wrr(rq_of(wrr_rq));
+	__enqueue_wrr_entity(wrr_rq, wrr_se);
+}
+
+/*
+ * wrr_se를 wrr_rq에서 제거하고, wrr_rq의 load를 wrr_se의 weight만큼
+ * 감소시킨다. 이 함수는 process가 runnable state에서 sleeping state
+ * 로 바뀔때 불리거나, kernel이 다른 이유로 run_queue에서 이 process를
+ * 빼고자 할때 불린다.
+ */
+static void __dequeue_wrr_entity(struct wrr_rq *wrr_rq,
+				struct sched_wrr_entity *wrr_se)
+{
+	list_del_init(&wrr_se->run_list);
+	wrr_rq->wrr_load -= wrr_se->weight;
+}
+
+static void dequeue_wrr_entity(struct wrr_rq *wrr_rq,
+			struct sched_wrr_entity *wrr_se, int flags)
+{
+	update_curr_wrr(rq_of(wrr_rq));
+	__dequeue_wrr_entity(wrr_rq, wrr_se);
+}
+
+/*
+ * The enqueue_task_wrr method is called before nr_running is
+ * increased. Here we update the wrr scheduing stats and then
+ * put the task int to the queue
+ */
+static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
+{
+	struct wrr_rq *wrr_rq;
+	struct sched_wrr_entity *wrr_se = &p->wrr;
+
+	/* wrr_rq is task_struct's wrr_rq */
+	wrr_rq = wrr_rq_of(wrr_se);
+	/* enqueue wrr_entity to wrr_rq */
+	enqueue_wrr_entity(wrr_rq, wrr_se, flags);
+	wrr_rq->wrr_nr_running++;
+
+	inc_nr_running(rq);
+}
+
+static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
+{
+	struct wrr_rq *wrr_rq;
+	struct sched_wrr_entity *wrr_se = &p->wrr;
+
+	wrr_rq = wrr_rq_of(wrr_se);
+	dequeue_wrr_entity(wrr_rq, wrr_se, flags);
+	wrr_rq->wrr_nr_running--;
+
+	dec_nr_running(rq);
+}
+
+/*
+ * Put task to the end of the run list without the overhead of
+ * dequeue followed by enqueue
+ */
+static void
+requeue_wrr_entity(struct wrr_rq *wrr_rq, struct sched_wrr_entity *wrr_se)
+{
+	list_move_tail(&wrr_se->run_list, &wrr_rq->wrr_queue);
+}
+
+static void requeue_task_wrr(struct rq *rq, struct task_struct *p)
+{
+	struct sched_wrr_entity *wrr_se = &p->wrr;
+	struct wrr_rq *wrr_rq;
+
+	wrr_rq = wrr_rq_of(wrr_se);
+	requeue_wrr_entity(wrr_rq, wrr_se);
+}
+
+static void yield_task_wrr(struct rq *rq)
+{
+	update_rq_clock(rq);
+	update_curr_wrr(rq);
+	requeue_task_wrr(rq, rq->curr);
+}
+
+static void check_preempt_curr_wrr(struct rq *rq,
+			struct task_struct *p, int wakeflags)
+{
+}
+
+static struct sched_wrr_entity *pick_next_wrr_entity(struct rq *rq,
+						struct wrr_rq *wrr_rq)
+{
+	struct sched_wrr_entity *next = NULL;
+
+	next = list_first_entry(&wrr_rq->wrr_queue,
+			    struct sched_wrr_entity, run_list);
+
+	return next;
+}
+
+static struct task_struct *_pick_next_task_wrr(struct rq *rq)
+{
+	struct sched_wrr_entity *wrr_se;
+	struct task_struct *p;
+	struct wrr_rq *wrr_rq;
+
+	wrr_rq = &rq->wrr;
+
+	if (!wrr_rq->wrr_nr_running)
+		return NULL;
+
+	wrr_se = pick_next_wrr_entity(rq, wrr_rq);
+
+	p = task_of(wrr_se);
+	p->se.exec_start = rq->clock_task;
+
+	return p;
 }
 
 
+static struct task_struct *pick_next_task_wrr(struct rq *rq)
+{
+	struct task_struct *p = _pick_next_task_wrr(rq);
+	return p;
+}
+
+static void put_prev_task_wrr(struct rq *rq, struct task_struct *p)
+{
+	update_curr_wrr(rq);
+	p->se.exec_start = 0;
+}
+
+#ifdef CONFIG_SMP
+static int find_lowest_cpu(struct task_struct *p)
+{
+	struct rq *rq;
+	unsigned int min_cpu, load, cpu;
+
+	load = 0xffffffff;
+	for_each_cpu(cpu, cpu_active_mask) {
+		rq = cpu_rq(cpu);
+
+		if (rq->wrr.wrr_load < load) {
+			load = rq->wrr.wrr_load;
+			min_cpu = cpu;
+		}
+	}
+
+	return min_cpu;
+}
+
+static int
+select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
+{
+	int cpu = task_cpu(p);
+
+	if (p->nr_cpus_allowed == 1)
+		return cpu;
+
+	rcu_read_lock();
+	cpu = find_lowest_cpu(p);
+	rcu_read_unlock();
+
+	return cpu;
+}
+#endif /* CONFIG_SMP */
+
+static void set_curr_task_wrr(struct rq *rq)
+{
+	struct task_struct *p = rq->curr;
+	p->se.exec_start = rq->clock_task;
+}
+
+/*
+ * task_tick_wrris called by the periodic scheduler each time it is activated.
+ * Each task should execute in intervals equal to the quantum value.
+ * To accomplish this, this function should decrement the current
+ * task’s time slice to indicate that it has run for 1 time unit.
+ * When a task has run for its entire allotted time slice
+ * (i.e. the task’s time slice reaches 0), this function should
+ * reset its time slice value, move it to the end of the run queue,
+ * and set its TIF_NEED_RESCHED flag (using the set tsk need
+ * resched(task) function) to indicate to the generic scheduler
+ * that it should be preempted.
+ */
+static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
+{
+	struct sched_wrr_entity *wrr_se = &p->wrr;
+
+	update_curr_wrr(rq);
+
+	if (--wrr_se->time_slice)
+		return;
+
+	wrr_se->time_slice = WRR_TIMESLICE * wrr_se->weight;
+
+	requeue_task_wrr(rq, p);
+	set_tsk_need_resched(p);
+	return;
+}
+
+static void switched_to_wrr(struct rq *rq, struct task_struct *p)
+{
+	/*
+	 * We were most likely switched from sched_rt, so
+	 * kick off the schedule if running, otherwise just see
+	 * if we can still preempt the current task
+	 */
+	if (rq->curr == p)
+		resched_task(rq->curr);
+	else
+		check_preempt_curr(rq, p, 0);
+}
+
 const struct sched_class wrr_sched_class = {
-        .next                   = &fair_sched_class,
-        .enqueue_task           = enqueue_task_wrr,
-        .dequeue_task           = dequeue_task_wrr,
-        .yield_task             = yield_task_wrr,
+	.next			= &fair_sched_class,
+	.enqueue_task		= enqueue_task_wrr,
+	.dequeue_task		= dequeue_task_wrr,
+	.yield_task		= yield_task_wrr,
 
-        .check_preempt_curr     = check_preempt_curr_wrr,
 
-        .pick_next_task         = pick_next_task_wrr,
-        .put_prev_task          = put_prev_task_wrr,
+	.check_preempt_curr	= check_preempt_curr_wrr,
+	.pick_next_task		= pick_next_task_wrr,
+	.put_prev_task		= put_prev_task_wrr,
 
-        .set_curr_task          = set_curr_task_wrr,
-        .task_tick              = task_tick_wrr,
+#ifdef CONFIG_SMP
+	.select_task_rq		= select_task_rq_wrr,
+#endif
 
-        .task_fork              = task_fork_wrr,
+	.set_curr_task		= set_curr_task_wrr,
+	.task_tick		= task_tick_wrr,
 
-//        .prio_changed           = prio_changed_wrr,
-//        .switched_from          = switched_from_wrr,
-        .switched_to            = switched_to_wrr,
 
-        .get_rr_interval        = get_rr_interval_wrr,
-
+	.switched_to		= switched_to_wrr,
 };
+
+#ifdef CONFIG_SCHED_DEBUG
+extern void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq *wrr_rq);
+
+
+void print_wrr_stats(struct seq_file *m, int cpu)
+{
+	struct wrr_rq *wrr_rq;
+	wrr_rq = &cpu_rq(cpu)->wrr;
+	rcu_read_lock();
+	print_wrr_rq(m, cpu, wrr_rq);
+	rcu_read_unlock();
+}
+#endif /* CONFIG_SCHED_DEBUG */

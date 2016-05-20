@@ -1684,7 +1684,9 @@ static void __sched_fork(struct task_struct *p)
 #endif /* CONFIG_NUMA_BALANCING */
 
 	/* init sched_wrr_entity */
-	INIT_LIST_HEAD(&p->wrr.runlist);
+
+	INIT_LIST_HEAD(&p->wrr.run_list);
+
 	p->wrr.weight = current->wrr.weight;
 	p->wrr.time_slice = p->wrr.weight * WRR_TIMESLICE;
 }
@@ -1750,6 +1752,11 @@ void sched_fork(struct task_struct *p)
 		 */
 		p->sched_reset_on_fork = 0;
 	}
+
+
+	/*
+	 * Make sure we do not leak PI boosting priority to the child.
+	 */
 
 	if (!rt_prio(p->prio) && (p->sched_class != &wrr_sched_class))
 		p->sched_class = &fair_sched_class;
@@ -3699,12 +3706,14 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 
 	if (rt_prio(prio))
 		p->sched_class = &rt_sched_class;
-	else{
-		if (prev_class == &wr_schead_class)
-			p->sched_class = &wrr_class;
+
+	else {
+		if (prev_class == &wrr_sched_class)
+			p->sched_class = &wrr_sched_class;
 		else
 			p->sched_class = &fair_sched_class;
 	}
+
 	p->prio = prio;
 
 	if (running)
@@ -3886,8 +3895,6 @@ static struct task_struct *find_process_by_pid(pid_t pid)
 extern struct cpumask hmp_slow_cpu_mask;
 
 /* Actually do priority change: must hold rq lock. */
-
-
 static void
 __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 {
@@ -4644,7 +4651,8 @@ SYSCALL_DEFINE1(sched_get_priority_max, int, policy)
 	case SCHED_NORMAL:
 	case SCHED_BATCH:
 	case SCHED_IDLE:
-	case SCHED+WRR:
+	case SCHED_WRR:
+
 		ret = 0;
 		break;
 	}
@@ -4670,6 +4678,7 @@ SYSCALL_DEFINE1(sched_get_priority_min, int, policy)
 	case SCHED_NORMAL:
 	case SCHED_BATCH:
 	case SCHED_IDLE:
+	case SCHED_WRR:
 		ret = 0;
 	}
 	return ret;
@@ -7062,7 +7071,8 @@ void __init sched_init(void)
 		rq->calc_load_active = 0;
 		rq->calc_load_update = jiffies + LOAD_FREQ;
 		init_cfs_rq(&rq->cfs);
-		init_wrr_rq(&rq->wrr;)
+		/* WRR */
+		init_wrr_rq(&rq->wrr);
 		init_rt_rq(&rq->rt, rq);
 #ifdef CONFIG_FAIR_GROUP_SCHED
 		root_task_group.shares = ROOT_TASK_GROUP_LOAD;
@@ -7167,6 +7177,7 @@ void __init sched_init(void)
 	idle_thread_set_boot_cpu();
 #endif
 	init_sched_fair_class();
+
 	scheduler_running = 1;
 }
 
@@ -8182,3 +8193,37 @@ void dump_cpu_task(int cpu)
 	sched_show_task(cpu_curr(cpu));
 }
 
+
+SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
+{
+	/* weight 검사 해야함 */
+	struct task_struct *task;
+	long curr_uid = current->real_cred->uid;
+	long curr_euid = current->real_cred->euid;
+
+	if (pid == 0)
+		task = current;
+	else
+		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
+
+	if (curr_euid == 0) {
+		copy_from_user(&task->wrr.weight, &weight, sizeof(int));
+	} else if (curr_uid == task->real_cred->uid) {
+		if (task->wrr.weight > weight)
+			copy_from_user(&task->wrr.weight,
+						&weight, sizeof(int));
+	}
+	return 0;
+}
+
+SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
+{
+	struct task_struct *task;
+
+	if (pid == 0)
+		task = current;
+	else
+		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
+
+	return task->wrr.weight;
+}

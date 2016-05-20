@@ -72,7 +72,12 @@ extern __read_mostly int scheduler_running;
  */
 #define RUNTIME_INF	((u64)~0ULL)
 
-#define WRR_TIMESLICE (10 * HZ / 1000)
+/*
+ * Default timeslice is 10 msecs (used only for SCHED_WRR tasks).
+ * Timeslices get refilled after they expire.
+ */
+#define WRR_TIMESLICE		(10 * HZ / 1000)
+
 
 static inline int rt_policy(int policy)
 {
@@ -228,11 +233,17 @@ extern void sched_offline_group(struct task_group *tg);
 
 extern void sched_move_task(struct task_struct *tsk);
 
+
+/* WRR-related fields in a runqueue */
+
 struct wrr_rq {
 	unsigned int wrr_nr_running;
 	struct list_head wrr_queue;
 	struct list_head *wrr_lb_head, *wrr_lb_curr;
-	/* wrr_load is sum of all weights in this queue */
+
+	/*
+	 *   wrr_load is sum of all weights in this queue
+	 */
 	unsigned long wrr_load;
 };
 
@@ -259,7 +270,7 @@ struct cfs_rq {
 
 	struct rb_root tasks_timeline;
 	struct rb_node *rb_leftmost;
-	
+
 	/*
 	 * 'curr' points to currently running entity on this cfs_rq.
 	 * It is set to NULL otherwise (i.e when none are currently running).
@@ -435,6 +446,7 @@ struct rq {
 	struct rt_rq rt;
 	/* add wrr_rq */
 	struct wrr_rq wrr;
+
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	/* list of leaf cfs_rq on this cpu: */
 	struct list_head leaf_cfs_rq_list;
@@ -1043,6 +1055,7 @@ extern const struct sched_class fair_sched_class;
 extern const struct sched_class idle_sched_class;
 extern const struct sched_class wrr_sched_class;
 
+
 #ifdef CONFIG_SMP
 
 extern void update_group_power(struct sched_domain *sd, int cpu);
@@ -1076,7 +1089,6 @@ extern void update_max_interval(void);
 extern int update_runtime(struct notifier_block *nfb, unsigned long action, void *hcpu);
 extern void init_sched_rt_class(void);
 extern void init_sched_fair_class(void);
-extern void init_sched_wrr_class(void);
 
 extern void resched_task(struct task_struct *p);
 extern void resched_cpu(int cpu);
@@ -1338,6 +1350,7 @@ extern struct sched_entity *__pick_last_entity(struct cfs_rq *cfs_rq);
 extern void print_cfs_stats(struct seq_file *m, int cpu);
 extern void print_rt_stats(struct seq_file *m, int cpu);
 extern void print_wrr_stats(struct seq_file *m, int cpu);
+
 extern void init_cfs_rq(struct cfs_rq *cfs_rq);
 extern void init_wrr_rq(struct wrr_rq *wrr_rq);
 extern void init_rt_rq(struct rt_rq *rt_rq, struct rq *rq);
