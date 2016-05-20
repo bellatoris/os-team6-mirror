@@ -281,8 +281,8 @@ asmlinkage long sys_sched_setparam(pid_t pid,
 asmlinkage long sys_sched_getscheduler(pid_t pid);
 asmlinkage long sys_sched_getparam(pid_t pid,
 					struct sched_param __user *param);
-asmlinkage long sys_sched_setwait(pid_t pid, int weight);
-asmlinkage long sys_sched_getwait(pid_t pid);
+asmlinkage long sys_sched_setweight(pid_t pid, int weight);
+asmlinkage long sys_sched_getweight(pid_t pid);
 
 asmlinkage long sys_sched_setaffinity(pid_t pid, unsigned int len,
 					unsigned long __user *user_mask_ptr);
