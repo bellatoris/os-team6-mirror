@@ -1034,6 +1034,14 @@ struct sched_entity {
 #endif
 };
 
+/* sched_wrr_entity */
+struct sched_wrr_entity {
+	struct list_head	run_list;
+	/* time_slice = 10ms * weight 인데 time_slice가 필요 할까? */
+	unsigned int		time_slice;
+	unsigned int		weight;
+};
+
 struct sched_rt_entity {
 	struct list_head run_list;
 	unsigned long timeout;
@@ -1048,12 +1056,6 @@ struct sched_rt_entity {
 	/* rq "owned" by this entity/group: */
 	struct rt_rq		*my_q;
 #endif
-};
-
-struct sched_wrr_entity {
-	struct list_head run_list;
-	int time_slice;
-	struct wrr_rq		*wrr_rq;
 };
 
 struct rcu_node;
@@ -1084,7 +1086,8 @@ struct task_struct {
 	const struct sched_class *sched_class;
 	struct sched_entity se;
 	struct sched_rt_entity rt;
-	struct sched_wrr_entity wrr_se;
+	/* add sched_wrr_entity */
+	struct sched_wrr_entity wrr;
 #ifdef CONFIG_CGROUP_SCHED
 	struct task_group *sched_task_group;
 #endif
