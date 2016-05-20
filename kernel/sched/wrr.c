@@ -168,7 +168,7 @@ requeue_wrr_entity(struct wrr_rq *wrr_rq, struct sched_wrr_entity *wrr_se)
 static void requeue_task_wrr(struct rq *rq, struct task_struct *p)
 {
 	struct sched_wrr_entity *wrr_se = &p->wrr;
-	struct wrr_rq *wrr_rq = &rq->wrr;
+	struct wrr_rq *wrr_rq;
 
 	wrr_rq = wrr_rq_of(wrr_se);
 	requeue_wrr_entity(wrr_rq, wrr_se);
