@@ -180,6 +180,11 @@ extern struct task_group root_task_group;
 		.run_list	= LIST_HEAD_INIT(tsk.rt.run_list),	\
 		.time_slice	= RR_TIMESLICE,				\
 	},								\
+	.wrr		={						\
+		.run_list	=LIST_HEAD_INIT(tsk.wrr.run_list),	\
+		.time_slice	=RR_TIMESLICE,				\
+		.weight		=10,					\
+	},								\
 	.tasks		= LIST_HEAD_INIT(tsk.tasks),			\
 	INIT_PUSHABLE_TASKS(tsk)					\
 	INIT_CGROUP_SCHED(tsk)						\

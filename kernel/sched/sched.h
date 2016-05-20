@@ -2,7 +2,6 @@
 #include <linux/sched.h>
 #include <linux/sched/sysctl.h>
 #include <linux/sched/rt.h>
-#include <linux/sched/wrr.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
 #include <linux/stop_machine.h>
@@ -73,6 +72,8 @@ extern __read_mostly int scheduler_running;
  */
 #define RUNTIME_INF	((u64)~0ULL)
 
+#define WRR_TIMESLICE (10 * HZ / 1000)
+
 static inline int rt_policy(int policy)
 {
 	if (policy == SCHED_FIFO || policy == SCHED_RR)
@@ -109,7 +110,6 @@ extern struct mutex sched_domains_mutex;
 
 struct cfs_rq;
 struct rt_rq;
-struct wrr_rq;
 
 extern struct list_head task_groups;
 
@@ -227,6 +227,14 @@ extern void sched_destroy_group(struct task_group *tg);
 extern void sched_offline_group(struct task_group *tg);
 
 extern void sched_move_task(struct task_struct *tsk);
+
+struct wrr_rq {
+	unsigned int wrr_nr_running;
+	struct list_head wrr_queue;
+	struct list_head *wrr_lb_head, *wrr_lb_curr;
+	/* wrr_load is sum of all weights in this queue */
+	unsigned long wrr_load;
+};
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
 extern int sched_group_set_shares(struct task_group *tg, unsigned long shares);
@@ -360,14 +368,6 @@ struct rt_rq {
 #endif
 };
 
-struct wrr_rq {
-	struct plist_head movable_tasks;
-	int wrr_nr_running;
-	u64 wrr_time;
-	u64 wrr_runtime;
-	int weight_sum;
-	struct list_head head;
-};
 
 #ifdef CONFIG_SMP
 
@@ -433,6 +433,7 @@ struct rq {
 
 	struct cfs_rq cfs;
 	struct rt_rq rt;
+	/* add wrr_rq */
 	struct wrr_rq wrr;
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	/* list of leaf cfs_rq on this cpu: */
@@ -1336,10 +1337,10 @@ extern struct sched_entity *__pick_first_entity(struct cfs_rq *cfs_rq);
 extern struct sched_entity *__pick_last_entity(struct cfs_rq *cfs_rq);
 extern void print_cfs_stats(struct seq_file *m, int cpu);
 extern void print_rt_stats(struct seq_file *m, int cpu);
-
+extern void print_wrr_stats(struct seq_file *m, int cpu);
 extern void init_cfs_rq(struct cfs_rq *cfs_rq);
-extern void init_rt_rq(struct rt_rq *rt_rq, struct rq *rq);
 extern void init_wrr_rq(struct wrr_rq *wrr_rq);
+extern void init_rt_rq(struct rt_rq *rt_rq, struct rq *rq);
 
 extern void cfs_bandwidth_usage_inc(void);
 extern void cfs_bandwidth_usage_dec(void);

@@ -1,44 +1,22 @@
-#include <linux/slab.h>
+#include <linux/sched.h>
+#include <linux/cpumask.h>
 
 #include "sched.h"
 
-static void update_curr_wrr( struct rq *rq);
-static void enqueue_pushable_task(struct rq *rq, struct task_struct *p);
 
 
 void init_wrr_rq(struct wrr_rq *wrr_rq)
 {
 	wrr_rq->wrr_nr_running = 0;
-	INIT_LIST_HEAD(&wrr_rq->head);
-
-#ifdef CONFIG_SMP
-	wrr_rq->wrr_nr_running = 0;
-	plist_head_init(&wrr_rq->movable_tasks);
-#endif
+	INIT_LIST_HEAD(&wrr_rq->wrr_queue);
+	wrr_rq->wrr_load=0;
 }
-
-
-/*
->>>>>>> sangwon3
-__init void init_sched_wrr_class(void)
+/*wrr을 가진 task_struct를 return한다*/
+static inline struct task_struct *task_of(struct sched_wrr_entity *wrr)
 {
-#ifdef CONFIG_SMP
-        open_softirq(SCHED_SOFTIRQ, run_rebalance_domains);
-
-#ifdef CONFIG_NO_HZ_COMMON
-        nohz.next_balance = jiffies;
-        zalloc_cpumask_var(&nohz.idle_cpus_mask, GFP_NOWAIT);
-        cpu_notifier(sched_ilb_notifier, 0);
-#endif
-
-#ifdef CONFIG_SCHED_HMP
-        hmp_cpu_mask_setup();
-#endif
-#endif
-
+	return container_of(wrr, struct task_truct, wrr);
 }
 
-*/
 static DEFINE_PER_CPU(cpumask_var_t, local_cpu_mask);
 
 void init_sched_wrr_class(void)

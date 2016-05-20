@@ -1682,7 +1682,13 @@ static void __sched_fork(struct task_struct *p)
 	p->numa_scan_period = sysctl_numa_balancing_scan_delay;
 	p->numa_work.next = &p->numa_work;
 #endif /* CONFIG_NUMA_BALANCING */
+
+	/* init sched_wrr_entity */
+	INIT_LIST_HEAD(&p->wrr.runlist);
+	p->wrr.weight = current->wrr.weight;
+	p->wrr.time_slice = p->wrr.weight * WRR_TIMESLICE;
 }
+
 
 #ifdef CONFIG_NUMA_BALANCING
 #ifdef CONFIG_SCHED_DEBUG
@@ -1745,7 +1751,7 @@ void sched_fork(struct task_struct *p)
 		p->sched_reset_on_fork = 0;
 	}
 
-	if (!rt_prio(p->prio))
+	if (!rt_prio(p->prio) && (p->sched_class != &wrr_sched_class))
 		p->sched_class = &fair_sched_class;
 
 	if (p->sched_class->task_fork)
@@ -3693,9 +3699,12 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 
 	if (rt_prio(prio))
 		p->sched_class = &rt_sched_class;
-	else
-		p->sched_class = &fair_sched_class;
-
+	else{
+		if (prev_class == &wr_schead_class)
+			p->sched_class = &wrr_class;
+		else
+			p->sched_class = &fair_sched_class;
+	}
 	p->prio = prio;
 
 	if (running)
@@ -3885,7 +3894,6 @@ __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 	p->policy = policy;
 	p->rt_priority = prio;
 	p->normal_prio = normal_prio(p);
-	//p->wrr_weight = DEFAULT_WEIGHT;
 	/* we are holding p->pi_lock already */
 	p->prio = rt_mutex_getprio(p);
 	if (rt_prio(p->prio)) {
@@ -3899,8 +3907,8 @@ __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 			}
 #endif
 	}
-	else if(wrr_task(p)){}
-		//p->sched_class = &wrr_sched_class;
+	else if (policy == SCHED_WRR)
+		p->sched_class = &wrr_sched_class;
 	else
 		p->sched_class = &fair_sched_class;
 	set_load_weight(p);
@@ -4636,6 +4644,7 @@ SYSCALL_DEFINE1(sched_get_priority_max, int, policy)
 	case SCHED_NORMAL:
 	case SCHED_BATCH:
 	case SCHED_IDLE:
+	case SCHED+WRR:
 		ret = 0;
 		break;
 	}
@@ -7053,8 +7062,8 @@ void __init sched_init(void)
 		rq->calc_load_active = 0;
 		rq->calc_load_update = jiffies + LOAD_FREQ;
 		init_cfs_rq(&rq->cfs);
+		init_wrr_rq(&rq->wrr;)
 		init_rt_rq(&rq->rt, rq);
-		//init_wrr_rq(&rq->wrr);
 #ifdef CONFIG_FAIR_GROUP_SCHED
 		root_task_group.shares = ROOT_TASK_GROUP_LOAD;
 		INIT_LIST_HEAD(&rq->leaf_cfs_rq_list);
@@ -7158,7 +7167,6 @@ void __init sched_init(void)
 	idle_thread_set_boot_cpu();
 #endif
 	init_sched_fair_class();
-	//init_sched_wrr_class();
 	scheduler_running = 1;
 }
 
@@ -8173,3 +8181,4 @@ void dump_cpu_task(int cpu)
 	pr_info("Task dump for CPU %d:\n", cpu);
 	sched_show_task(cpu_curr(cpu));
 }
+
