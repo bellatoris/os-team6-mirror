@@ -3209,40 +3209,6 @@ asmlinkage void __sched preempt_schedule_irq(void)
 
 #endif /* CONFIG_PREEMPT */
 
-asmlinkage int sched_setweight(pid_t pid, int weight)
-{
-	/* weight 검사 해야함 */
-	struct task_struct *task;
-	long curr_uid = current->real_cred->uid;
-	long curr_euid = current->real_cred->euid;
-
-	if (pid == 0)
-		task = current;
-	else
-		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
-
-	if (curr_euid == 0) {	
-		copy_from_user(&task->wrr.weight, &weight, sizeof(int));
-	} else if (curr_uid == task->real_cred->uid) {
-		if (task->wrr.weight > weight)
-			copy_from_user(&task->wrr.weight,
-						&weight, sizeof(int));
-	}
-	return 0;    
-}
-
-asmlinkage int sched_getweight(pid_t pid)
-{
-	struct task_struct *task;
-	
-	if (pid == 0)
-		task = current;
-	else
-		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
-
-	return task->wrr.weight;
-}
-
 int default_wake_function(wait_queue_t *curr, unsigned mode, int wake_flags,
 			  void *key)
 {
@@ -3942,6 +3908,8 @@ __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 			}
 #endif
 	}
+	else if (policy == SCHED_WRR)
+		p->sched_class = &wrr_sched_class;
 	else
 		p->sched_class = &fair_sched_class;
 	set_load_weight(p);
@@ -8216,4 +8184,39 @@ void dump_cpu_task(int cpu)
 {
 	pr_info("Task dump for CPU %d:\n", cpu);
 	sched_show_task(cpu_curr(cpu));
+}
+
+
+SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
+{
+	/* weight 검사 해야함 */
+	struct task_struct *task;
+	long curr_uid = current->real_cred->uid;
+	long curr_euid = current->real_cred->euid;
+
+	if (pid == 0)
+		task = current;
+	else
+		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
+
+	if (curr_euid == 0) {	
+		copy_from_user(&task->wrr.weight, &weight, sizeof(int));
+	} else if (curr_uid == task->real_cred->uid) {
+		if (task->wrr.weight > weight)
+			copy_from_user(&task->wrr.weight,
+						&weight, sizeof(int));
+	}
+	return 0;    
+}
+
+SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
+{
+	struct task_struct *task;
+	
+	if (pid == 0)
+		task = current;
+	else
+		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
+
+	return task->wrr.weight;
 }

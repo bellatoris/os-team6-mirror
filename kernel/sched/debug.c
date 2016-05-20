@@ -251,6 +251,15 @@ void print_cfs_rq(struct seq_file *m, int cpu, struct cfs_rq *cfs_rq)
 void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq *wrr_rq)
 {
 	SEQ_printf(m, "\nwrr_rq[%d]:\n", cpu);
+#define PW(x) \
+	SEQ_printf(m, "	.%-30s: %Ld\n", #x, (long long)(wrr_rq->x))
+#define PNW(x) \
+	SEQ_printf(m, " .%-30s: %ld\n", #x, SPLIT_NS(wrr_rq->x))
+
+	PW(wrr_nr_running);
+	PW(wrr_load);
+#undef PNW
+#undef PW
 }
 
 void print_rt_rq(struct seq_file *m, int cpu, struct rt_rq *rt_rq)
