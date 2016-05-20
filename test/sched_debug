@@ -1,0 +1,86 @@
+Sched Debug Version: v0.10, 3.10.65-g52961e9-dirty #183-Tizen
+ktime                                   : 1014629.543456
+sched_clk                               : 1014637.878417
+cpu_clk                                 : 1014637.878417
+jiffies                                 : 71463
+
+sysctl_sched
+  .sysctl_sched_latency                    : 12.000000
+  .sysctl_sched_min_granularity            : 1.500000
+  .sysctl_sched_wakeup_granularity         : 2.000000
+  .sysctl_sched_child_runs_first           : 0
+  .sysctl_sched_features                   : 11899
+  .sysctl_sched_tunable_scaling            : 1 (logaritmic)
+
+cpu#0
+  .nr_running                    : 3
+  .load                          : 2048
+  .nr_switches                   : 352845
+  .nr_load_updates               : 74295
+  .nr_uninterruptible            : 90
+  .next_balance                  : 0.071536
+  .curr->pid                     : 1362
+  .clock                         : 1014637.756347
+  .cpu_load[0]                   : 0
+  .cpu_load[1]                   : 0
+  .cpu_load[2]                   : 0
+  .cpu_load[3]                   : 0
+  .cpu_load[4]                   : 0
+
+cfs_rq[0]:/
+  .exec_clock                    : 0.000000
+  .MIN_vruntime                  : 213058.505943
+  .min_vruntime                  : 213064.200768
+  .max_vruntime                  : 213058.780606
+  .spread                        : 0.274663
+  .spread0                       : 0.000000
+  .nr_spread_over                : 0
+  .nr_running                    : 2
+  .load                          : 2048
+  .runnable_load_avg             : 42
+  .blocked_load_avg              : 0
+  .tg_load_avg                   : 55
+  .tg_load_contrib               : 39
+  .tg_runnable_contrib           : 25
+  .tg->runnable_avg              : 63
+  .tg->usage_avg                 : 63
+  .tg->cfs_bandwidth.timer_active: 0
+  .throttled                     : 0
+  .throttle_count                : 0
+  .tg->cfs_bandwidth.timer_active: 0
+  .throttled                     : 0
+  .throttle_count                : 0
+  .avg->runnable_avg_sum         : 1148
+  .avg->runnable_avg_period      : 46493
+
+rt_rq[0]:/background/quota
+  .rt_nr_running                 : 0
+  .rt_throttled                  : 0
+  .rt_time                       : 0.000000
+  .rt_runtime                    : 0.000000
+
+rt_rq[0]:/system
+  .rt_nr_running                 : 0
+  .rt_throttled                  : 0
+  .rt_time                       : 0.000000
+  .rt_runtime                    : 0.000000
+
+rt_rq[0]:/background
+  .rt_nr_running                 : 0
+  .rt_throttled                  : 0
+  .rt_time                       : 0.000000
+  .rt_runtime                    : 0.000000
+
+rt_rq[0]:/
+  .rt_nr_running                 : 0
+  .rt_throttled                  : 0
+  .rt_time                       : 0.000000
+  .rt_runtime                    : 950.000000
+
+runnable tasks:
+            task   PID         tree-key  switches  prio     exec-runtime         sum-exec        sum-sleep
+----------------------------------------------------------------------------------------------------------
+            sdbd  1203    213058.505943       633   120               0               0               0.000000               0.000000               0.000000 /
+            sdbd  1204    213058.780606       794   120               0               0               0.000000               0.000000               0.000000 /
+R           sdbd  1362         0.000000         4   120               0               0               0.000000               0.000000               0.000000 /
+
