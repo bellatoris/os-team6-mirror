@@ -100,18 +100,11 @@ static void update_curr_wrr(struct rq *rq)
  * 증가시킨다. 이 함수는 process가 sleeping state에서 runnable state로
  * 바뀔때 불린다.
  */
-static void __enqueue_wrr_entity(struct wrr_rq *wrr_rq,
-				struct sched_wrr_entity *wrr_se)
-{
-	list_add_tail(&wrr_se->run_list, &wrr_rq->wrr_queue);
-	wrr_rq->wrr_load += wrr_se->weight;
-}
-
 static void enqueue_wrr_entity(struct wrr_rq *wrr_rq,
 			struct sched_wrr_entity *wrr_se, int flags)
 {
-	update_curr_wrr(rq_of(wrr_rq));
-	__enqueue_wrr_entity(wrr_rq, wrr_se);
+	list_add_tail(&wrr_se->run_list, &wrr_rq->wrr_queue);
+	wrr_rq->wrr_load += wrr_se->weight;
 }
 
 /*
@@ -120,18 +113,12 @@ static void enqueue_wrr_entity(struct wrr_rq *wrr_rq,
  * 로 바뀔때 불리거나, kernel이 다른 이유로 run_queue에서 이 process를
  * 빼고자 할때 불린다.
  */
-static void __dequeue_wrr_entity(struct wrr_rq *wrr_rq,
-				struct sched_wrr_entity *wrr_se)
-{
-	list_del_init(&wrr_se->run_list);
-	wrr_rq->wrr_load -= wrr_se->weight;
-}
-
 static void dequeue_wrr_entity(struct wrr_rq *wrr_rq,
 			struct sched_wrr_entity *wrr_se, int flags)
 {
 	update_curr_wrr(rq_of(wrr_rq));
-	__dequeue_wrr_entity(wrr_rq, wrr_se);
+	list_del_init(&wrr_se->run_list);
+	wrr_rq->wrr_load -= wrr_se->weight;
 }
 
 /*
@@ -194,17 +181,6 @@ static void check_preempt_curr_wrr(struct rq *rq,
 {
 }
 
-static struct sched_wrr_entity *pick_next_wrr_entity(struct rq *rq,
-						struct wrr_rq *wrr_rq)
-{
-	struct sched_wrr_entity *next = NULL;
-
-	next = list_first_entry(&wrr_rq->wrr_queue,
-			    struct sched_wrr_entity, run_list);
-
-	return next;
-}
-
 static struct task_struct *_pick_next_task_wrr(struct rq *rq)
 {
 	struct sched_wrr_entity *wrr_se;
@@ -216,9 +192,12 @@ static struct task_struct *_pick_next_task_wrr(struct rq *rq)
 	if (!wrr_rq->wrr_nr_running)
 		return NULL;
 
-	wrr_se = pick_next_wrr_entity(rq, wrr_rq);
+	wrr_se = list_first_entry(&wrr_rq->wrr_queue,
+			    struct sched_wrr_entity, run_list);
 
 	p = task_of(wrr_se);
+	if (!p)
+		return NULL;
 	p->se.exec_start = rq->clock_task;
 
 	return p;
@@ -242,15 +221,19 @@ static int find_lowest_cpu(struct task_struct *p)
 {
 	struct rq *rq;
 	unsigned int min_cpu, load, cpu;
+	min_cpu = task_cpu(p);
 
 	load = 0xffffffff;
 	for_each_cpu(cpu, cpu_active_mask) {
-		rq = cpu_rq(cpu);
+		if (!cpumask_test_cpu(cpu, &p->cpus_allowed))
+			continue;
 
-		if (rq->wrr.wrr_load < load) {
-			load = rq->wrr.wrr_load;
-			min_cpu = cpu;
-		}
+		rq = cpu_rq(cpu);
+		if (rq->wrr.wrr_load > load) 
+			continue;
+
+		load = rq->wrr.wrr_load;
+		min_cpu = cpu;
 	}
 
 	return min_cpu;
@@ -332,12 +315,8 @@ const struct sched_class wrr_sched_class = {
 #ifdef CONFIG_SMP
 	.select_task_rq		= select_task_rq_wrr,
 #endif
-
-
 	.set_curr_task		= set_curr_task_wrr,
 	.task_tick		= task_tick_wrr,
-
-
 
 	.switched_to		= switched_to_wrr,
 };
@@ -394,9 +373,12 @@ static void load_balance(int max_cpu, int min_cpu)
 		deactivate_task(src, max_task, 0);
 		set_task_cpu(max_task, dest->cpu);
 		activate_task(dest, max_task, 0);
+		trace_printk("Moved task %s from CPU %d to CPU %d\n",
+			max_task->comm, src->cpu, dest->cpu);
 	}
 	double_rq_unlock(src, dest);
 	local_irq_restore(flags);
+	trace_printk("Finished loadbalancing\n");
 }
 
 void wrr_load_balance(void)
@@ -409,6 +391,8 @@ void wrr_load_balance(void)
 	unsigned long min_load = 0xffffffff;
 
 	struct rq *rq;
+
+	trace_printk("Starting load_balancing\n");
 
 	rcu_read_lock();
 	for_each_cpu(cpu, cpu_active_mask) {

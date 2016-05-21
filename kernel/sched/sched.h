@@ -548,9 +548,6 @@ struct rq {
 	struct sched_avg avg;
 };
 
-/* wrr */
-extern void change_load(struct rq *rq, int old_weight, int new_weight);
-
 static inline int cpu_of(struct rq *rq)
 {
 #ifdef CONFIG_SMP
@@ -1054,7 +1051,7 @@ extern const struct sched_class rt_sched_class;
 extern const struct sched_class fair_sched_class;
 extern const struct sched_class idle_sched_class;
 extern const struct sched_class wrr_sched_class;
-
+extern void change_load(struct rq *rq, int old_weight, int new_weight);
 
 #ifdef CONFIG_SMP
 
