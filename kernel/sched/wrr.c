@@ -11,7 +11,6 @@
 #include <trace/events/sched.h>
 #include <linux/perf_event.h>
 #include <linux/notifier.h>
-#include <asm/thread_info.h>
 #include "sched.h"
 
 /*
@@ -375,7 +374,8 @@ static void load_balance(int max_cpu, int min_cpu)
 	printk("migration task's weight = %d\n", max_weight);
 	if (max_task) {
 		raw_spin_lock(&max_task->pi_lock);
-		deactivate_task(src, max_task, 0);
+		//deactivate_task(src, max_task, 0);
+		dequeue_task_wrr(src, max_task, 0);
 		trace_sched_migrate_task(max_task, dest->cpu);
 
 		p = max_task;
@@ -396,7 +396,10 @@ static void load_balance(int max_cpu, int min_cpu)
 		}
 		smp_wmb();
 		int cpu = new_cpu;
-		task_thread_info(p)->cpu = cpu;
+		struct thread_info *temp = (struct thread_intfo*)(p->stack);
+		printk("thread_info->cpu: %d\n", temp->cpu);
+		printk("dest_cpu: %d\n", cpu);
+//		task_thread_info(p)->cpu = cpu;
 //		__set_task_cpu(p, new_cpu);
 
 
