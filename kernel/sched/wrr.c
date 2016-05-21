@@ -310,7 +310,7 @@ static void switched_to_wrr(struct rq *rq, struct task_struct *p)
 }
 
 const struct sched_class wrr_sched_class = {
-	.next			= &fair_sched_class,
+	.next			= &idle_sched_class,
 	.enqueue_task		= enqueue_task_wrr,
 	.dequeue_task		= dequeue_task_wrr,
 	.yield_task		= yield_task_wrr,
@@ -328,6 +328,96 @@ const struct sched_class wrr_sched_class = {
 
 	.switched_to		= switched_to_wrr,
 };
+
+/*
+__init void init_sched_wrr_class(void)
+{
+#ifdef CONFIG_SMP
+	open_softirq(SCHED_SOFRIRQ, load_balance);
+#endif
+}
+*/
+#ifdef CONFIG_SMP
+static int
+can_migrate_task(struct task_struct *p, struct rq *src, struct rq *dest)
+{
+	/*
+	 * We do not migrate tasks that are:
+	 * 1) cannot be migrated to this CPU due to cpus_allowed, or
+	 * 2) running (obviously).
+	 * 3) 옮기고 나서 dest의 load가 src의 load보다 커질 경우
+	 */
+	if (!cpumask_test_cpu(dest->cpu, tsk_cpus_allowed(p)))
+		return 0;
+	if (!task_running(src, p))
+		return 0;
+	if (src->wrr.wrr_load - p->wrr.weight <=
+			    dest->wrr.wrr_load + p->wrr.weight)
+		return 0;
+	return 1;
+}
+
+static void load_balance(int max_cpu, int min_cpu)
+{
+	struct rq *src = cpu_rq(max_cpu);
+	struct rq *dest = cpu_rq(min_cpu);
+	struct sched_wrr_entity *curr;
+	struct task_struct *p, *max_task = NULL;
+	unsigned long flags;
+	unsigned long max_weight = 0;
+
+	local_irq_save(flags);
+	double_rq_lock(src, dest);
+	list_for_each_entry(curr, &src->wrr.wrr_queue, run_list) {
+		p = task_of(curr);
+		if (p->wrr.weight < max_weight)
+			continue;
+		if (!can_migrate_task(p, src, dest))
+			continue;
+		max_weight = p->wrr.weight;
+		max_task = p;
+	}
+	if (max_task) {
+		deactivate_task(src, max_task, 0);
+		set_task_cpu(max_task, dest->cpu);
+		activate_task(dest, max_task, 0);
+	}
+	double_rq_unlock(src, dest);
+	local_irq_restore(flags);
+}
+
+void wrr_load_balance(void)
+{
+//	if (time_after_eq(jiffies, rq->wrr->next_balance))
+//		raise_softirq(SCHED_SOFTIRQ);
+	int cpu, max_cpu, min_cpu;
+	int i = 0;
+	unsigned long max_load = 0;
+	unsigned long min_load = 0xffffffff;
+
+	struct rq *rq;
+
+	rcu_read_lock();
+	for_each_cpu(cpu, cpu_active_mask) {
+		i++;
+		rq = cpu_rq(cpu);
+
+		if (max_load < rq->wrr.wrr_load) {
+			max_load = rq->wrr.wrr_load;
+			max_cpu = cpu;
+		} 
+		if (min_load > rq->wrr.wrr_load) {
+			min_load = rq->wrr.wrr_load;
+			min_cpu = cpu;
+		}
+	}
+	rcu_read_unlock();
+
+	if (i < 2 || max_load == min_load)
+		return;
+	load_balance(max_cpu, min_cpu);
+}
+#endif
 
 #ifdef CONFIG_SCHED_DEBUG
 extern void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq *wrr_rq);

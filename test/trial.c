@@ -28,9 +28,9 @@ int main(int argc, char* argv[]){
 	param.sched_priority = 0;
 	sched_setscheduler(0, 6, &param);
 
-	syscall(__NR_sched_setweight,0,weight);
-	perror("sched_setweight");
-	printf("process's weight = %d\n", syscall(__NR_sched_getweight,0));
+//	syscall(__NR_sched_setweight,0,weight);
+//	perror("sched_setweight");
+//	printf("process's weight = %d\n", syscall(__NR_sched_getweight,0));
 	for(i=0;i< N;i++){
 	obj = prime[i]+1;
 		for(j=0;j<=i;j++){

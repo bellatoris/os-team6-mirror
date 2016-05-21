@@ -8,7 +8,8 @@ int main(int argc, char *argv[])
     struct sched_param param;
     param.sched_priority = 0;
     int i = atoi(argv[1]);
-    sched_setscheduler(i, 6, &param);
+    int j = atoi(argv[2]);
+    sched_setscheduler(i, j, &param);
     perror("sched_setscheduler");
 }
     

@@ -6932,6 +6932,24 @@ static int cpuset_cpu_inactive(struct notifier_block *nfb, unsigned long action,
 	return NOTIFY_OK;
 }
 
+#define WRR_LB_INTERVAL (2000 * 1000 * 1000)
+static struct hrtimer wrr_load_balance_timer;
+static enum hrtimer_restart __wrr_load_balance(struct hrtimer *timer)
+{
+	wrr_load_balance();
+	hrtimer_forward_now(&wrr_load_balance_timer,
+			    ns_to_ktime(WRR_LB_INTERVAL));
+	return HRTIMER_RESTART;
+}
+static void init_wrr_balancer(void)
+{
+	hrtimer_init(&wrr_load_balance_timer,
+		    CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	wrr_load_balance_timer.function = __wrr_load_balance;
+	hrtimer_start(&wrr_load_balance_timer,
+		ns_to_ktime(WRR_LB_INTERVAL), HRTIMER_MODE_REL);
+}
+
 void __init sched_init_smp(void)
 {
 	cpumask_var_t non_isolated_cpus;
@@ -6966,6 +6984,9 @@ void __init sched_init_smp(void)
 	free_cpumask_var(non_isolated_cpus);
 
 	init_sched_rt_class();
+
+	/* init wrr load balance */
+	init_wrr_balancer();
 }
 #else
 void __init sched_init_smp(void)
@@ -8220,3 +8241,5 @@ SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
 
 	return task->wrr.weight;
 }
+
+
