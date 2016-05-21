@@ -8209,9 +8209,6 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 	long curr_uid = current->real_cred->uid;
 	long curr_euid = current->real_cred->euid;
 
-	if(weight < 1 || weight >20)
-		return -EINVAL;
-
 
 	/*check wheather  1<= weight <= 20 */
 	if(weight < 1 || weight > 20)
