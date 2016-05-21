@@ -2,7 +2,7 @@
 #include <linux/types.h>
 #include <sched.h>
 
-int main()
+int main(int argc, char *argv[])
 {
 	struct sched_param param;
 	param.sched_priority = 0;

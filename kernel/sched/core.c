@@ -8205,10 +8205,13 @@ void dump_cpu_task(int cpu)
 
 SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 {
-	/* weight 검사 해야함 */
 	struct task_struct *task;
 	long curr_uid = current->real_cred->uid;
 	long curr_euid = current->real_cred->euid;
+
+	if(weight < 1 || weight >20)
+		return -EINVAL;
+
 
 	/*check wheather  1<= weight <= 20 */
 	if(weight < 1 || weight > 20)
@@ -8235,7 +8238,7 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 			task->wrr.weight = weight;
 	} else{
 		/* not root && not user who make process */
-		return -EINVAL;
+		return -EACCES;
 	}
 
 	return 0;
@@ -8250,9 +8253,11 @@ SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
 	else
 		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
 
+
 	/*check valid pid*/
 	if (task == NULL)
 		return -ESRCH;
+
 
 	return task->wrr.weight;
 }

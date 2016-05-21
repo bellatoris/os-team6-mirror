@@ -179,8 +179,6 @@ static void requeue_task_wrr(struct rq *rq, struct task_struct *p)
 
 static void yield_task_wrr(struct rq *rq)
 {
-	update_rq_clock(rq);
-	update_curr_wrr(rq);
 	requeue_task_wrr(rq, rq->curr);
 }
 
@@ -320,7 +318,6 @@ const struct sched_class wrr_sched_class = {
 	.dequeue_task		= dequeue_task_wrr,
 	.yield_task		= yield_task_wrr,
 
-
 	.check_preempt_curr	= check_preempt_curr_wrr,
 	.pick_next_task		= pick_next_task_wrr,
 	.put_prev_task		= put_prev_task_wrr,
@@ -329,8 +326,10 @@ const struct sched_class wrr_sched_class = {
 	.select_task_rq		= select_task_rq_wrr,
 #endif
 
+
 	.set_curr_task		= set_curr_task_wrr,
 	.task_tick		= task_tick_wrr,
+
 
 
 	.switched_to		= switched_to_wrr,
