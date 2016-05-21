@@ -8254,6 +8254,8 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 	} else if (curr_uid == task->real_cred->uid){
 		if (task->wrr.weight > weight)
 			task->wrr.weight = weight;
+		else
+			return -EACCES;
 	} else{
 		/* not root && not user who make process */
 		return -EACCES;
@@ -8271,13 +8273,9 @@ SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
 	else
 		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
 
-
 	/*check valid pid*/
 	if (task == NULL)
 		return -ESRCH;
 
-
 	return task->wrr.weight;
 }
-
-
