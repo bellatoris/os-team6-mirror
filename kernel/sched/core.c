@@ -101,6 +101,9 @@
 #include <soc/sprd/sprd_debug.h>
 #endif
 
+/* for set/getweight error return */
+#include <asm-generic/errno-base.h>
+
 void start_bandwidth_timer(struct hrtimer *period_timer, ktime_t period)
 {
 	unsigned long delta;
@@ -1684,10 +1687,13 @@ static void __sched_fork(struct task_struct *p)
 #endif /* CONFIG_NUMA_BALANCING */
 
 	/* init sched_wrr_entity */
+
 	INIT_LIST_HEAD(&p->wrr.run_list);
+
 	p->wrr.weight = current->wrr.weight;
 	p->wrr.time_slice = p->wrr.weight * WRR_TIMESLICE;
 }
+
 
 #ifdef CONFIG_NUMA_BALANCING
 #ifdef CONFIG_SCHED_DEBUG
@@ -1750,9 +1756,11 @@ void sched_fork(struct task_struct *p)
 		p->sched_reset_on_fork = 0;
 	}
 
+
 	/*
 	 * Make sure we do not leak PI boosting priority to the child.
 	 */
+
 	if (!rt_prio(p->prio) && (p->sched_class != &wrr_sched_class))
 		p->sched_class = &fair_sched_class;
 
@@ -3701,6 +3709,7 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 
 	if (rt_prio(prio))
 		p->sched_class = &rt_sched_class;
+
 	else {
 		if (prev_class == &wrr_sched_class)
 			p->sched_class = &wrr_sched_class;
@@ -4646,6 +4655,7 @@ SYSCALL_DEFINE1(sched_get_priority_max, int, policy)
 	case SCHED_BATCH:
 	case SCHED_IDLE:
 	case SCHED_WRR:
+
 		ret = 0;
 		break;
 	}
@@ -8206,38 +8216,66 @@ void dump_cpu_task(int cpu)
 	pr_info("Task dump for CPU %d:\n", cpu);
 	sched_show_task(cpu_curr(cpu));
 }
-
+/*
+ * We should check following.
+ * 1. is weight valid?
+ * 2. is pid valid?
+ * 3. is policy wrr?
+ * 4. is athority correct? (only for setweight)
+ */
 
 SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 {
-	/* weight 검사 해야함 */
 	struct task_struct *task;
 	long curr_uid = current->real_cred->uid;
 	long curr_euid = current->real_cred->euid;
+
+
+	/*check wheather  1<= weight <= 20 */
+	if(weight < 1 || weight > 20)
+		return -EINVAL;
+
 
 	if (pid == 0)
 		task = current;
 	else
 		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
 
-	if (curr_euid == 0) {	
-		copy_from_user(&task->wrr.weight, &weight, sizeof(int));
-	} else if (curr_uid == task->real_cred->uid) {
+	/*check valid pid*/
+	if (task == NULL)
+		return -ESRCH;
+
+	/*check policy*/
+	if (task->policy != SCHED_WRR)
+		return -EINVAL;
+
+	if (curr_euid == 0) {
+		task->wrr.weight = weight;
+	} else if (curr_uid == task->real_cred->uid){
 		if (task->wrr.weight > weight)
-			copy_from_user(&task->wrr.weight,
-						&weight, sizeof(int));
+			task->wrr.weight = weight;
+	} else{
+		/* not root && not user who make process */
+		return -EACCES;
 	}
-	return 0;    
+
+	return 0;
 }
 
 SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
 {
 	struct task_struct *task;
-	
+
 	if (pid == 0)
 		task = current;
 	else
 		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
+
+
+	/*check valid pid*/
+	if (task == NULL)
+		return -ESRCH;
+
 
 	return task->wrr.weight;
 }

@@ -1,9 +1,11 @@
+
 /*
  * Weighted Round Robin Scheduling (WRR) Class (SCHED_WRR)
- * 
+ *
  * Copyright 2016 Doogie Min <bellatoris@snu.ac.kr>
  *
  */
+
 
 #include <linux/sched.h>
 #include <linux/cpumask.h>
@@ -12,7 +14,7 @@
 #include "sched.h"
 
 /*
- * The bawrr time slice (quantum) is 10ms. 
+ * The bawrr time slice (quantum) is 10ms.
  * Weights of tasks can range between 1 and 20
  */
 
@@ -31,10 +33,11 @@ static inline struct task_struct *task_of(struct sched_wrr_entity *wrr)
 	return container_of(wrr, struct task_struct, wrr);
 }
 
-/* 
+/*
  * wrr_rq를 가진 rq를 return한다.
  */
 static inline struct rq *rq_of(struct wrr_rq *wrr_rq)
+
 {
 	return container_of(wrr_rq, struct rq, wrr);
 }
@@ -48,7 +51,7 @@ static inline struct wrr_rq *task_wrr_rq(struct task_struct *p)
 }
 
 /*
- * wrr을 가진 task_struct p를 구하고, p의 rq에 접근해 rq의 
+ * wrr을 가진 task_struct p를 구하고, p의 rq에 접근해 rq의
  * wrr_rq를 return한다.
  */
 static inline struct wrr_rq *wrr_rq_of(struct sched_wrr_entity *wrr)
@@ -62,7 +65,7 @@ static inline struct wrr_rq *wrr_rq_of(struct sched_wrr_entity *wrr)
 /*
  * Update the current task's runtime statistics. Skip current tasks that
  * are not in our scheduling class.
- */ 
+ */
 static void update_curr_wrr(struct rq *rq)
 {
 	struct task_struct *curr = rq->curr;
@@ -74,10 +77,10 @@ static void update_curr_wrr(struct rq *rq)
 	delta_exec = rq->clock_task - curr->se.exec_start;
 	if (unlikely((s64)delta_exec < 0))
 		delta_exec = 0;
-	
-	schedstat_set(curr->se.statistics.exec_max, 
+
+	schedstat_set(curr->se.statistics.exec_max,
 		max(curr->se.statistics.exec_max, delta_exec));
-	
+
 	curr->se.sum_exec_runtime += delta_exec;
 	account_group_exec_runtime(curr, delta_exec);
 
@@ -85,19 +88,19 @@ static void update_curr_wrr(struct rq *rq)
 	cpuacct_charge(curr, delta_exec);
 }
 
-/* 
+/*
  * wrr_se를 wrr_rq에 추가하고, wrr_rq의 load를 wrr_se의 weight만큼
- * 증가시킨다. 이 함수는 process가 sleeping state에서 runnable state로 
+ * 증가시킨다. 이 함수는 process가 sleeping state에서 runnable state로
  * 바뀔때 불린다.
  */
-static void __enqueue_wrr_entity(struct wrr_rq *wrr_rq, 
+static void __enqueue_wrr_entity(struct wrr_rq *wrr_rq,
 				struct sched_wrr_entity *wrr_se)
 {
 	list_add_tail(&wrr_se->run_list, &wrr_rq->wrr_queue);
 	wrr_rq->wrr_load += wrr_se->weight;
 }
 
-static void enqueue_wrr_entity(struct wrr_rq *wrr_rq, 
+static void enqueue_wrr_entity(struct wrr_rq *wrr_rq,
 			struct sched_wrr_entity *wrr_se, int flags)
 {
 	update_curr_wrr(rq_of(wrr_rq));
@@ -124,8 +127,8 @@ static void dequeue_wrr_entity(struct wrr_rq *wrr_rq,
 	__dequeue_wrr_entity(wrr_rq, wrr_se);
 }
 
-/* 
- * The enqueue_task_wrr method is called before nr_running is 
+/*
+ * The enqueue_task_wrr method is called before nr_running is
  * increased. Here we update the wrr scheduing stats and then
  * put the task int to the queue
  */
@@ -155,7 +158,7 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 	dec_nr_running(rq);
 }
 
-/* 
+/*
  * Put task to the end of the run list without the overhead of
  * dequeue followed by enqueue
  */
@@ -180,7 +183,7 @@ static void yield_task_wrr(struct rq *rq)
 }
 
 static void check_preempt_curr_wrr(struct rq *rq,
-			struct task_struct *p, int wakeflags) 
+			struct task_struct *p, int wakeflags)
 {
 }
 
@@ -188,7 +191,7 @@ static struct sched_wrr_entity *pick_next_wrr_entity(struct rq *rq,
 						struct wrr_rq *wrr_rq)
 {
 	struct sched_wrr_entity *next = NULL;
-	
+
 	next = list_first_entry(&wrr_rq->wrr_queue,
 			    struct sched_wrr_entity, run_list);
 
@@ -221,7 +224,7 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq)
 	return p;
 }
 
-static void put_prev_task_wrr(struct rq *rq, struct task_struct *p) 
+static void put_prev_task_wrr(struct rq *rq, struct task_struct *p)
 {
 	update_curr_wrr(rq);
 	p->se.exec_start = 0;
@@ -236,7 +239,7 @@ static int find_lowest_cpu(struct task_struct *p)
 	load = 0xffffffff;
 	for_each_cpu(cpu, cpu_active_mask) {
 		rq = cpu_rq(cpu);
-		
+
 		if (rq->wrr.wrr_load < load) {
 			load = rq->wrr.wrr_load;
 			min_cpu = cpu;
@@ -251,7 +254,7 @@ select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 {
 	int cpu = task_cpu(p);
 
-	if (p->nr_cpus_allowed == 1) 
+	if (p->nr_cpus_allowed == 1)
 		return cpu;
 
 	rcu_read_lock();
@@ -270,14 +273,14 @@ static void set_curr_task_wrr(struct rq *rq)
 
 /*
  * task_tick_wrris called by the periodic scheduler each time it is activated.
- * Each task should execute in intervals equal to the quantum value. 
+ * Each task should execute in intervals equal to the quantum value.
  * To accomplish this, this function should decrement the current
  * task’s time slice to indicate that it has run for 1 time unit.
- * When a task has run for its entire allotted time slice 
- * (i.e. the task’s time slice reaches 0), this function should 
- * reset its time slice value, move it to the end of the run queue, 
- * and set its TIF_NEED_RESCHED flag (using the set tsk need 
- * resched(task) function) to indicate to the generic scheduler 
+ * When a task has run for its entire allotted time slice
+ * (i.e. the task’s time slice reaches 0), this function should
+ * reset its time slice value, move it to the end of the run queue,
+ * and set its TIF_NEED_RESCHED flag (using the set tsk need
+ * resched(task) function) to indicate to the generic scheduler
  * that it should be preempted.
  */
 static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
@@ -303,7 +306,7 @@ static void switched_to_wrr(struct rq *rq, struct task_struct *p)
 	 * kick off the schedule if running, otherwise just see
 	 * if we can still preempt the current task
 	 */
-	if (rq->curr == p) 
+	if (rq->curr == p)
 		resched_task(rq->curr);
 	else
 		check_preempt_curr(rq, p, 0);
@@ -314,17 +317,20 @@ const struct sched_class wrr_sched_class = {
 	.enqueue_task		= enqueue_task_wrr,
 	.dequeue_task		= dequeue_task_wrr,
 	.yield_task		= yield_task_wrr,
-	
-	.check_preempt_curr	= check_preempt_curr_wrr,
 
+	.check_preempt_curr	= check_preempt_curr_wrr,
 	.pick_next_task		= pick_next_task_wrr,
 	.put_prev_task		= put_prev_task_wrr,
 
-#ifdef CONFIG_SMP	    
+#ifdef CONFIG_SMP
 	.select_task_rq		= select_task_rq_wrr,
 #endif
+
+
 	.set_curr_task		= set_curr_task_wrr,
 	.task_tick		= task_tick_wrr,
+
+
 
 	.switched_to		= switched_to_wrr,
 };
@@ -422,11 +428,11 @@ void wrr_load_balance(void)
 #ifdef CONFIG_SCHED_DEBUG
 extern void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq *wrr_rq);
 
+
 void print_wrr_stats(struct seq_file *m, int cpu)
 {
 	struct wrr_rq *wrr_rq;
 	wrr_rq = &cpu_rq(cpu)->wrr;
-
 	rcu_read_lock();
 	print_wrr_rq(m, cpu, wrr_rq);
 	rcu_read_unlock();

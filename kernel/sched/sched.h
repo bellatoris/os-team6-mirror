@@ -78,6 +78,7 @@ extern __read_mostly int scheduler_running;
  */
 #define WRR_TIMESLICE		(10 * HZ / 1000)
 
+
 static inline int rt_policy(int policy)
 {
 	if (policy == SCHED_FIFO || policy == SCHED_RR)
@@ -233,6 +234,7 @@ extern void sched_offline_group(struct task_group *tg);
 extern void sched_move_task(struct task_struct *tsk);
 
 extern void wrr_load_balance(void);
+
 /* WRR-related fields in a runqueue */
 struct wrr_rq {
 	unsigned int wrr_nr_running;
@@ -374,6 +376,7 @@ struct rt_rq {
 	struct task_group *tg;
 #endif
 };
+
 
 #ifdef CONFIG_SMP
 
