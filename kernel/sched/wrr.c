@@ -378,11 +378,12 @@ static void load_balance(int max_cpu, int min_cpu)
 	struct task_struct *p, *max_task = NULL;
 	unsigned long flags;
 	unsigned long max_weight = 0;
-
+	printk("wrr_load_before!! max :%d min :%d\n",max_cpu, min_cpu);
 	local_irq_save(flags);
 	double_rq_lock(src, dest);
 	list_for_each_entry(curr, &src->wrr.wrr_queue, run_list) {
 		p = task_of(curr);
+		printk("src_queue's weight : %d\n",p->wrr.weight);
 		if (p->wrr.weight < max_weight)
 			continue;
 		if (!can_migrate_task(p, src, dest))
@@ -390,6 +391,7 @@ static void load_balance(int max_cpu, int min_cpu)
 		max_weight = p->wrr.weight;
 		max_task = p;
 	}
+	printk("wrr_find_max_weight : %d\n", max_weight);
 	if (max_task) {
 		deactivate_task(src, max_task, 0);
 		set_task_cpu(max_task, dest->cpu);
