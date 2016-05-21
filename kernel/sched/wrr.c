@@ -373,12 +373,12 @@ static void load_balance(int max_cpu, int min_cpu)
 		deactivate_task(src, max_task, 0);
 		set_task_cpu(max_task, dest->cpu);
 		activate_task(dest, max_task, 0);
-		trace_printk("Moved task %s from CPU %d to CPU %d\n",
+		printk("Moved task %s from CPU %d to CPU %d\n",
 			max_task->comm, src->cpu, dest->cpu);
 	}
 	double_rq_unlock(src, dest);
 	local_irq_restore(flags);
-	trace_printk("Finished loadbalancing\n");
+	printk("Finished loadbalancing\n");
 }
 
 void wrr_load_balance(void)
@@ -392,7 +392,7 @@ void wrr_load_balance(void)
 
 	struct rq *rq;
 
-	trace_printk("Starting load_balancing\n");
+	printk("Starting load_balancing\n");
 
 	rcu_read_lock();
 	for_each_cpu(cpu, cpu_active_mask) {
