@@ -411,6 +411,7 @@
 #define __NR_sched_getattr		(__NR_SYSCALL_BASE+381)
 #define __NR_renameat2			(__NR_SYSCALL_BASE+382)
 */
+
 #define __NR_seccomp			(__NR_SYSCALL_BASE+383)
 #define __NR_sched_setweight		(__NR_SYSCALL_BASE+384)
 #define __NR_sched_getweight		(__NR_SYSCALL_BASE+385)
