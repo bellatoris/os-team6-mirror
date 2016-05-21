@@ -1,4 +1,3 @@
-
 /*
  * Weighted Round Robin Scheduling (WRR) Class (SCHED_WRR)
  *
@@ -9,8 +8,10 @@
 
 #include <linux/sched.h>
 #include <linux/cpumask.h>
-
-
+#include <trace/events/sched.h>
+#include <linux/perf_event.h>
+#include <linux/notifier.h>
+#include <asm/thread_info.h>
 #include "sched.h"
 
 /*
@@ -348,6 +349,7 @@ can_migrate_task(struct task_struct *p, struct rq *src, struct rq *dest)
 		return 0;
 	return 1;
 }
+static ATOMIC_NOTIFIER_HEAD(task_migration_notifier);
 
 static void load_balance(int max_cpu, int min_cpu)
 {
@@ -360,6 +362,7 @@ static void load_balance(int max_cpu, int min_cpu)
 
 	local_irq_save(flags);
 	double_rq_lock(src, dest);
+
 	list_for_each_entry(curr, &src->wrr.wrr_queue, run_list) {
 		p = task_of(curr);
 		if (p->wrr.weight < max_weight)
@@ -369,13 +372,42 @@ static void load_balance(int max_cpu, int min_cpu)
 		max_weight = p->wrr.weight;
 		max_task = p;
 	}
+	printk("migration task's weight = %d\n", max_weight);
 	if (max_task) {
+		raw_spin_lock(&max_task->pi_lock);
 		deactivate_task(src, max_task, 0);
-		set_task_cpu(max_task, dest->cpu);
-		activate_task(dest, max_task, 0);
+		trace_sched_migrate_task(max_task, dest->cpu);
+
+		p = max_task;
+		int new_cpu = dest->cpu;
+		if (task_cpu(p) != new_cpu) {
+			struct task_migration_notifier tmn;
+
+			if (p->sched_class->migrate_task_rq)
+				p->sched_class->migrate_task_rq(p, new_cpu);
+			p->se.nr_migrations++;
+			perf_sw_event(PERF_COUNT_SW_CPU_MIGRATIONS, 1, NULL, 0);
+
+			tmn.task = p;
+			tmn.from_cpu = task_cpu(p);
+			tmn.to_cpu = new_cpu;
+
+			atomic_notifier_call_chain(&task_migration_notifier, 0, &tmn);
+		}
+		smp_wmb();
+		int cpu = new_cpu;
+		task_thread_info(p)->cpu = cpu;
+//		__set_task_cpu(p, new_cpu);
+
+
+
+//		set_task_cpu(max_task, dest->cpu);
+//		activate_task(dest, max_task, 0);
+		raw_spin_unlock(&max_task->pi_lock);
 		printk("Moved task %s from CPU %d to CPU %d\n",
 			max_task->comm, src->cpu, dest->cpu);
 	}
+
 	double_rq_unlock(src, dest);
 	local_irq_restore(flags);
 	printk("Finished loadbalancing\n");
@@ -412,6 +444,8 @@ void wrr_load_balance(void)
 
 	if (i < 2 || max_load == min_load)
 		return;
+	printk("max_load = %d, min_load = %d, src_cpu = %d, dest_cpu = %d\n",
+		max_load, min_load, max_cpu, min_cpu);
 	load_balance(max_cpu, min_cpu);
 }
 #endif
