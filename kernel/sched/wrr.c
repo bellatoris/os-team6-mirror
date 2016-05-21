@@ -362,8 +362,10 @@ can_migrate_task(struct task_struct *p, struct rq *src, struct rq *dest)
 	 */
 	if (!cpumask_test_cpu(dest->cpu, tsk_cpus_allowed(p)))
 		return 0;
-	if (!task_running(src, p))
+	if (!task_running(src, p)){
+		printk("(wrr)p is running\n");
 		return 0;
+	}
 	if (src->wrr.wrr_load - p->wrr.weight <=
 			    dest->wrr.wrr_load + p->wrr.weight)
 		return 0;
@@ -378,12 +380,12 @@ static void load_balance(int max_cpu, int min_cpu)
 	struct task_struct *p, *max_task = NULL;
 	unsigned long flags;
 	unsigned long max_weight = 0;
-	printk("wrr_load_before!! max :%d min :%d\n",max_cpu, min_cpu);
+	printk("(wrr)load_before!! max :%d min :%d\n",max_cpu, min_cpu);
 	local_irq_save(flags);
 	double_rq_lock(src, dest);
 	list_for_each_entry(curr, &src->wrr.wrr_queue, run_list) {
 		p = task_of(curr);
-		printk("src_queue's weight : %d\n",p->wrr.weight);
+		printk("(wrr)src_queue's weight : %d\n",p->wrr.weight);
 		if (p->wrr.weight < max_weight)
 			continue;
 		if (!can_migrate_task(p, src, dest))
@@ -391,10 +393,13 @@ static void load_balance(int max_cpu, int min_cpu)
 		max_weight = p->wrr.weight;
 		max_task = p;
 	}
-	printk("wrr_find_max_weight : %d\n", max_weight);
+	printk("(wrr)find_max_weight : %d\n", max_weight);
 	if (max_task) {
+	printk("(wrr)deactivate\n");
 		deactivate_task(src, max_task, 0);
+	printk("(wrr)set_task_cpu\n");
 		set_task_cpu(max_task, dest->cpu);
+	printk("(wrr)activate\n");
 		activate_task(dest, max_task, 0);
 	}
 	double_rq_unlock(src, dest);
