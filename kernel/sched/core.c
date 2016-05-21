@@ -101,6 +101,9 @@
 #include <soc/sprd/sprd_debug.h>
 #endif
 
+/* for set/getweight error return */
+#include <asm-generic/errno-base.h>
+
 void start_bandwidth_timer(struct hrtimer *period_timer, ktime_t period)
 {
 	unsigned long delta;
@@ -8192,7 +8195,13 @@ void dump_cpu_task(int cpu)
 	pr_info("Task dump for CPU %d:\n", cpu);
 	sched_show_task(cpu_curr(cpu));
 }
-
+/*
+ * We should check following.
+ * 1. is weight valid?
+ * 2. is pid valid?
+ * 3. is policy wrr?
+ * 4. is athority correct? (only for setweight)
+ */
 
 SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 {
@@ -8201,18 +8210,34 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 	long curr_uid = current->real_cred->uid;
 	long curr_euid = current->real_cred->euid;
 
+	/*check wheather  1<= weight <= 20 */
+	if(weight < 1 || weight > 20)
+		return -EINVAL;
+
+
 	if (pid == 0)
 		task = current;
 	else
 		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
 
+	/*check valid pid*/
+	if (task == NULL)
+		return -ESRCH;
+
+	/*check policy*/
+	if (task->policy != SCHED_WRR)
+		return -EINVAL;
+
 	if (curr_euid == 0) {
-		copy_from_user(&task->wrr.weight, &weight, sizeof(int));
-	} else if (curr_uid == task->real_cred->uid) {
+		task->wrr.weight = weight;
+	} else if (curr_uid == task->real_cred->uid){
 		if (task->wrr.weight > weight)
-			copy_from_user(&task->wrr.weight,
-						&weight, sizeof(int));
+			task->wrr.weight = weight;
+	} else{
+		/* not root && not user who make process */
+		return -EINVAL;
 	}
+
 	return 0;
 }
 
@@ -8224,6 +8249,10 @@ SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
 		task = current;
 	else
 		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
+
+	/*check valid pid*/
+	if (task == NULL)
+		return -ESRCH;
 
 	return task->wrr.weight;
 }
