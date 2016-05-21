@@ -8189,21 +8189,29 @@ void dump_cpu_task(int cpu)
 
 SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 {
-	/* weight 검사 해야함 */
 	struct task_struct *task;
 	long curr_uid = current->real_cred->uid;
 	long curr_euid = current->real_cred->euid;
+	
+	if(weight < 1 || weight >20)
+		return -EINVAL;
+	
 
 	if (pid == 0)
 		task = current;
 	else
 		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
+	
+	if(task == NULL)
+		return -EINVAL;
 
 	if (curr_euid == 0) {	
 		task->wrr.weight = weight;
 	} else if (curr_uid == task->real_cred->uid) {
 		if (task->wrr.weight > weight)
 			task ->wrr.weight = weight;
+	}else{
+		return -EINVAL;
 	}
 	return 0;    
 }
@@ -8216,6 +8224,9 @@ SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
 		task = current;
 	else
 		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
+
+	if(task == NULL)
+		return -EINVAL;
 
 	return task->wrr.weight;
 }
