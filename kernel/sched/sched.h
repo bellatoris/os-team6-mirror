@@ -377,7 +377,6 @@ struct rt_rq {
 #endif
 };
 
-
 #ifdef CONFIG_SMP
 
 /*
@@ -548,6 +547,9 @@ struct rq {
 
 	struct sched_avg avg;
 };
+
+/* wrr */
+extern void change_load(struct rq *rq, int old_weight, int new_weight);
 
 static inline int cpu_of(struct rq *rq)
 {

@@ -25,6 +25,13 @@ void init_wrr_rq(struct wrr_rq *wrr_rq)
 	wrr_rq->wrr_load = 0;
 }
 
+void change_load(struct rq *rq, int old_weight, int new_weight)
+{
+	struct wrr_rq *wrr_rq = &rq->wrr;
+	wrr_rq->wrr_load -= old_weight;
+	wrr_rq->wrr_load += new_weight;
+}
+
 /*
  * wrr을 가진 task_struct를 return한다.
  */

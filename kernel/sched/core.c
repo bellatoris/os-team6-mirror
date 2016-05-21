@@ -8229,7 +8229,7 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 	struct task_struct *task;
 	long curr_uid = current->real_cred->uid;
 	long curr_euid = current->real_cred->euid;
-
+	int old_weight;
 
 	/*check wheather  1<= weight <= 20 */
 	if(weight < 1 || weight > 20)
@@ -8240,6 +8240,8 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 		task = current;
 	else
 		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
+
+	old_weight = task->wrr.weight;
 
 	/*check valid pid*/
 	if (task == NULL)
@@ -8260,6 +8262,8 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 		/* not root && not user who make process */
 		return -EACCES;
 	}
+
+	change_load(task_rq(task), old_weight, weight);
 
 	return 0;
 }
