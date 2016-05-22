@@ -8210,15 +8210,12 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 {
 	struct task_struct *task;
 	struct rq *rq;
-	long curr_uid = current->real_cred->uid;
-	long curr_euid = current->real_cred->euid;
 	int old_weight;
 	unsigned long flags;
 
 	/*check wheather  1<= weight <= 20 */
 	if(weight < 1 || weight > 20)
 		return -EINVAL;
-
 
 	if (pid == 0)
 		task = current;
@@ -8235,9 +8232,9 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 	if (task->policy != SCHED_WRR)
 		return -EINVAL;
 
-	if (curr_euid == 0) {
+	if (current_euid() == 0 || current_uid() == 0) {
 		task->wrr.weight = weight;
-	} else if (curr_uid == task->real_cred->uid){
+	} else if (current_uid() == task_uid(task)){
 		if (task->wrr.weight > weight)
 			task->wrr.weight = weight;
 		else

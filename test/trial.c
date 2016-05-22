@@ -28,17 +28,17 @@ int main(int argc, char* argv[]){
 
 	n = 2;
 	prime[0]=2;
-
+	
+	weight = atoi(argv[1]);
 	struct sched_param param;
 	param.sched_priority = 0;
 	sched_setscheduler(0, 6, &param);
 	
-	while(1){
 	gettimeofday(&srt,NULL);
-	/*
+
 	syscall(__NR_sched_setweight, self, weight);
-	perror("sched_setweight");
-	*/
+	//perror("sched_setweight");
+	
 	weight = syscall(__NR_sched_getweight, self);
 	for(i=0;i< N;i++){
 	obj = prime[i]+1;
@@ -57,7 +57,7 @@ int main(int argc, char* argv[]){
 	}
 	gettimeofday(&ed,NULL);
 	printf("weight : %d, execution time : %f\n", weight, timedifference_msec(srt,ed));
-	}
+	
 }
 
 void print_prime(int n){
