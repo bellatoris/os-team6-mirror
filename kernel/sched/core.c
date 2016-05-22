@@ -8216,18 +8216,19 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 	/*check wheather  1<= weight <= 20 */
 	if(weight < 1 || weight > 20)
 		return -EINVAL;
+	if (pid < 0)
+		return -EINVAL;
 
 	if (pid == 0)
 		task = current;
 	else
 		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
 
-	old_weight = task->wrr.weight;
-
 	/*check valid pid*/
 	if (task == NULL)
 		return -ESRCH;
 
+	old_weight = task->wrr.weight;
 	/*check policy*/
 	if (task->policy != SCHED_WRR)
 		return -EINVAL;
@@ -8254,6 +8255,9 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
 {
 	struct task_struct *task;
+
+	if (pid < 0)
+		return -EINVAL;
 
 	if (pid == 0)
 		task = current;
