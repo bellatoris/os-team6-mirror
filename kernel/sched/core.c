@@ -2812,6 +2812,7 @@ void scheduler_tick(void)
 #ifdef CONFIG_SMP
 	rq->idle_balance = idle_cpu(cpu);
 	trigger_load_balance(rq, cpu);
+	wrr_lb_trigger(rq, cpu);
 #endif
 	rq_last_tick_reset(rq);
 }
@@ -6941,12 +6942,12 @@ static int cpuset_cpu_inactive(struct notifier_block *nfb, unsigned long action,
 	}
 	return NOTIFY_OK;
 }
-
+/*
 #define WRR_LB_INTERVAL (2000 * 1000 * 1000)
 static struct hrtimer wrr_load_balance_timer;
 static enum hrtimer_restart __wrr_load_balance(struct hrtimer *timer)
 {
-	wrr_load_balance();
+	wrr_load_balance(NULL);
 	hrtimer_forward_now(&wrr_load_balance_timer,
 			    ns_to_ktime(WRR_LB_INTERVAL));
 	return HRTIMER_RESTART;
@@ -6959,7 +6960,7 @@ static void init_wrr_balancer(void)
 	hrtimer_start(&wrr_load_balance_timer,
 		ns_to_ktime(WRR_LB_INTERVAL), HRTIMER_MODE_REL);
 }
-
+*/
 void __init sched_init_smp(void)
 {
 	cpumask_var_t non_isolated_cpus;
@@ -6996,7 +6997,7 @@ void __init sched_init_smp(void)
 	init_sched_rt_class();
 
 	/* init wrr load balance */
-	init_wrr_balancer();
+//	init_wrr_balancer();
 }
 #else
 void __init sched_init_smp(void)
@@ -7201,6 +7202,7 @@ void __init sched_init(void)
 	idle_thread_set_boot_cpu();
 #endif
 	init_sched_fair_class();
+	init_sched_wrr_class();
 
 	scheduler_running = 1;
 }

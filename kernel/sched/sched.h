@@ -233,7 +233,7 @@ extern void sched_offline_group(struct task_group *tg);
 
 extern void sched_move_task(struct task_struct *tsk);
 
-extern void wrr_load_balance(void);
+//extern void wrr_load_balance(struct softirq_action *h);
 
 /* WRR-related fields in a runqueue */
 struct wrr_rq {
@@ -243,6 +243,7 @@ struct wrr_rq {
 	 *   wrr_load is sum of all weights in this queue
 	 */
 	unsigned long wrr_load;
+	unsigned long next_balance;
 };
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
@@ -1060,6 +1061,8 @@ extern void update_group_power(struct sched_domain *sd, int cpu);
 extern void trigger_load_balance(struct rq *rq, int cpu);
 extern void idle_balance(int this_cpu, struct rq *this_rq);
 
+extern void wrr_lb_trigger(struct rq *rq, int cpu);
+
 /*
  * Only depends on SMP, FAIR_GROUP_SCHED may be removed when runnable_avg
  * becomes useful in lb
@@ -1086,7 +1089,10 @@ extern void update_max_interval(void);
 extern int update_runtime(struct notifier_block *nfb, unsigned long action, void *hcpu);
 extern void init_sched_rt_class(void);
 extern void init_sched_fair_class(void);
+
+#ifdef CONFIG_SMP
 extern void init_sched_wrr_class(void);
+#endif
 
 extern void resched_task(struct task_struct *p);
 extern void resched_cpu(int cpu);

@@ -9,12 +9,12 @@
 #include <linux/sched.h>
 #include <linux/cpumask.h>
 #include <trace/events/sched.h>
-#include <linux/perf_event.h>
+#include <linux/interrupt.h>
 #include <linux/notifier.h>
 #include "sched.h"
 
 /*
- * The bawrr time slice (quantum) is 10ms.
+ * The wrr time slice (quantum) is 10ms.
  * Weights of tasks can range between 1 and 20
  */
 
@@ -23,6 +23,7 @@ void init_wrr_rq(struct wrr_rq *wrr_rq)
 	wrr_rq->wrr_nr_running = 0;
 	INIT_LIST_HEAD(&wrr_rq->wrr_queue);
 	wrr_rq->wrr_load = 0;
+	wrr_rq->next_balance = jiffies; 
 }
 
 void change_load(struct rq *rq, int old_weight, int new_weight)
@@ -103,7 +104,9 @@ static void update_curr_wrr(struct rq *rq)
 static void enqueue_wrr_entity(struct wrr_rq *wrr_rq,
 			struct sched_wrr_entity *wrr_se, int flags)
 {
+	printk("enqueue ");
 	list_add_tail(&wrr_se->run_list, &wrr_rq->wrr_queue);
+	printk("curr: %p, next: %p, prev: %p\n", &wrr_se->run_list, wrr_se->run_list.next, wrr_se->run_list.prev);
 	wrr_rq->wrr_load += wrr_se->weight;
 }
 
@@ -116,8 +119,12 @@ static void enqueue_wrr_entity(struct wrr_rq *wrr_rq,
 static void dequeue_wrr_entity(struct wrr_rq *wrr_rq,
 			struct sched_wrr_entity *wrr_se, int flags)
 {
-	update_curr_wrr(rq_of(wrr_rq));
+
+	printk("dequeue ");
+	printk("next: %p, prev: %p\n", wrr_se->run_list.next, wrr_se->run_list.prev);
 	list_del_init(&wrr_se->run_list);
+	printk("dequeue ");
+	printk("next: %p, prev: %p\n", wrr_se->run_list.next, wrr_se->run_list.prev);
 	wrr_rq->wrr_load -= wrr_se->weight;
 }
 
@@ -144,6 +151,8 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct wrr_rq *wrr_rq;
 	struct sched_wrr_entity *wrr_se = &p->wrr;
+
+	update_curr_wrr(rq);
 
 	wrr_rq = wrr_rq_of(wrr_se);
 	dequeue_wrr_entity(wrr_rq, wrr_se, flags);
@@ -321,15 +330,22 @@ const struct sched_class wrr_sched_class = {
 	.switched_to		= switched_to_wrr,
 };
 
-/*
+
+#ifdef CONFIG_SMP
+void wrr_load_balance(struct softirq_action *h);
 __init void init_sched_wrr_class(void)
 {
-#ifdef CONFIG_SMP
-	open_softirq(SCHED_SOFRIRQ, load_balance);
-#endif
+	open_softirq(SCHED_SOFTIRQ, wrr_load_balance);
 }
-*/
-#ifdef CONFIG_SMP
+
+void wrr_lb_trigger(struct rq *rq, int cpu) 
+{
+	if (time_after_eq(jiffies, rq->wrr.next_balance)) {
+		printk("hi\n");
+		raise_softirq(SCHED_SOFTIRQ);
+	}
+}
+
 static int
 can_migrate_task(struct task_struct *p, struct rq *src, struct rq *dest)
 {
@@ -348,7 +364,6 @@ can_migrate_task(struct task_struct *p, struct rq *src, struct rq *dest)
 		return 0;
 	return 1;
 }
-static ATOMIC_NOTIFIER_HEAD(task_migration_notifier);
 
 static void load_balance(int max_cpu, int min_cpu)
 {
@@ -374,40 +389,11 @@ static void load_balance(int max_cpu, int min_cpu)
 	printk("migration task's weight = %d\n", max_weight);
 	if (max_task) {
 		raw_spin_lock(&max_task->pi_lock);
-		//deactivate_task(src, max_task, 0);
-		dequeue_task_wrr(src, max_task, 0);
-		trace_sched_migrate_task(max_task, dest->cpu);
-
-		p = max_task;
-		int new_cpu = dest->cpu;
-		if (task_cpu(p) != new_cpu) {
-			struct task_migration_notifier tmn;
-
-			if (p->sched_class->migrate_task_rq)
-				p->sched_class->migrate_task_rq(p, new_cpu);
-			p->se.nr_migrations++;
-			perf_sw_event(PERF_COUNT_SW_CPU_MIGRATIONS, 1, NULL, 0);
-
-			tmn.task = p;
-			tmn.from_cpu = task_cpu(p);
-			tmn.to_cpu = new_cpu;
-
-			atomic_notifier_call_chain(&task_migration_notifier, 0, &tmn);
-		}
-		smp_wmb();
-		int cpu = new_cpu;
-		struct thread_info *temp = (struct thread_intfo*)(p->stack);
-		printk("thread_info->cpu: %d\n", temp->cpu);
-		printk("dest_cpu: %d\n", cpu);
-//		task_thread_info(p)->cpu = cpu;
-//		__set_task_cpu(p, new_cpu);
-
-
-
-//		set_task_cpu(max_task, dest->cpu);
-//		activate_task(dest, max_task, 0);
+		deactivate_task(src, max_task, 0);
+	//	set_task_cpu(max_task, dest->cpu);
+	//	activate_task(dest, max_task, 0);
 		raw_spin_unlock(&max_task->pi_lock);
-		printk("Moved task %s from CPU %d to CPU %d\n",
+		printk("Moved task %s, from CPU %d to CPU %d\n",
 			max_task->comm, src->cpu, dest->cpu);
 	}
 
@@ -416,7 +402,7 @@ static void load_balance(int max_cpu, int min_cpu)
 	printk("Finished loadbalancing\n");
 }
 
-void wrr_load_balance(void)
+void wrr_load_balance(struct softirq_action *h)
 {
 //	if (time_after_eq(jiffies, rq->wrr->next_balance))
 //		raise_softirq(SCHED_SOFTIRQ);
@@ -433,6 +419,7 @@ void wrr_load_balance(void)
 	for_each_cpu(cpu, cpu_active_mask) {
 		i++;
 		rq = cpu_rq(cpu);
+		rq->wrr.next_balance = jiffies + 2*HZ;
 
 		if (max_load < rq->wrr.wrr_load) {
 			max_load = rq->wrr.wrr_load;
