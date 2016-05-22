@@ -118,9 +118,7 @@ static void update_curr_wrr(struct rq *rq)
 static void enqueue_wrr_entity(struct wrr_rq *wrr_rq,
 			struct sched_wrr_entity *wrr_se, int flags)
 {
-	printk("enqueue ");
 	list_add_tail(&wrr_se->run_list, &wrr_rq->wrr_queue);
-	printk("curr: %p, next: %p, prev: %p\n", &wrr_se->run_list, wrr_se->run_list.next, wrr_se->run_list.prev);
 	wrr_rq->wrr_load += wrr_se->weight;
 	wrr_rq->wrr_nr_running++;
 }
@@ -135,11 +133,7 @@ static void dequeue_wrr_entity(struct wrr_rq *wrr_rq,
 			struct sched_wrr_entity *wrr_se, int flags)
 {
 
-	printk("dequeue ");
-	printk("next: %p, prev: %p\n", wrr_se->run_list.next, wrr_se->run_list.prev);
 	list_del_init(&wrr_se->run_list);
-	printk("dequeue ");
-	printk("next: %p, prev: %p\n", wrr_se->run_list.next, wrr_se->run_list.prev);
 	wrr_rq->wrr_load -= wrr_se->weight;
 	wrr_rq->wrr_nr_running--;
 }
@@ -149,17 +143,6 @@ static void dequeue_wrr_entity(struct wrr_rq *wrr_rq,
  * increased. Here we update the wrr scheduing stats and then
  * put the task int to the queue
  */
-
-static void print_wrr(struct wrr_rq *wrr_rq)
-{
-	struct sched_wrr_entity *curr;
-
-	printk("wrr_queue: %p  ", &wrr_rq->wrr_queue);
-	list_for_each_entry(curr, &wrr_rq->wrr_queue, run_list) {
-	    printk("%p  ", curr);
-	}
-	printk("\n");
-}
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct wrr_rq *wrr_rq = &rq->wrr;
@@ -170,7 +153,6 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 
 	/* enqueue wrr_entity to wrr_rq */
 	enqueue_wrr_entity(wrr_rq, wrr_se, flags);
-	print_wrr(wrr_rq);
 	inc_nr_running(rq);
 }
 
@@ -184,7 +166,6 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 
 	update_curr_wrr(rq);
 	dequeue_wrr_entity(wrr_rq, wrr_se, flags);
-	print_wrr(wrr_rq);
 	dec_nr_running(rq);
 }
 
@@ -368,7 +349,7 @@ can_migrate_task(struct task_struct *p, struct rq *src, struct rq *dest)
 	 */
 	if (!cpumask_test_cpu(dest->cpu, tsk_cpus_allowed(p)))
 		return 0;
-	if (!task_running(src, p))
+	if (task_running(src, p))
 		return 0;
 	if (src->wrr.wrr_load - p->wrr.weight <=
 			    dest->wrr.wrr_load + p->wrr.weight)
@@ -400,8 +381,8 @@ static void load_balance(int max_cpu, int min_cpu)
 	if (max_task) {
 		raw_spin_lock(&max_task->pi_lock);
 		deactivate_task(src, max_task, 0);
-//		set_task_cpu(max_task, dest->cpu);
-//		activate_task(dest, max_task, 0);
+		set_task_cpu(max_task, dest->cpu);
+		activate_task(dest, max_task, 0);
 		raw_spin_unlock(&max_task->pi_lock);
 		printk("Moved task %s, from CPU %d to CPU %d\n",
 			max_task->comm, src->cpu, dest->cpu);
