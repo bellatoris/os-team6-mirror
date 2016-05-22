@@ -6942,24 +6942,6 @@ static int cpuset_cpu_inactive(struct notifier_block *nfb, unsigned long action,
 	return NOTIFY_OK;
 }
 
-#define WRR_LB_INTERVAL (2000 * 1000 * 1000)
-static struct hrtimer wrr_load_balance_timer;
-static enum hrtimer_restart __wrr_load_balance(struct hrtimer *timer)
-{
-	wrr_load_balance();
-	hrtimer_forward_now(&wrr_load_balance_timer,
-			    ns_to_ktime(WRR_LB_INTERVAL));
-	return HRTIMER_RESTART;
-}
-static void init_wrr_balancer(void)
-{
-	hrtimer_init(&wrr_load_balance_timer,
-		    CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-	wrr_load_balance_timer.function = __wrr_load_balance;
-	hrtimer_start(&wrr_load_balance_timer,
-		ns_to_ktime(WRR_LB_INTERVAL), HRTIMER_MODE_REL);
-}
-
 void __init sched_init_smp(void)
 {
 	cpumask_var_t non_isolated_cpus;
@@ -8227,9 +8209,11 @@ void dump_cpu_task(int cpu)
 SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 {
 	struct task_struct *task;
+	struct rq *rq;
 	long curr_uid = current->real_cred->uid;
 	long curr_euid = current->real_cred->euid;
 	int old_weight;
+	unsigned long flags;
 
 	/*check wheather  1<= weight <= 20 */
 	if(weight < 1 || weight > 20)
@@ -8262,9 +8246,11 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 		/* not root && not user who make process */
 		return -EACCES;
 	}
-
-	change_load(task_rq(task), old_weight, weight);
-
+	
+	rq = task_rq_lock(task, &flags);
+	if (!list_empty(&task->wrr.run_list))
+		change_load(task_rq(task), old_weight, weight);
+	task_rq_unlock(rq, task, &flags);
 	return 0;
 }
 

@@ -1,4 +1,3 @@
-
 /*
  * Weighted Round Robin Scheduling (WRR) Class (SCHED_WRR)
  *
@@ -9,12 +8,13 @@
 
 #include <linux/sched.h>
 #include <linux/cpumask.h>
-
-
+#include <trace/events/sched.h>
+#include <linux/interrupt.h>
+#include <linux/hrtimer.h>
 #include "sched.h"
 
 /*
- * The bawrr time slice (quantum) is 10ms.
+ * The wrr time slice (quantum) is 10ms.
  * Weights of tasks can range between 1 and 20
  */
 
@@ -37,6 +37,8 @@ void change_load(struct rq *rq, int old_weight, int new_weight)
  */
 static inline struct task_struct *task_of(struct sched_wrr_entity *wrr)
 {
+	if (wrr == NULL)
+		return NULL;
 	return container_of(wrr, struct task_struct, wrr);
 }
 
@@ -44,8 +46,9 @@ static inline struct task_struct *task_of(struct sched_wrr_entity *wrr)
  * wrr_rq를 가진 rq를 return한다.
  */
 static inline struct rq *rq_of(struct wrr_rq *wrr_rq)
-
 {
+	if (wrr_rq == NULL)
+		return NULL;
 	return container_of(wrr_rq, struct rq, wrr);
 }
 
@@ -54,6 +57,8 @@ static inline struct rq *rq_of(struct wrr_rq *wrr_rq)
  */
 static inline struct wrr_rq *task_wrr_rq(struct task_struct *p)
 {
+	if (p == NULL)
+		return NULL;
 	return &task_rq(p)->wrr;
 }
 
@@ -65,8 +70,18 @@ static inline struct wrr_rq *wrr_rq_of(struct sched_wrr_entity *wrr)
 {
 	struct task_struct *p = task_of(wrr);
 	struct rq *rq = task_rq(p);
+	if (wrr == NULL)
+		return NULL;
 
 	return &rq->wrr;
+}
+
+static inline int on_wrr_rq(struct sched_wrr_entity *wrr)
+{
+	if (list_empty(&wrr->run_list))
+		return 0;
+	else
+		return 1;
 }
 
 /*
@@ -100,18 +115,12 @@ static void update_curr_wrr(struct rq *rq)
  * 증가시킨다. 이 함수는 process가 sleeping state에서 runnable state로
  * 바뀔때 불린다.
  */
-static void __enqueue_wrr_entity(struct wrr_rq *wrr_rq,
-				struct sched_wrr_entity *wrr_se)
-{
-	list_add_tail(&wrr_se->run_list, &wrr_rq->wrr_queue);
-	wrr_rq->wrr_load += wrr_se->weight;
-}
-
 static void enqueue_wrr_entity(struct wrr_rq *wrr_rq,
 			struct sched_wrr_entity *wrr_se, int flags)
 {
-	update_curr_wrr(rq_of(wrr_rq));
-	__enqueue_wrr_entity(wrr_rq, wrr_se);
+	list_add_tail(&wrr_se->run_list, &wrr_rq->wrr_queue);
+	wrr_rq->wrr_load += wrr_se->weight;
+	wrr_rq->wrr_nr_running++;
 }
 
 /*
@@ -120,18 +129,13 @@ static void enqueue_wrr_entity(struct wrr_rq *wrr_rq,
  * 로 바뀔때 불리거나, kernel이 다른 이유로 run_queue에서 이 process를
  * 빼고자 할때 불린다.
  */
-static void __dequeue_wrr_entity(struct wrr_rq *wrr_rq,
-				struct sched_wrr_entity *wrr_se)
-{
-	list_del_init(&wrr_se->run_list);
-	wrr_rq->wrr_load -= wrr_se->weight;
-}
-
 static void dequeue_wrr_entity(struct wrr_rq *wrr_rq,
 			struct sched_wrr_entity *wrr_se, int flags)
 {
-	update_curr_wrr(rq_of(wrr_rq));
-	__dequeue_wrr_entity(wrr_rq, wrr_se);
+
+	list_del_init(&wrr_se->run_list);
+	wrr_rq->wrr_load -= wrr_se->weight;
+	wrr_rq->wrr_nr_running--;
 }
 
 /*
@@ -141,30 +145,27 @@ static void dequeue_wrr_entity(struct wrr_rq *wrr_rq,
  */
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
-	struct wrr_rq *wrr_rq;
+	struct wrr_rq *wrr_rq = &rq->wrr;
 	struct sched_wrr_entity *wrr_se = &p->wrr;
+=
+	if (on_wrr_rq(wrr_se))
+		return;
 
-	//raw_spin_lock(&rq->lock);
-	/* wrr_rq is task_struct's wrr_rq */
-	wrr_rq = wrr_rq_of(wrr_se);
 	/* enqueue wrr_entity to wrr_rq */
-	//enqueue_wrr_entity(wrr_rq, wrr_se, flags);
-	wrr_rq->wrr_nr_running++;
-
+	enqueue_wrr_entity(wrr_rq, wrr_se, flags);=
 	inc_nr_running(rq);
 	raw_spin_unlock(&rq->lock);
 }
 
 static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
-	struct wrr_rq *wrr_rq;
-	struct sched_wrr_entity *wrr_se = &p->wrr;
-	
-	//raw_spin_lock(&rq->lock);	
-	wrr_rq = wrr_rq_of(wrr_se);
-	dequeue_wrr_entity(wrr_rq, wrr_se, flags);
-	wrr_rq->wrr_nr_running--;
+	struct wrr_rq *wrr_rq = &rq->wrr;
+	struct sched_wrr_entity *wrr_se = &p->wrr;=
 
+	if (!on_wrr_rq(wrr_se))
+		return;=
+	update_curr_wrr(rq);
+	dequeue_wrr_entity(wrr_rq, wrr_se, flags);
 	dec_nr_running(rq);
 	//raw_spin_unlock(&rq->lock);
 }
@@ -182,9 +183,8 @@ requeue_wrr_entity(struct wrr_rq *wrr_rq, struct sched_wrr_entity *wrr_se)
 static void requeue_task_wrr(struct rq *rq, struct task_struct *p)
 {
 	struct sched_wrr_entity *wrr_se = &p->wrr;
-	struct wrr_rq *wrr_rq;
+	struct wrr_rq *wrr_rq = &rq->wrr;
 
-	wrr_rq = wrr_rq_of(wrr_se);
 	requeue_wrr_entity(wrr_rq, wrr_se);
 }
 
@@ -198,17 +198,6 @@ static void check_preempt_curr_wrr(struct rq *rq,
 {
 }
 
-static struct sched_wrr_entity *pick_next_wrr_entity(struct rq *rq,
-						struct wrr_rq *wrr_rq)
-{
-	struct sched_wrr_entity *next = NULL;
-
-	next = list_first_entry(&wrr_rq->wrr_queue,
-			    struct sched_wrr_entity, run_list);
-
-	return next;
-}
-
 static struct task_struct *_pick_next_task_wrr(struct rq *rq)
 {
 	struct sched_wrr_entity *wrr_se;
@@ -220,9 +209,11 @@ static struct task_struct *_pick_next_task_wrr(struct rq *rq)
 	if (!wrr_rq->wrr_nr_running)
 		return NULL;
 
-	wrr_se = pick_next_wrr_entity(rq, wrr_rq);
-
+	wrr_se = list_first_entry(&wrr_rq->wrr_queue,
+			    struct sched_wrr_entity, run_list);
 	p = task_of(wrr_se);
+	if (!p)
+		return NULL;
 	p->se.exec_start = rq->clock_task;
 
 	return p;
@@ -246,15 +237,19 @@ static int find_lowest_cpu(struct task_struct *p)
 {
 	struct rq *rq;
 	unsigned int min_cpu, load, cpu;
+	min_cpu = task_cpu(p);
 
 	load = 0xffffffff;
 	for_each_cpu(cpu, cpu_active_mask) {
-		rq = cpu_rq(cpu);
+		if (!cpumask_test_cpu(cpu, &p->cpus_allowed))
+			continue;
 
-		if (rq->wrr.wrr_load < load) {
-			load = rq->wrr.wrr_load;
-			min_cpu = cpu;
-		}
+		rq = cpu_rq(cpu);
+		if (rq->wrr.wrr_load > load) 
+			continue;
+
+		load = rq->wrr.wrr_load;
+		min_cpu = cpu;
 	}
 
 	return min_cpu;
@@ -336,24 +331,13 @@ const struct sched_class wrr_sched_class = {
 #ifdef CONFIG_SMP
 	.select_task_rq		= select_task_rq_wrr,
 #endif
-
-
 	.set_curr_task		= set_curr_task_wrr,
 	.task_tick		= task_tick_wrr,
-
-
 
 	.switched_to		= switched_to_wrr,
 };
 
-/*
-__init void init_sched_wrr_class(void)
-{
-#ifdef CONFIG_SMP
-	open_softirq(SCHED_SOFRIRQ, load_balance);
-#endif
-}
-*/
+
 #ifdef CONFIG_SMP
 static int
 can_migrate_task(struct task_struct *p, struct rq *src, struct rq *dest)
@@ -366,8 +350,7 @@ can_migrate_task(struct task_struct *p, struct rq *src, struct rq *dest)
 	 */
 	if (!cpumask_test_cpu(dest->cpu, tsk_cpus_allowed(p)))
 		return 0;
-	if (!task_running(src, p)){
-		printk("(wrr)p is running\n");
+	if (task_running(src, p))
 		return 0;
 	}
 	if (src->wrr.wrr_load - p->wrr.weight <=
@@ -384,12 +367,11 @@ static void load_balance(int max_cpu, int min_cpu)
 	struct task_struct *p, *max_task = NULL;
 	unsigned long flags;
 	unsigned long max_weight = 0;
-	printk("(wrr)load_before!! max :%d min :%d\n",max_cpu, min_cpu);
+
 	local_irq_save(flags);
 	double_rq_lock(src, dest);
 	list_for_each_entry(curr, &src->wrr.wrr_queue, run_list) {
 		p = task_of(curr);
-		printk("(wrr)src_queue's weight : %d\n",p->wrr.weight);
 		if (p->wrr.weight < max_weight)
 			continue;
 		if (!can_migrate_task(p, src, dest))
@@ -397,66 +379,32 @@ static void load_balance(int max_cpu, int min_cpu)
 		max_weight = p->wrr.weight;
 		max_task = p;
 	}
-	printk("(wrr)find_max_weight : %d\n", max_weight);
+	printk("migration task's weight = %d\n", max_weight);
 	if (max_task) {
-	printk("(wrr)deactivate\n");
+		raw_spin_lock(&max_task->pi_lock);
 		deactivate_task(src, max_task, 0);
-	/*
-	if (task_contributes_to_load(max_task))     
-                src->nr_uninterruptible++;
-	update_rq_clock(src);
-        sched_info_dequeued(max_task);
-	struct wrr_rq *wrr_rq;
-	struct sched_wrr_entity *wrr_se = &max_task->wrr;
 
-	wrr_rq = wrr_rq_of(wrr_se);
-	update_curr_wrr(rq_of(wrr_rq));
-	list_del_init(&wrr_se->run_list);
-	wrr_rq->wrr_load -= wrr_se->weight;
-
-
-	wrr_rq->wrr_nr_running--;
-
-	dec_nr_running(src);
-
-
-	*/
-	printk("(wrr)set_task_cpu\n");
 		set_task_cpu(max_task, dest->cpu);
-	printk("(wrr)activate\n");
 		activate_task(dest, max_task, 0);
-/*	if (task_contributes_to_load(max_task))
-		dest->nr_uninterruptible--;
-
-	update_rq_clock(dest); 
-	sched_info_queued(max_task);
-        wrr_se = &max_task->wrr;
-
-        wrr_rq = wrr_rq_of(wrr_se);
-        update_curr_wrr(rq_of(wrr_rq));
-	list_add_tail(&wrr_se->run_list, &wrr_rq->wrr_queue);
-        wrr_rq->wrr_load += wrr_se->weight;
-
-        wrr_rq->wrr_nr_running++;
-
-        inc_nr_running(dest);
-*/
-
+		raw_spin_unlock(&max_task->pi_lock);
+		printk("Moved task %s, from CPU %d to CPU %d\n",
+			max_task->comm, src->cpu, dest->cpu);
 	}
 	double_rq_unlock(src, dest);
 	local_irq_restore(flags);
+	printk("Finished loadbalancing\n");
 }
 
 void wrr_load_balance(void)
 {
-//	if (time_after_eq(jiffies, rq->wrr->next_balance))
-//		raise_softirq(SCHED_SOFTIRQ);
 	int cpu, max_cpu, min_cpu;
 	int i = 0;
 	unsigned long max_load = 0;
 	unsigned long min_load = 0xffffffff;
 
 	struct rq *rq;
+
+	printk("Starting load_balancing\n");
 
 	rcu_read_lock();
 	for_each_cpu(cpu, cpu_active_mask) {
@@ -476,7 +424,27 @@ void wrr_load_balance(void)
 
 	if (i < 2 || max_load == min_load)
 		return;
+	printk("max_load = %d, min_load = %d, src_cpu = %d, dest_cpu = %d\n",
+		max_load, min_load, max_cpu, min_cpu);
 	load_balance(max_cpu, min_cpu);
+}
+
+#define WRR_LB_INTERVAL (2000 * 1000 * 1000)
+static struct hrtimer wrr_load_balance_timer;
+static enum hrtimer_restart __wrr_load_balance(struct hrtimer *timer)
+{
+	wrr_load_balance();
+	hrtimer_forward_now(&wrr_load_balance_timer,
+			    ns_to_ktime(WRR_LB_INTERVAL));
+	return HRTIMER_RESTART;
+}
+void init_wrr_balancer(void)
+{
+	hrtimer_init(&wrr_load_balance_timer,
+		    CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	wrr_load_balance_timer.function = __wrr_load_balance;
+	hrtimer_start(&wrr_load_balance_timer,
+		ns_to_ktime(WRR_LB_INTERVAL), HRTIMER_MODE_REL);
 }
 #endif
 
@@ -486,10 +454,14 @@ extern void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq *wrr_rq);
 
 void print_wrr_stats(struct seq_file *m, int cpu)
 {
+	struct rq *rq = cpu_rq(cpu);
 	struct wrr_rq *wrr_rq;
-	wrr_rq = &cpu_rq(cpu)->wrr;
+	unsigned long flags;
+	raw_spin_lock_irqsave(&rq->lock, flags);
+	wrr_rq = &rq->wrr;
 	rcu_read_lock();
 	print_wrr_rq(m, cpu, wrr_rq);
 	rcu_read_unlock();
+	raw_spin_unlock_irqrestore(&rq->lock, flags);
 }
 #endif /* CONFIG_SCHED_DEBUG */

@@ -548,9 +548,6 @@ struct rq {
 	struct sched_avg avg;
 };
 
-/* wrr */
-extern void change_load(struct rq *rq, int old_weight, int new_weight);
-
 static inline int cpu_of(struct rq *rq)
 {
 #ifdef CONFIG_SMP
@@ -1054,7 +1051,7 @@ extern const struct sched_class rt_sched_class;
 extern const struct sched_class fair_sched_class;
 extern const struct sched_class idle_sched_class;
 extern const struct sched_class wrr_sched_class;
-
+extern void change_load(struct rq *rq, int old_weight, int new_weight);
 
 #ifdef CONFIG_SMP
 
@@ -1062,6 +1059,8 @@ extern void update_group_power(struct sched_domain *sd, int cpu);
 
 extern void trigger_load_balance(struct rq *rq, int cpu);
 extern void idle_balance(int this_cpu, struct rq *this_rq);
+
+extern void wrr_lb_trigger(struct rq *rq, int cpu);
 
 /*
  * Only depends on SMP, FAIR_GROUP_SCHED may be removed when runnable_avg
@@ -1089,7 +1088,9 @@ extern void update_max_interval(void);
 extern int update_runtime(struct notifier_block *nfb, unsigned long action, void *hcpu);
 extern void init_sched_rt_class(void);
 extern void init_sched_fair_class(void);
-extern void init_sched_wrr_class(void);
+#ifdef CONFIG_SMP
+extern void init_wrr_balancer(void);
+#endif
 
 extern void resched_task(struct task_struct *p);
 extern void resched_cpu(int cpu);

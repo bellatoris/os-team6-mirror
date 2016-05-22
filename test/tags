@@ -1,0 +1,34 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+CC	Makefile	/^CC=$(GCCROOT)\/armv7l-tizen-linux-gnueabi-gcc$/;"	m
+CFLAGS	Makefile	/^CFLAGS=$(INCLUDE)$/;"	m
+GCCROOT	Makefile	/^GCCROOT=\/home\/dooige\/Downloads\/opt\/tizen-toolchain-4.9~git-i686_armv7l-tizen-linux-gnueabi-20151113\/bin$/;"	m
+INCLUDE	Makefile	/^INCLUDE=-I\/home\/dooige\/Documents\/Operating_System\/os-team6\/include$/;"	m
+N	aa.c	10;"	d	file:
+N	trial.c	11;"	d	file:
+SCHED_WRR	setsched.c	5;"	d	file:
+SCHED_WRR	test_sm.c	8;"	d	file:
+__NR_sched_getweight	aa.c	9;"	d	file:
+__NR_sched_getweight	test_sm.c	7;"	d	file:
+__NR_sched_getweight	trial.c	10;"	d	file:
+__NR_sched_setscheduler	setsched.c	4;"	d	file:
+__NR_sched_setweight	aa.c	8;"	d	file:
+__NR_sched_setweight	test_sm.c	6;"	d	file:
+__NR_sched_setweight	trial.c	9;"	d	file:
+main	aa.c	/^int main(int argc, char* argv[]) {$/;"	f
+main	kk.c	/^int main()$/;"	f
+main	pivot.c	/^int main(int c , char ** v){$/;"	f
+main	setsched.c	/^int main(int argc, char *argv[]){$/;"	f
+main	test.c	/^int main(int argc, char *argv[])$/;"	f
+main	test_sm.c	/^int main(int argc, char *argv[]){$/;"	f
+main	test_sw.c	/^int main(int argc, char *argv[])$/;"	f
+main	trial.c	/^int main(int argc, char* argv[]){$/;"	f
+main	while.c	/^int main()$/;"	f
+prime	trial.c	/^int prime[N];$/;"	v
+print_prime	trial.c	/^void print_prime(int n){$/;"	f
+sched_param	test_sm.c	/^const struct sched_param {$/;"	s	file:
+sched_priority	test_sm.c	/^	int sched_priority;$/;"	m	struct:sched_param	file:
