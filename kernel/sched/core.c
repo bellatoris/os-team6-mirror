@@ -1740,7 +1740,8 @@ void sched_fork(struct task_struct *p)
 	 */
 	if (unlikely(p->sched_reset_on_fork)) {
 		if (task_has_rt_policy(p)) {
-			p->policy = SCHED_NORMAL;
+			/* WRR */
+			p->policy = SCHED_WRR;
 			p->static_prio = NICE_TO_PRIO(0);
 			p->rt_priority = 0;
 		} else if (PRIO_TO_NICE(p->static_prio) < 0)
@@ -1757,12 +1758,9 @@ void sched_fork(struct task_struct *p)
 	}
 
 
-	/*
-	 * Make sure we do not leak PI boosting priority to the child.
-	 */
-
-	if (!rt_prio(p->prio) && (p->sched_class != &wrr_sched_class))
-		p->sched_class = &fair_sched_class;
+	/* WRR */
+	if (!rt_prio(p->prio))
+		p->sched_class = &wrr_sched_class;
 
 	if (p->sched_class->task_fork)
 		p->sched_class->task_fork(p);
@@ -3707,15 +3705,13 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 	if (running)
 		p->sched_class->put_prev_task(rq, p);
 
+	/* WRR */
 	if (rt_prio(prio))
 		p->sched_class = &rt_sched_class;
 
-	else {
-		if (prev_class == &wrr_sched_class)
-			p->sched_class = &wrr_sched_class;
-		else
-			p->sched_class = &fair_sched_class;
-	}
+	else
+		p->sched_class = &wrr_sched_class;
+	
 
 	p->prio = prio;
 
@@ -3916,11 +3912,10 @@ __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 				do_set_cpus_allowed(p, &hmp_slow_cpu_mask);
 			}
 #endif
-	}
-	else if (policy == SCHED_WRR)
-		p->sched_class = &wrr_sched_class;
+	}   /* WRR */
 	else
-		p->sched_class = &fair_sched_class;
+		p->sched_class = &wrr_sched_class;
+
 	set_load_weight(p);
 }
 
@@ -7173,7 +7168,9 @@ void __init sched_init(void)
 	/*
 	 * During early bootup we pretend to be a normal task:
 	 */
-	current->sched_class = &fair_sched_class;
+
+	/* wrr */
+	current->sched_class = &wrr_sched_class;
 
 #ifdef CONFIG_SMP
 	zalloc_cpumask_var(&sched_domains_tmpmask, GFP_NOWAIT);
@@ -7244,7 +7241,8 @@ static void normalize_task(struct rq *rq, struct task_struct *p)
 	on_rq = p->on_rq;
 	if (on_rq)
 		dequeue_task(rq, p, 0);
-	__setscheduler(rq, p, SCHED_NORMAL, 0);
+	/* WRR */
+	__setscheduler(rq, p, SCHED_WRR, 0);
 	if (on_rq) {
 		enqueue_task(rq, p, 0);
 		resched_task(rq->curr);

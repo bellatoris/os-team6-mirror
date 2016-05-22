@@ -144,7 +144,6 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 	update_curr_wrr(rq);
 	dequeue_wrr_entity(wrr_rq, wrr_se, flags);
 	dec_nr_running(rq);
-	//raw_spin_unlock(&rq->lock);
 }
 
 /*
@@ -295,7 +294,7 @@ static void switched_to_wrr(struct rq *rq, struct task_struct *p)
 }
 
 const struct sched_class wrr_sched_class = {
-	.next			= &idle_sched_class,
+	.next			= &fair_sched_class,
 	.enqueue_task		= enqueue_task_wrr,
 	.dequeue_task		= dequeue_task_wrr,
 	.yield_task		= yield_task_wrr,
