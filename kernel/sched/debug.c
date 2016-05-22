@@ -254,7 +254,6 @@ void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq *wrr_rq)
 #define PW(x) \
 	SEQ_printf(m, "	.%-30s: %Ld\n", #x, (long long)(wrr_rq->x))
 #define PNW(x) \
-
 	SEQ_printf(m, " .%-30s: %Ld\t", #x, (long long)(x))
 	PW(wrr_nr_running);
 	PW(wrr_load);
