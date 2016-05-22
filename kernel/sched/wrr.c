@@ -131,14 +131,14 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 	if (on_wrr_rq(wrr_se))
 		return;
 	/* enqueue wrr_entity to wrr_rq */
-	enqueue_wrr_entity(wrr_rq, wrr_se, flags);=
+	enqueue_wrr_entity(wrr_rq, wrr_se, flags);
 	inc_nr_running(rq);
 }
 
 static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct wrr_rq *wrr_rq = &rq->wrr;
-	struct sched_wrr_entity *wrr_se = &p->wrr;=
+	struct sched_wrr_entity *wrr_se = &p->wrr;
 
 	if (!on_wrr_rq(wrr_se))
 		return;
@@ -329,7 +329,6 @@ can_migrate_task(struct task_struct *p, struct rq *src, struct rq *dest)
 		return 0;
 	if (task_running(src, p))
 		return 0;
-	}
 	if (src->wrr.wrr_load - p->wrr.weight <=
 			    dest->wrr.wrr_load + p->wrr.weight)
 		return 0;
