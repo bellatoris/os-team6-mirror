@@ -127,7 +127,6 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct wrr_rq *wrr_rq = &rq->wrr;
 	struct sched_wrr_entity *wrr_se = &p->wrr;
-	
 	if (on_wrr_rq(wrr_se))
 		return;
 	/* enqueue wrr_entity to wrr_rq */
