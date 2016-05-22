@@ -23,7 +23,6 @@ void init_wrr_rq(struct wrr_rq *wrr_rq)
 	wrr_rq->wrr_nr_running = 0;
 	INIT_LIST_HEAD(&wrr_rq->wrr_queue);
 	wrr_rq->wrr_load = 0;
-	wrr_rq->next_balance = jiffies; 
 }
 
 void change_load(struct rq *rq, int old_weight, int new_weight)
@@ -332,20 +331,6 @@ const struct sched_class wrr_sched_class = {
 
 
 #ifdef CONFIG_SMP
-void wrr_load_balance(struct softirq_action *h);
-__init void init_sched_wrr_class(void)
-{
-	open_softirq(SCHED_SOFTIRQ, wrr_load_balance);
-}
-
-void wrr_lb_trigger(struct rq *rq, int cpu) 
-{
-	if (time_after_eq(jiffies, rq->wrr.next_balance)) {
-		printk("hi\n");
-		raise_softirq(SCHED_SOFTIRQ);
-	}
-}
-
 static int
 can_migrate_task(struct task_struct *p, struct rq *src, struct rq *dest)
 {
@@ -390,8 +375,8 @@ static void load_balance(int max_cpu, int min_cpu)
 	if (max_task) {
 		raw_spin_lock(&max_task->pi_lock);
 		deactivate_task(src, max_task, 0);
-	//	set_task_cpu(max_task, dest->cpu);
-	//	activate_task(dest, max_task, 0);
+		set_task_cpu(max_task, dest->cpu);
+		activate_task(dest, max_task, 0);
 		raw_spin_unlock(&max_task->pi_lock);
 		printk("Moved task %s, from CPU %d to CPU %d\n",
 			max_task->comm, src->cpu, dest->cpu);
@@ -402,10 +387,8 @@ static void load_balance(int max_cpu, int min_cpu)
 	printk("Finished loadbalancing\n");
 }
 
-void wrr_load_balance(struct softirq_action *h)
+void wrr_load_balance(void)
 {
-//	if (time_after_eq(jiffies, rq->wrr->next_balance))
-//		raise_softirq(SCHED_SOFTIRQ);
 	int cpu, max_cpu, min_cpu;
 	int i = 0;
 	unsigned long max_load = 0;
@@ -419,7 +402,6 @@ void wrr_load_balance(struct softirq_action *h)
 	for_each_cpu(cpu, cpu_active_mask) {
 		i++;
 		rq = cpu_rq(cpu);
-		rq->wrr.next_balance = jiffies + 2*HZ;
 
 		if (max_load < rq->wrr.wrr_load) {
 			max_load = rq->wrr.wrr_load;

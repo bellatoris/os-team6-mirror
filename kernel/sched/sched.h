@@ -233,7 +233,7 @@ extern void sched_offline_group(struct task_group *tg);
 
 extern void sched_move_task(struct task_struct *tsk);
 
-//extern void wrr_load_balance(struct softirq_action *h);
+extern void wrr_load_balance(void);
 
 /* WRR-related fields in a runqueue */
 struct wrr_rq {
@@ -243,7 +243,6 @@ struct wrr_rq {
 	 *   wrr_load is sum of all weights in this queue
 	 */
 	unsigned long wrr_load;
-	unsigned long next_balance;
 };
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
@@ -1089,10 +1088,6 @@ extern void update_max_interval(void);
 extern int update_runtime(struct notifier_block *nfb, unsigned long action, void *hcpu);
 extern void init_sched_rt_class(void);
 extern void init_sched_fair_class(void);
-
-#ifdef CONFIG_SMP
-extern void init_sched_wrr_class(void);
-#endif
 
 extern void resched_task(struct task_struct *p);
 extern void resched_cpu(int cpu);
