@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <linux/unistd.h>
 #include <sched.h>
-#include <math.h>
 #include <unistd.h>
 #include <time.h>
-#include <sched.h>
+#include <sys/time.h>
+
 
 #define __NR_sched_setweight 384
 #define __NR_sched_getweight 385
@@ -13,15 +13,18 @@
 int prime[N];
 
 void print_prime(int n);
+float timedifference_msec(struct timeval t0, struct timeval t1);
 
 int main(int argc, char* argv[]){
 	int n;
 	int i,j;
 	int obj;
 	int weight;
-	//int pid;
+
 	time_t start = 0;
 	time_t end = 0;
+
+	struct timeval srt, ed;
 
 	n = 2;
 	prime[0]=2;
@@ -31,7 +34,7 @@ int main(int argc, char* argv[]){
 	sched_setscheduler(0, 6, &param);
 	
 	while(1){
-	start = clock();
+	gettimeofday(&srt,NULL);
 	/*
 	syscall(__NR_sched_setweight, self, weight);
 	perror("sched_setweight");
@@ -52,8 +55,8 @@ int main(int argc, char* argv[]){
 
 		}
 	}
-	end = clock();
-	printf("weight : %d, execution time : %f\n",weight,(double)(end-start)/(CLOCKS_PER_SEC));
+	gettimeofday(&ed,NULL);
+	printf("weight : %d, execution time : %f\n", weight, timedifference_msec(srt,ed));
 	}
 }
 
@@ -76,3 +79,9 @@ void print_prime(int n){
 	}
 	printf("%d \n",n);  //if n > 10000th prime
 }
+
+float timedifference_msec(struct timeval t0, struct timeval t1)
+ {
+     return (t1.tv_sec - t0.tv_sec) * 1000.0f + (t1.tv_usec - t0.tv_usec) / 1000.0f;
+ }
+
