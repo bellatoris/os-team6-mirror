@@ -144,11 +144,11 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 	struct wrr_rq *wrr_rq;
 	struct sched_wrr_entity *wrr_se = &p->wrr;
 
-	raw_spin_lock(&rq->lock);
+	//raw_spin_lock(&rq->lock);
 	/* wrr_rq is task_struct's wrr_rq */
 	wrr_rq = wrr_rq_of(wrr_se);
 	/* enqueue wrr_entity to wrr_rq */
-	enqueue_wrr_entity(wrr_rq, wrr_se, flags);
+	//enqueue_wrr_entity(wrr_rq, wrr_se, flags);
 	wrr_rq->wrr_nr_running++;
 
 	inc_nr_running(rq);
@@ -160,13 +160,13 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 	struct wrr_rq *wrr_rq;
 	struct sched_wrr_entity *wrr_se = &p->wrr;
 	
-	raw_spin_lock(&rq->lock);	
+	//raw_spin_lock(&rq->lock);	
 	wrr_rq = wrr_rq_of(wrr_se);
 	dequeue_wrr_entity(wrr_rq, wrr_se, flags);
 	wrr_rq->wrr_nr_running--;
 
 	dec_nr_running(rq);
-	raw_spin_lock(&rq->lock);
+	//raw_spin_unlock(&rq->lock);
 }
 
 /*
@@ -400,8 +400,8 @@ static void load_balance(int max_cpu, int min_cpu)
 	printk("(wrr)find_max_weight : %d\n", max_weight);
 	if (max_task) {
 	printk("(wrr)deactivate\n");
-//		deactivate_task(src, max_task, 0);
-	
+		deactivate_task(src, max_task, 0);
+	/*
 	if (task_contributes_to_load(max_task))     
                 src->nr_uninterruptible++;
 	update_rq_clock(src);
@@ -420,21 +420,19 @@ static void load_balance(int max_cpu, int min_cpu)
 	dec_nr_running(src);
 
 
-
+	*/
 	printk("(wrr)set_task_cpu\n");
 		set_task_cpu(max_task, dest->cpu);
 	printk("(wrr)activate\n");
-//		activate_task(dest, max_task, 0);
-	if (task_contributes_to_load(max_task))
+		activate_task(dest, max_task, 0);
+/*	if (task_contributes_to_load(max_task))
 		dest->nr_uninterruptible--;
 
 	update_rq_clock(dest); 
 	sched_info_queued(max_task);
         wrr_se = &max_task->wrr;
 
-        /* wrr_rq is task_struct's wrr_rq */
         wrr_rq = wrr_rq_of(wrr_se);
-        /* enqueue wrr_entity to wrr_rq */
         update_curr_wrr(rq_of(wrr_rq));
 	list_add_tail(&wrr_se->run_list, &wrr_rq->wrr_queue);
         wrr_rq->wrr_load += wrr_se->weight;
@@ -442,7 +440,7 @@ static void load_balance(int max_cpu, int min_cpu)
         wrr_rq->wrr_nr_running++;
 
         inc_nr_running(dest);
-
+*/
 
 	}
 	double_rq_unlock(src, dest);
