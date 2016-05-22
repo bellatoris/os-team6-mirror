@@ -1,8 +1,8 @@
-Sched Debug Version: v0.10, 3.10.65-g2579d8a-dirty #275-Tizen
-ktime                                   : 132664.760742
-sched_clk                               : 132670.562743
-cpu_clk                                 : 132670.562743
-jiffies                                 : 4294950563
+Sched Debug Version: v0.10, 3.10.65-g17bab97 #276-Tizen
+ktime                                   : 826217.414550
+sched_clk                               : 826223.541259
+cpu_clk                                 : 826223.541259
+jiffies                                 : 52622
 
 sysctl_sched
   .sysctl_sched_latency                    : 18.000000
@@ -13,24 +13,24 @@ sysctl_sched
   .sysctl_sched_tunable_scaling            : 1 (logaritmic)
 
 cpu#0
-  .nr_running                    : 1
+  .nr_running                    : 4
   .load                          : 0
-  .nr_switches                   : 90020
-  .nr_load_updates               : 10176
-  .nr_uninterruptible            : 2
-  .next_balance                  : 4294.950569
-  .curr->pid                     : 1232
-  .clock                         : 132670.532225
+  .nr_switches                   : 178349
+  .nr_load_updates               : 67348
+  .nr_uninterruptible            : 20
+  .next_balance                  : 0.052646
+  .curr->pid                     : 1279
+  .clock                         : 826223.510741
   .cpu_load[0]                   : 0
-  .cpu_load[1]                   : 24
-  .cpu_load[2]                   : 105
-  .cpu_load[3]                   : 122
-  .cpu_load[4]                   : 88
+  .cpu_load[1]                   : 266
+  .cpu_load[2]                   : 285
+  .cpu_load[3]                   : 255
+  .cpu_load[4]                   : 179
 
 cfs_rq[0]:/
   .exec_clock                    : 0.000000
   .MIN_vruntime                  : 0.000001
-  .min_vruntime                  : 64252.485795
+  .min_vruntime                  : 80070.007069
   .max_vruntime                  : 0.000001
   .spread                        : 0.000000
   .spread0                       : 0.000000
@@ -38,20 +38,20 @@ cfs_rq[0]:/
   .nr_running                    : 0
   .load                          : 0
   .runnable_load_avg             : 0
-  .blocked_load_avg              : 24
-  .tg_load_avg                   : 44
-  .tg_load_contrib               : 20
-  .tg_runnable_contrib           : 1020
-  .tg->runnable_avg              : 4086
-  .tg->usage_avg                 : 4086
+  .blocked_load_avg              : 20
+  .tg_load_avg                   : 29
+  .tg_load_contrib               : 16
+  .tg_runnable_contrib           : 1018
+  .tg->runnable_avg              : 4064
+  .tg->usage_avg                 : 4064
   .tg->cfs_bandwidth.timer_active: 0
   .throttled                     : 0
   .throttle_count                : 0
   .tg->cfs_bandwidth.timer_active: 0
   .throttled                     : 0
   .throttle_count                : 0
-  .avg->runnable_avg_sum         : 47191
-  .avg->runnable_avg_period      : 47191
+  .avg->runnable_avg_sum         : 47972
+  .avg->runnable_avg_period      : 47972
 
 rt_rq[0]:/background/quota
   .rt_nr_running                 : 0
@@ -78,56 +78,62 @@ rt_rq[0]:/
   .rt_runtime                    : 950.000000
 
 wrr_rq[0]:
-	.wrr_nr_running                : 1
-	.wrr_load                      : 10
-wrr_rq: c1662764
- .curr->weight                  : 10	ecbb381c
+	.wrr_nr_running                : 4
+	.wrr_load                      : 26
+wrr_rq: c1660764
+ .curr->weight                  : 10	ecda2b5c
+ .curr->weight                  : 1	ecda739c
+ .curr->weight                  : 10	ecda519c
+ .curr->weight                  : 5	ecda7c1c
 
 runnable tasks:
             task   PID         tree-key  switches  prio     exec-runtime         sum-exec        sum-sleep
 ----------------------------------------------------------------------------------------------------------
-R          while  1232         0.000000       573   120               0               0               0.000000               0.000000               0.000000 /
+           while  1275         0.000000      5491   120               0               0               0.000000               0.000000               0.000000 /
+           while  1276         0.000000      2403   120               0               0               0.000000               0.000000               0.000000 /
+           while  1277         0.000000      3548   120               0               0               0.000000               0.000000               0.000000 /
+R          while  1279         0.000000      3066   120               0               0               0.000000               0.000000               0.000000 /
 
 cpu#1
-  .nr_running                    : 2
+  .nr_running                    : 4
   .load                          : 1024
-  .nr_switches                   : 47353
-  .nr_load_updates               : 5486
-  .nr_uninterruptible            : -5
-  .next_balance                  : 4294.950574
-  .curr->pid                     : 1247
-  .clock                         : 132670.959472
-  .cpu_load[0]                   : 1024
-  .cpu_load[1]                   : 768
-  .cpu_load[2]                   : 448
-  .cpu_load[3]                   : 240
-  .cpu_load[4]                   : 124
+  .nr_switches                   : 41279
+  .nr_load_updates               : 43784
+  .nr_uninterruptible            : 44
+  .next_balance                  : 0.052644
+  .curr->pid                     : 1364
+  .clock                         : 826223.968505
+  .cpu_load[0]                   : 0
+  .cpu_load[1]                   : 128
+  .cpu_load[2]                   : 144
+  .cpu_load[3]                   : 98
+  .cpu_load[4]                   : 56
 
 cfs_rq[1]:/
   .exec_clock                    : 0.000000
   .MIN_vruntime                  : 0.000001
-  .min_vruntime                  : 80582.693732
+  .min_vruntime                  : 110792.920450
   .max_vruntime                  : 0.000001
   .spread                        : 0.000000
-  .spread0                       : 16330.207937
+  .spread0                       : 30722.913381
   .nr_spread_over                : 0
   .nr_running                    : 1
   .load                          : 1024
-  .runnable_load_avg             : 23
-  .blocked_load_avg              : 10
-  .tg_load_avg                   : 54
+  .runnable_load_avg             : 24
+  .blocked_load_avg              : 9
+  .tg_load_avg                   : 38
   .tg_load_contrib               : 21
-  .tg_runnable_contrib           : 1023
-  .tg->runnable_avg              : 4086
-  .tg->usage_avg                 : 4086
+  .tg_runnable_contrib           : 1014
+  .tg->runnable_avg              : 4064
+  .tg->usage_avg                 : 4064
   .tg->cfs_bandwidth.timer_active: 0
   .throttled                     : 0
   .throttle_count                : 0
   .tg->cfs_bandwidth.timer_active: 0
   .throttled                     : 0
   .throttle_count                : 0
-  .avg->runnable_avg_sum         : 46287
-  .avg->runnable_avg_period      : 46287
+  .avg->runnable_avg_sum         : 46539
+  .avg->runnable_avg_period      : 46539
 
 rt_rq[1]:/background/quota
   .rt_nr_running                 : 0
@@ -154,26 +160,30 @@ rt_rq[1]:/
   .rt_runtime                    : 950.000000
 
 wrr_rq[1]:
-	.wrr_nr_running                : 1
-	.wrr_load                      : 10
-wrr_rq: c166b764
- .curr->weight                  : 10	ec770d9c
+	.wrr_nr_running                : 3
+	.wrr_load                      : 30
+wrr_rq: c1669764
+ .curr->weight                  : 10	ecda77dc
+ .curr->weight                  : 10	ecda491c
+ .curr->weight                  : 10	ec85d19c
 
 runnable tasks:
             task   PID         tree-key  switches  prio     exec-runtime         sum-exec        sum-sleep
 ----------------------------------------------------------------------------------------------------------
-           while  1233         0.000000        94   120               0               0               0.000000               0.000000               0.000000 /
-R           sdbd  1247     80582.693732         6   120               0               0               0.000000               0.000000               0.000000 /
+           while  1278         0.000000      1527   120               0               0               0.000000               0.000000               0.000000 /
+           while  1280         0.000000      1528   120               0               0               0.000000               0.000000               0.000000 /
+           while  1282         0.000000      1533   120               0               0               0.000000               0.000000               0.000000 /
+R           sdbd  1364    110792.920450         6   120               0               0               0.000000               0.000000               0.000000 /
 
 cpu#2
-  .nr_running                    : 2
+  .nr_running                    : 3
   .load                          : 0
-  .nr_switches                   : 43482
-  .nr_load_updates               : 6307
-  .nr_uninterruptible            : -6
-  .next_balance                  : 4294.950568
-  .curr->pid                     : 1235
-  .clock                         : 132665.893554
+  .nr_switches                   : 48230
+  .nr_load_updates               : 43923
+  .nr_uninterruptible            : -57
+  .next_balance                  : 0.052649
+  .curr->pid                     : 1281
+  .clock                         : 826216.217040
   .cpu_load[0]                   : 0
   .cpu_load[1]                   : 0
   .cpu_load[2]                   : 0
@@ -183,28 +193,28 @@ cpu#2
 cfs_rq[2]:/
   .exec_clock                    : 0.000000
   .MIN_vruntime                  : 0.000001
-  .min_vruntime                  : 97331.910739
+  .min_vruntime                  : 97420.437942
   .max_vruntime                  : 0.000001
   .spread                        : 0.000000
-  .spread0                       : 33079.424944
+  .spread0                       : 17350.430873
   .nr_spread_over                : 0
   .nr_running                    : 0
   .load                          : 0
   .runnable_load_avg             : 0
-  .blocked_load_avg              : 13
-  .tg_load_avg                   : 54
-  .tg_load_contrib               : 13
-  .tg_runnable_contrib           : 1021
-  .tg->runnable_avg              : 4086
-  .tg->usage_avg                 : 4086
+  .blocked_load_avg              : 0
+  .tg_load_avg                   : 38
+  .tg_load_contrib               : 0
+  .tg_runnable_contrib           : 1014
+  .tg->runnable_avg              : 4064
+  .tg->usage_avg                 : 4064
   .tg->cfs_bandwidth.timer_active: 0
   .throttled                     : 0
   .throttle_count                : 0
   .tg->cfs_bandwidth.timer_active: 0
   .throttled                     : 0
   .throttle_count                : 0
-  .avg->runnable_avg_sum         : 47049
-  .avg->runnable_avg_period      : 47049
+  .avg->runnable_avg_sum         : 47121
+  .avg->runnable_avg_period      : 47121
 
 rt_rq[2]:/background/quota
   .rt_nr_running                 : 0
@@ -231,27 +241,29 @@ rt_rq[2]:/
   .rt_runtime                    : 950.000000
 
 wrr_rq[2]:
-	.wrr_nr_running                : 2
-	.wrr_load                      : 6
-wrr_rq: c1674764
- .curr->weight                  : 1	ed072f9c
- .curr->weight                  : 5	ee5a9a5c
+	.wrr_nr_running                : 3
+	.wrr_load                      : 30
+wrr_rq: c1672764
+ .curr->weight                  : 10	ec859a5c
+ .curr->weight                  : 10	ee411e9c
+ .curr->weight                  : 10	edada71c
 
 runnable tasks:
             task   PID         tree-key  switches  prio     exec-runtime         sum-exec        sum-sleep
 ----------------------------------------------------------------------------------------------------------
-           while  1234         0.000000       285   120               0               0               0.000000               0.000000               0.000000 /
-R          while  1235         0.000000      1334   120               0               0               0.000000               0.000000               0.000000 /
+R          while  1281         0.000000      1456   120               0               0               0.000000               0.000000               0.000000 /
+           while  1283         0.000000      1422   120               0               0               0.000000               0.000000               0.000000 /
+           while  1286         0.000000      1435   120               0               0               0.000000               0.000000               0.000000 /
 
 cpu#3
-  .nr_running                    : 1
+  .nr_running                    : 3
   .load                          : 0
-  .nr_switches                   : 45333
-  .nr_load_updates               : 5816
-  .nr_uninterruptible            : 10
-  .next_balance                  : 4294.950583
-  .curr->pid                     : 1236
-  .clock                         : 132665.863036
+  .nr_switches                   : 111270
+  .nr_load_updates               : 43907
+  .nr_uninterruptible            : -6
+  .next_balance                  : 0.052648
+  .curr->pid                     : 1287
+  .clock                         : 826216.217040
   .cpu_load[0]                   : 0
   .cpu_load[1]                   : 0
   .cpu_load[2]                   : 0
@@ -261,28 +273,28 @@ cpu#3
 cfs_rq[3]:/
   .exec_clock                    : 0.000000
   .MIN_vruntime                  : 0.000001
-  .min_vruntime                  : 95932.444688
+  .min_vruntime                  : 103757.019425
   .max_vruntime                  : 0.000001
   .spread                        : 0.000000
-  .spread0                       : 31679.958893
+  .spread0                       : 23687.012356
   .nr_spread_over                : 0
   .nr_running                    : 0
   .load                          : 0
   .runnable_load_avg             : 0
-  .blocked_load_avg              : 0
-  .tg_load_avg                   : 54
-  .tg_load_contrib               : 0
-  .tg_runnable_contrib           : 1022
-  .tg->runnable_avg              : 4086
-  .tg->usage_avg                 : 4086
+  .blocked_load_avg              : 1
+  .tg_load_avg                   : 38
+  .tg_load_contrib               : 1
+  .tg_runnable_contrib           : 1018
+  .tg->runnable_avg              : 4064
+  .tg->usage_avg                 : 4064
   .tg->cfs_bandwidth.timer_active: 0
   .throttled                     : 0
   .throttle_count                : 0
   .tg->cfs_bandwidth.timer_active: 0
   .throttled                     : 0
   .throttle_count                : 0
-  .avg->runnable_avg_sum         : 47459
-  .avg->runnable_avg_period      : 47459
+  .avg->runnable_avg_sum         : 46624
+  .avg->runnable_avg_period      : 46624
 
 rt_rq[3]:/background/quota
   .rt_nr_running                 : 0
@@ -309,13 +321,17 @@ rt_rq[3]:/
   .rt_runtime                    : 950.000000
 
 wrr_rq[3]:
-	.wrr_nr_running                : 1
-	.wrr_load                      : 10
-wrr_rq: c167d764
- .curr->weight                  : 10	ee5a961c
+	.wrr_nr_running                : 3
+	.wrr_load                      : 21
+wrr_rq: c167b764
+ .curr->weight                  : 10	ecea91dc
+ .curr->weight                  : 10	ee416b1c
+ .curr->weight                  : 1	eceac09c
 
 runnable tasks:
             task   PID         tree-key  switches  prio     exec-runtime         sum-exec        sum-sleep
 ----------------------------------------------------------------------------------------------------------
-R          while  1236         0.000000       122   120               0               0               0.000000               0.000000               0.000000 /
+           while  1284         0.000000     11374   120               0               0               0.000000               0.000000               0.000000 /
+R          while  1287         0.000000     11405   120               0               0               0.000000               0.000000               0.000000 /
+           while  1288         0.000000      2981   120               0               0               0.000000               0.000000               0.000000 /
 

@@ -37,8 +37,6 @@ void change_load(struct rq *rq, int old_weight, int new_weight)
  */
 static inline struct task_struct *task_of(struct sched_wrr_entity *wrr)
 {
-	if (wrr == NULL)
-		return NULL;
 	return container_of(wrr, struct task_struct, wrr);
 }
 
@@ -47,8 +45,6 @@ static inline struct task_struct *task_of(struct sched_wrr_entity *wrr)
  */
 static inline struct rq *rq_of(struct wrr_rq *wrr_rq)
 {
-	if (wrr_rq == NULL)
-		return NULL;
 	return container_of(wrr_rq, struct rq, wrr);
 }
 
@@ -57,23 +53,7 @@ static inline struct rq *rq_of(struct wrr_rq *wrr_rq)
  */
 static inline struct wrr_rq *task_wrr_rq(struct task_struct *p)
 {
-	if (p == NULL)
-		return NULL;
 	return &task_rq(p)->wrr;
-}
-
-/*
- * wrr을 가진 task_struct p를 구하고, p의 rq에 접근해 rq의
- * wrr_rq를 return한다.
- */
-static inline struct wrr_rq *wrr_rq_of(struct sched_wrr_entity *wrr)
-{
-	struct task_struct *p = task_of(wrr);
-	struct rq *rq = task_rq(p);
-	if (wrr == NULL)
-		return NULL;
-
-	return &rq->wrr;
 }
 
 static inline int on_wrr_rq(struct sched_wrr_entity *wrr)
@@ -210,9 +190,8 @@ static struct task_struct *_pick_next_task_wrr(struct rq *rq)
 
 	wrr_se = list_first_entry(&wrr_rq->wrr_queue,
 			    struct sched_wrr_entity, run_list);
+	
 	p = task_of(wrr_se);
-	if (!p)
-		return NULL;
 	p->se.exec_start = rq->clock_task;
 
 	return p;
@@ -277,7 +256,7 @@ static void set_curr_task_wrr(struct rq *rq)
 }
 
 /*
- * task_tick_wrris called by the periodic scheduler each time it is activated.
+ * task_tick_wrr is called by the periodic scheduler each time it is activated.
  * Each task should execute in intervals equal to the quantum value.
  * To accomplish this, this function should decrement the current
  * task’s time slice to indicate that it has run for 1 time unit.
@@ -447,7 +426,6 @@ void init_wrr_balancer(void)
 
 #ifdef CONFIG_SCHED_DEBUG
 extern void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq *wrr_rq);
-
 
 void print_wrr_stats(struct seq_file *m, int cpu)
 {
