@@ -333,9 +333,6 @@ can_migrate_task(struct task_struct *p, struct rq *src, struct rq *dest)
 		return 0;
 	if (task_running(src, p))
 		return 0;
-	printk("src load = %d, dest loas = %d\n", src->wrr.wrr_load,
-					    dest->wrr.wrr_load);
-	printk("moving weight = %d\n", p->wrr.weight);
 	if (src->wrr.wrr_load - p->wrr.weight <=
 			    dest->wrr.wrr_load + p->wrr.weight)
 		return 0;
@@ -359,11 +356,9 @@ static void load_balance(int max_cpu, int min_cpu)
 			continue;
 		if (!can_migrate_task(p, src, dest))
 			continue;
-		printk("task's weight = %d\n", p->wrr.weight);
 		max_weight = p->wrr.weight;
 		max_task = p;
 	}
-	printk("migration task's weight = %d\n", max_weight);
 	if (max_task) {
 		raw_spin_lock(&max_task->pi_lock);
 		deactivate_task(src, max_task, 0);
@@ -371,12 +366,9 @@ static void load_balance(int max_cpu, int min_cpu)
 		set_task_cpu(max_task, dest->cpu);
 		activate_task(dest, max_task, 0);
 		raw_spin_unlock(&max_task->pi_lock);
-		printk("Moved task %s, from CPU %d to CPU %d\n",
-			max_task->comm, src->cpu, dest->cpu);
 	}
 	double_rq_unlock(src, dest);
 	local_irq_restore(flags);
-	printk("Finished loadbalancing\n");
 }
 
 void wrr_load_balance(void)
@@ -387,8 +379,6 @@ void wrr_load_balance(void)
 	unsigned long min_load = ULONG_MAX;
 
 	struct rq *rq;
-
-	printk("Starting load_balancing\n");
 
 	rcu_read_lock();
 	for_each_cpu(cpu, cpu_active_mask) {
@@ -408,8 +398,6 @@ void wrr_load_balance(void)
 
 	if (i < 2 || max_load == min_load)
 		return;
-	printk("max_load = %d, min_load = %d, src_cpu = %d, dest_cpu = %d\n",
-		max_load, min_load, max_cpu, min_cpu);
 	load_balance(max_cpu, min_cpu);
 }
 

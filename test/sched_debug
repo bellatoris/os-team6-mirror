@@ -1,8 +1,8 @@
-Sched Debug Version: v0.10, 3.10.65-g6213b76-dirty #332-Tizen
-ktime                                   : 275190.198974
-sched_clk                               : 275194.610595
-cpu_clk                                 : 275194.610595
-jiffies                                 : 4294964815
+Sched Debug Version: v0.10, 3.10.65-gfdbb768 #68-Tizen
+ktime                                   : 862000.196532
+sched_clk                               : 862004.760741
+cpu_clk                                 : 862004.760741
+jiffies                                 : 56200
 
 sysctl_sched
   .sysctl_sched_latency                    : 18.000000
@@ -13,19 +13,45 @@ sysctl_sched
   .sysctl_sched_tunable_scaling            : 1 (logaritmic)
 
 cpu#0
-  .nr_running                    : 12
-  .load                          : 0
-  .nr_switches                   : 60273
-  .nr_load_updates               : 18495
-  .nr_uninterruptible            : -16
-  .next_balance                  : 4294.964840
-  .curr->pid                     : 1147
-  .clock                         : 275194.488524
-  .cpu_load[0]                   : 0
-  .cpu_load[1]                   : 0
-  .cpu_load[2]                   : 0
-  .cpu_load[3]                   : 0
-  .cpu_load[4]                   : 0
+  .nr_running                    : 8
+  .load                          : 11916
+  .nr_switches                   : 98126
+  .nr_load_updates               : 77435
+  .nr_uninterruptible            : 94
+  .next_balance                  : 0.056202
+  .curr->pid                     : 1230
+  .clock                         : 862004.638671
+  .cpu_load[0]                   : 11916
+  .cpu_load[1]                   : 11544
+  .cpu_load[2]                   : 9090
+  .cpu_load[3]                   : 5861
+  .cpu_load[4]                   : 4070
+
+cfs_rq[0]:/
+  .exec_clock                    : 0.000000
+  .MIN_vruntime                  : 807.179826
+  .min_vruntime                  : 812.928059
+  .max_vruntime                  : 807.179826
+  .spread                        : 0.000000
+  .spread0                       : 0.000000
+  .nr_spread_over                : 0
+  .nr_running                    : 1
+  .load                          : 11916
+  .runnable_load_avg             : 11915
+  .blocked_load_avg              : 0
+  .tg_load_avg                   : 23830
+  .tg_load_contrib               : 11915
+  .tg_runnable_contrib           : 1023
+  .tg->runnable_avg              : 4084
+  .tg->usage_avg                 : 4084
+  .tg->cfs_bandwidth.timer_active: 0
+  .throttled                     : 0
+  .throttle_count                : 0
+  .tg->cfs_bandwidth.timer_active: 0
+  .throttled                     : 0
+  .throttle_count                : 0
+  .avg->runnable_avg_sum         : 47506
+  .avg->runnable_avg_period      : 47506
 
 rt_rq[0]:/background/quota
   .rt_nr_running                 : 0
@@ -52,52 +78,69 @@ rt_rq[0]:/
   .rt_runtime                    : 950.000000
 
 wrr_rq[0]:
-	.wrr_nr_running                : 12
-	.wrr_load                      : 21
-wrr_rq: c1662764
- .curr->weight                  : 1	ec9266dc
- .curr->weight                  : 1	ec7c5a1c
- .curr->weight                  : 1	ec7c1e9c
- .curr->weight                  : 1	ec9277dc
- .curr->weight                  : 1	ec076f5c
- .curr->weight                  : 10	ee93409c
- .curr->weight                  : 1	ecab6f5c
- .curr->weight                  : 1	ec9200dc
- .curr->weight                  : 1	ec7c6f5c
- .curr->weight                  : 1	ec922b5c
- .curr->weight                  : 1	ec7c519c
- .curr->weight                  : 1	ec7c4d5c
+	.wrr_nr_running                : 7
+	.wrr_load                      : 16
+wrr_rq: c1660764
+ .curr->weight                  : 1	ed0f55dc
+ .curr->weight                  : 1	ed0f4d5c
+ .curr->weight                  : 1	ec6aaf9c
+ .curr->weight                  : 1	ede68d9c
+ .curr->weight                  : 1	ec6ad19c
+ .curr->weight                  : 1	ed0f5e5c
+ .curr->weight                  : 10	eeaede5c
 
 runnable tasks:
             task   PID         tree-key  switches  prio     exec-runtime         sum-exec        sum-sleep
 ----------------------------------------------------------------------------------------------------------
- watchdog_feeder    90         0.000000        92   120               0               0               0.000000               0.000000               0.000000 /
-R          while  1147         0.000000       373   120               0               0               0.000000               0.000000               0.000000 /
-           while  1153         0.000000       274   120               0               0               0.000000               0.000000               0.000000 /
-           while  1156         0.000000       252   120               0               0               0.000000               0.000000               0.000000 /
-           while  1160         0.000000       211   120               0               0               0.000000               0.000000               0.000000 /
-           while  1169         0.000000       149   120               0               0               0.000000               0.000000               0.000000 /
-           while  1171         0.000000       140   120               0               0               0.000000               0.000000               0.000000 /
-           while  1175         0.000000       124   120               0               0               0.000000               0.000000               0.000000 /
-           while  1186         0.000000        84   120               0               0               0.000000               0.000000               0.000000 /
-           while  1189         0.000000        83   120               0               0               0.000000               0.000000               0.000000 /
-           while  1190         0.000000        83   120               0               0               0.000000               0.000000               0.000000 /
-           while  1191         0.000000        78   120               0               0               0.000000               0.000000               0.000000 /
+     kworker/0:2   172         0.000000      2535   120               0               0               0.000000               0.000000               0.000000 /
+      pulseaudio   741       807.179826        77   109               0               0               0.000000               0.000000               0.000000 /
+           while  1161         0.000000      6084   120               0               0               0.000000               0.000000               0.000000 /
+           while  1164         0.000000      7354   120               0               0               0.000000               0.000000               0.000000 /
+           while  1222         0.000000      4531   120               0               0               0.000000               0.000000               0.000000 /
+R          while  1230         0.000000      3367   120               0               0               0.000000               0.000000               0.000000 /
+           while  1233         0.000000      3461   120               0               0               0.000000               0.000000               0.000000 /
+           while  1235         0.000000      3418   120               0               0               0.000000               0.000000               0.000000 /
 
 cpu#1
-  .nr_running                    : 11
+  .nr_running                    : 7
   .load                          : 0
-  .nr_switches                   : 37923
-  .nr_load_updates               : 5194
-  .nr_uninterruptible            : -53
-  .next_balance                  : 4294.964823
-  .curr->pid                     : 1192
-  .clock                         : 275194.488524
+  .nr_switches                   : 60354
+  .nr_load_updates               : 55691
+  .nr_uninterruptible            : -67
+  .next_balance                  : 0.056211
+  .curr->pid                     : 1232
+  .clock                         : 862004.638671
   .cpu_load[0]                   : 0
-  .cpu_load[1]                   : 0
-  .cpu_load[2]                   : 0
-  .cpu_load[3]                   : 0
-  .cpu_load[4]                   : 0
+  .cpu_load[1]                   : 372
+  .cpu_load[2]                   : 2826
+  .cpu_load[3]                   : 6006
+  .cpu_load[4]                   : 7646
+
+cfs_rq[1]:/
+  .exec_clock                    : 0.000000
+  .MIN_vruntime                  : 0.000001
+  .min_vruntime                  : 470.484609
+  .max_vruntime                  : 0.000001
+  .spread                        : 0.000000
+  .spread0                       : -342.443450
+  .nr_spread_over                : 0
+  .nr_running                    : 0
+  .load                          : 0
+  .runnable_load_avg             : 0
+  .blocked_load_avg              : 0
+  .tg_load_avg                   : 23830
+  .tg_load_contrib               : 0
+  .tg_runnable_contrib           : 1023
+  .tg->runnable_avg              : 4084
+  .tg->usage_avg                 : 4084
+  .tg->cfs_bandwidth.timer_active: 0
+  .throttled                     : 0
+  .throttle_count                : 0
+  .tg->cfs_bandwidth.timer_active: 0
+  .throttled                     : 0
+  .throttle_count                : 0
+  .avg->runnable_avg_sum         : 47042
+  .avg->runnable_avg_period      : 47042
 
 rt_rq[1]:/background/quota
   .rt_nr_running                 : 0
@@ -124,50 +167,68 @@ rt_rq[1]:/
   .rt_runtime                    : 950.000000
 
 wrr_rq[1]:
-	.wrr_nr_running                : 11
-	.wrr_load                      : 20
-wrr_rq: c166b764
- .curr->weight                  : 1	ec7c491c
- .curr->weight                  : 1	ec7c739c
- .curr->weight                  : 1	ecab381c
- .curr->weight                  : 10	ee93271c
- .curr->weight                  : 1	ecab77dc
- .curr->weight                  : 1	ec92629c
- .curr->weight                  : 1	ec9233dc
- .curr->weight                  : 1	ec076b1c
- .curr->weight                  : 1	ec7c5e5c
- .curr->weight                  : 1	ec0777dc
- .curr->weight                  : 1	ec0700dc
+	.wrr_nr_running                : 7
+	.wrr_load                      : 16
+wrr_rq: c1669764
+ .curr->weight                  : 1	ee9355dc
+ .curr->weight                  : 1	ed9ad19c
+ .curr->weight                  : 1	ed9ac09c
+ .curr->weight                  : 10	eeaeda1c
+ .curr->weight                  : 1	ec6acd5c
+ .curr->weight                  : 1	ed0f491c
+ .curr->weight                  : 1	ecac629c
 
 runnable tasks:
             task   PID         tree-key  switches  prio     exec-runtime         sum-exec        sum-sleep
 ----------------------------------------------------------------------------------------------------------
-      homescreen   854         0.000000     16417   120               0               0               0.000000               0.000000               0.000000 /
-           while  1155         0.000000       260   120               0               0               0.000000               0.000000               0.000000 /
-           while  1164         0.000000       158   120               0               0               0.000000               0.000000               0.000000 /
-           while  1165         0.000000       149   120               0               0               0.000000               0.000000               0.000000 /
-           while  1167         0.000000       139   120               0               0               0.000000               0.000000               0.000000 /
-           while  1172         0.000000       119   120               0               0               0.000000               0.000000               0.000000 /
-           while  1176         0.000000       103   120               0               0               0.000000               0.000000               0.000000 /
-           while  1181         0.000000        87   120               0               0               0.000000               0.000000               0.000000 /
-           while  1182         0.000000        87   120               0               0               0.000000               0.000000               0.000000 /
-           while  1185         0.000000        80   120               0               0               0.000000               0.000000               0.000000 /
-R          while  1192         0.000000        64   120               0               0               0.000000               0.000000               0.000000 /
+     kworker/1:3   951         0.000000       709   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1143         0.000000     12228   120               0               0               0.000000               0.000000               0.000000 /
+           while  1221         0.000000      3637   120               0               0               0.000000               0.000000               0.000000 /
+           while  1223         0.000000      5932   120               0               0               0.000000               0.000000               0.000000 /
+           while  1229         0.000000      3396   120               0               0               0.000000               0.000000               0.000000 /
+R          while  1232         0.000000      4555   120               0               0               0.000000               0.000000               0.000000 /
+           while  1234         0.000000      3591   120               0               0               0.000000               0.000000               0.000000 /
 
 cpu#2
-  .nr_running                    : 11
-  .load                          : 0
-  .nr_switches                   : 67329
-  .nr_load_updates               : 5590
-  .nr_uninterruptible            : 257
-  .next_balance                  : 4294.964819
-  .curr->pid                     : 1193
-  .clock                         : 275194.915770
-  .cpu_load[0]                   : 0
-  .cpu_load[1]                   : 0
-  .cpu_load[2]                   : 0
-  .cpu_load[3]                   : 0
-  .cpu_load[4]                   : 0
+  .nr_running                    : 3
+  .load                          : 11916
+  .nr_switches                   : 84469
+  .nr_load_updates               : 58180
+  .nr_uninterruptible            : 28
+  .next_balance                  : 0.056202
+  .curr->pid                     : 1228
+  .clock                         : 862005.065917
+  .cpu_load[0]                   : 11916
+  .cpu_load[1]                   : 11916
+  .cpu_load[2]                   : 11851
+  .cpu_load[3]                   : 10949
+  .cpu_load[4]                   : 9204
+
+cfs_rq[2]:/
+  .exec_clock                    : 0.000000
+  .MIN_vruntime                  : 257.561280
+  .min_vruntime                  : 263.275418
+  .max_vruntime                  : 257.561280
+  .spread                        : 0.000000
+  .spread0                       : -549.652641
+  .nr_spread_over                : 0
+  .nr_running                    : 1
+  .load                          : 11916
+  .runnable_load_avg             : 11915
+  .blocked_load_avg              : 0
+  .tg_load_avg                   : 23830
+  .tg_load_contrib               : 11915
+  .tg_runnable_contrib           : 1019
+  .tg->runnable_avg              : 4084
+  .tg->usage_avg                 : 4084
+  .tg->cfs_bandwidth.timer_active: 0
+  .throttled                     : 0
+  .throttle_count                : 0
+  .tg->cfs_bandwidth.timer_active: 0
+  .throttled                     : 0
+  .throttle_count                : 0
+  .avg->runnable_avg_sum         : 47763
+  .avg->runnable_avg_period      : 47763
 
 rt_rq[2]:/background/quota
   .rt_nr_running                 : 0
@@ -194,50 +255,59 @@ rt_rq[2]:/
   .rt_runtime                    : 950.000000
 
 wrr_rq[2]:
-	.wrr_nr_running                : 11
-	.wrr_load                      : 29
-wrr_rq: c1674764
- .curr->weight                  : 10	ecab1e9c
- .curr->weight                  : 1	ec7c6b1c
- .curr->weight                  : 1	ec07051c
- .curr->weight                  : 1	ecab5e5c
- .curr->weight                  : 1	ec07739c
- .curr->weight                  : 1	ec070d9c
- .curr->weight                  : 1	ecab6b1c
- .curr->weight                  : 1	ec7c629c
- .curr->weight                  : 1	ec077c1c
- .curr->weight                  : 1	ec07095c
- .curr->weight                  : 10	ec8eab5c
+	.wrr_nr_running                : 2
+	.wrr_load                      : 11
+wrr_rq: c1672764
+ .curr->weight                  : 1	ef390d9c
+ .curr->weight                  : 10	ede6a71c
 
 runnable tasks:
             task   PID         tree-key  switches  prio     exec-runtime         sum-exec        sum-sleep
 ----------------------------------------------------------------------------------------------------------
-            sdbd   891         0.000000       304   120               0               0               0.000000               0.000000               0.000000 /
-           while  1152         0.000000       300   120               0               0               0.000000               0.000000               0.000000 /
-           while  1158         0.000000       212   120               0               0               0.000000               0.000000               0.000000 /
-           while  1162         0.000000       171   120               0               0               0.000000               0.000000               0.000000 /
-           while  1163         0.000000       166   120               0               0               0.000000               0.000000               0.000000 /
-           while  1166         0.000000       149   120               0               0               0.000000               0.000000               0.000000 /
-           while  1170         0.000000       133   120               0               0               0.000000               0.000000               0.000000 /
-           while  1173         0.000000       124   120               0               0               0.000000               0.000000               0.000000 /
-           while  1177         0.000000       107   120               0               0               0.000000               0.000000               0.000000 /
-           while  1179         0.000000       104   120               0               0               0.000000               0.000000               0.000000 /
-R           sdbd  1193         0.000000         2   120               0               0               0.000000               0.000000               0.000000 /
+      pulseaudio   740       257.561280        75   109               0               0               0.000000               0.000000               0.000000 /
+            sdbd   887         0.000000      1245   120               0               0               0.000000               0.000000               0.000000 /
+R          while  1228         0.000000      3750   120               0               0               0.000000               0.000000               0.000000 /
 
 cpu#3
-  .nr_running                    : 12
+  .nr_running                    : 7
   .load                          : 0
-  .nr_switches                   : 71279
-  .nr_load_updates               : 7059
-  .nr_uninterruptible            : -187
-  .next_balance                  : 4294.964829
-  .curr->pid                     : 1183
-  .clock                         : 275194.488524
+  .nr_switches                   : 117479
+  .nr_load_updates               : 63987
+  .nr_uninterruptible            : -54
+  .next_balance                  : 0.056206
+  .curr->pid                     : 1276
+  .clock                         : 862004.638671
   .cpu_load[0]                   : 0
   .cpu_load[1]                   : 0
-  .cpu_load[2]                   : 0
-  .cpu_load[3]                   : 0
-  .cpu_load[4]                   : 0
+  .cpu_load[2]                   : 65
+  .cpu_load[3]                   : 1017
+  .cpu_load[4]                   : 2913
+
+cfs_rq[3]:/
+  .exec_clock                    : 0.000000
+  .MIN_vruntime                  : 0.000001
+  .min_vruntime                  : 474.238319
+  .max_vruntime                  : 0.000001
+  .spread                        : 0.000000
+  .spread0                       : -338.689740
+  .nr_spread_over                : 0
+  .nr_running                    : 0
+  .load                          : 0
+  .runnable_load_avg             : 0
+  .blocked_load_avg              : 0
+  .tg_load_avg                   : 23830
+  .tg_load_contrib               : 0
+  .tg_runnable_contrib           : 1019
+  .tg->runnable_avg              : 4084
+  .tg->usage_avg                 : 4084
+  .tg->cfs_bandwidth.timer_active: 0
+  .throttled                     : 0
+  .throttle_count                : 0
+  .tg->cfs_bandwidth.timer_active: 0
+  .throttled                     : 0
+  .throttle_count                : 0
+  .avg->runnable_avg_sum         : 47704
+  .avg->runnable_avg_period      : 47704
 
 rt_rq[3]:/background/quota
   .rt_nr_running                 : 0
@@ -264,35 +334,25 @@ rt_rq[3]:/
   .rt_runtime                    : 950.000000
 
 wrr_rq[3]:
-	.wrr_nr_running                : 12
-	.wrr_load                      : 21
-wrr_rq: c167d764
- .curr->weight                  : 1	ecab11dc
- .curr->weight                  : 1	ec9255dc
- .curr->weight                  : 10	ee38a71c
- .curr->weight                  : 1	eeaeb81c
- .curr->weight                  : 1	ec7c66dc
- .curr->weight                  : 1	ec7c77dc
- .curr->weight                  : 1	eeaeef5c
- .curr->weight                  : 1	ecab161c
- .curr->weight                  : 1	eeaefc1c
- .curr->weight                  : 1	ec7c55dc
- .curr->weight                  : 1	ecab739c
- .curr->weight                  : 1	ec7c7c1c
+	.wrr_nr_running                : 7
+	.wrr_load                      : 16
+wrr_rq: c167b764
+ .curr->weight                  : 10	ec88c4dc
+ .curr->weight                  : 1	ecac44dc
+ .curr->weight                  : 1	ed0f519c
+ .curr->weight                  : 1	ed0f33dc
+ .curr->weight                  : 1	ecac55dc
+ .curr->weight                  : 1	ee3ac09c
+ .curr->weight                  : 1	ecac051c
 
 runnable tasks:
             task   PID         tree-key  switches  prio     exec-runtime         sum-exec        sum-sleep
 ----------------------------------------------------------------------------------------------------------
-            sdbd   900         0.000000       310   120               0               0               0.000000               0.000000               0.000000 /
-           while  1154         0.000000       292   120               0               0               0.000000               0.000000               0.000000 /
-           while  1157         0.000000       204   120               0               0               0.000000               0.000000               0.000000 /
-           while  1159         0.000000       184   120               0               0               0.000000               0.000000               0.000000 /
-           while  1161         0.000000       172   120               0               0               0.000000               0.000000               0.000000 /
-           while  1168         0.000000       138   120               0               0               0.000000               0.000000               0.000000 /
-           while  1174         0.000000       112   120               0               0               0.000000               0.000000               0.000000 /
-           while  1178         0.000000        99   120               0               0               0.000000               0.000000               0.000000 /
-           while  1180         0.000000        90   120               0               0               0.000000               0.000000               0.000000 /
-R          while  1183         0.000000        83   120               0               0               0.000000               0.000000               0.000000 /
-           while  1187         0.000000        75   120               0               0               0.000000               0.000000               0.000000 /
-           while  1188         0.000000        73   120               0               0               0.000000               0.000000               0.000000 /
+           while  1162         0.000000      8376   120               0               0               0.000000               0.000000               0.000000 /
+           while  1163         0.000000      7446   120               0               0               0.000000               0.000000               0.000000 /
+           while  1224         0.000000      3614   120               0               0               0.000000               0.000000               0.000000 /
+           while  1225         0.000000      3340   120               0               0               0.000000               0.000000               0.000000 /
+           while  1226         0.000000      5297   120               0               0               0.000000               0.000000               0.000000 /
+           while  1227         0.000000      3383   120               0               0               0.000000               0.000000               0.000000 /
+R           sdbd  1276         0.000000         2   120               0               0               0.000000               0.000000               0.000000 /
 
