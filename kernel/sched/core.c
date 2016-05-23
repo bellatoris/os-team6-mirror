@@ -3913,10 +3913,8 @@ __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 			}
 #endif
 	} 
-	else if (wrr_task(p))
+	else if (policy == SCHED_WRR)
 		p->sched_class = &wrr_sched_class;
-	else
-		p->sched_class = &fair_sched_class;
 
 	set_load_weight(p);
 }
@@ -4075,6 +4073,7 @@ recheck:
 
 	oldprio = p->prio;
 	prev_class = p->sched_class;
+    
 	__setscheduler(rq, p, policy, param->sched_priority);
 
 	if (running)
