@@ -1667,7 +1667,6 @@ static void __sched_fork(struct task_struct *p)
 #endif
 
 	INIT_LIST_HEAD(&p->rt.run_list);
-	INIT_LIST_HEAD(&p->wrr.run_list);
 
 #ifdef CONFIG_PREEMPT_NOTIFIERS
 	INIT_HLIST_HEAD(&p->preempt_notifiers);
@@ -1753,10 +1752,8 @@ void sched_fork(struct task_struct *p)
 
 
 	/* WRR */
-	if (rt_prio(p->prio))
-		p->sched_class = &rt_sched_class;
-	else
-		p->sched_class = &wrr_sched_class;
+	if (!rt_prio(p->prio) && (p->sched_class != &wrr_sched_class))
+		p->sched_class = &fair_sched_class;
 
 	if (p->sched_class->task_fork)
 		p->sched_class->task_fork(p);
@@ -3701,10 +3698,15 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 	if (running)
 		p->sched_class->put_prev_task(rq, p);
 
-	if (rt_prio(prio))
+	if (rt_prio(prio)) {
 		p->sched_class = &rt_sched_class;
+	}
+	else {
+	if (prev_class == &wrr_sched_class)
+		p->sched_class = &wrr_sched_class;
 	else
 		p->sched_class = &fair_sched_class;
+	}
 
 	p->prio = prio;
 
@@ -3905,12 +3907,10 @@ __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 				do_set_cpus_allowed(p, &hmp_slow_cpu_mask);
 			}
 #endif
-	}
+	} else if (policy == SCHED_WRR)
+		p->sched_class = &wrr_sched_class;
 	else
 		p->sched_class = &fair_sched_class;
-
-	if (p->policy == SCHED_WRR)
-		p->sched_class = &wrr_sched_class;
 
 	set_load_weight(p);
 }
