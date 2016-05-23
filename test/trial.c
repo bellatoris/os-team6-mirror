@@ -33,10 +33,10 @@ int main(int argc, char* argv[]){
 	struct sched_param param;
 	param.sched_priority = 0;
 	sched_setscheduler(0, 6, &param);
+	syscall(__NR_sched_setweight, self, weight);
 	while(1) {
 		gettimeofday(&srt,NULL);
 
-		syscall(__NR_sched_setweight, self, weight);
 		//perror("sched_setweight");
 		
 		weight = syscall(__NR_sched_getweight, self);

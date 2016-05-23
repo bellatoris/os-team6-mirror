@@ -1752,8 +1752,12 @@ void sched_fork(struct task_struct *p)
 
 
 	/* WRR */
-	if (!rt_prio(p->prio))
+	if (rt_prio(p->prio))
+		p->sched_class = &rt_sched_class;
+	else if (p->policy == SCHED_WRR)
 		p->sched_class = &wrr_sched_class;
+	else
+		p->sched_class = &fair_sched_class;
 
 	if (p->sched_class->task_fork)
 		p->sched_class->task_fork(p);
@@ -3701,8 +3705,10 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 	/* WRR */
 	if (rt_prio(prio))
 		p->sched_class = &rt_sched_class;
-	else
+	else if (p->policy == SCHED_WRR)
 		p->sched_class = &wrr_sched_class;
+	else
+		p->sched_class = &fair_sched_class;
 	
 
 	p->prio = prio;
@@ -3905,8 +3911,10 @@ __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 			}
 #endif
 	}   /* WRR */
-	else
+	else if(policy == SCHED_WRR)
 		p->sched_class = &wrr_sched_class;
+	else 
+		p->sched_class = &fair_sched_class;
 
 	set_load_weight(p);
 }
