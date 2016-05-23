@@ -271,21 +271,6 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 	return;
 }
 
-/*
- * Refill forked task's time_slice and initialize run_list
- */
-static void task_fork_wrr(struct task_struct *p)
-{
-	struct sched_wrr_entity *wrr_se;
-
-	if (p == NULL)
-		return;
-	wrr_se = &p->wrr;
-	
-	INIT_LIST_HEAD(&wrr_se->run_list);
-	wrr_se->time_slice = wrr_se->weight * WRR_TIMESLICE;
-}
-
 static void switched_to_wrr(struct rq *rq, struct task_struct *p)
 {
 	/*
@@ -314,7 +299,6 @@ const struct sched_class wrr_sched_class = {
 #endif
 	.set_curr_task		= set_curr_task_wrr,
 	.task_tick		= task_tick_wrr,
-	.task_fork		= task_fork_wrr,
 
 	.switched_to		= switched_to_wrr,
 };

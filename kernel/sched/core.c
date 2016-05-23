@@ -1669,6 +1669,7 @@ static void __sched_fork(struct task_struct *p)
 	INIT_LIST_HEAD(&p->rt.run_list);
 #ifdef CONFIG_PREEMPT_NOTIFIERS
 	INIT_HLIST_HEAD(&p->preempt_notifiers);
+
 #endif
 
 #ifdef CONFIG_NUMA_BALANCING
@@ -1684,6 +1685,10 @@ static void __sched_fork(struct task_struct *p)
 	p->numa_scan_period = sysctl_numa_balancing_scan_delay;
 	p->numa_work.next = &p->numa_work;
 #endif /* CONFIG_NUMA_BALANCING */
+	
+	/* WRR */
+	INIT_LIST_HEAD(&p->wrr.run_list);
+	p->wrr.time_slice = p->wrr.weight * WRR_TIMESLICE;
 }
 
 
@@ -1732,7 +1737,6 @@ void sched_fork(struct task_struct *p)
 	 */
 	if (unlikely(p->sched_reset_on_fork)) {
 		if (task_has_rt_policy(p)) {
-			/* WRR */
 			p->policy = SCHED_NORMAL;
 			p->static_prio = NICE_TO_PRIO(0);
 			p->rt_priority = 0;
@@ -3698,9 +3702,8 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 	if (running)
 		p->sched_class->put_prev_task(rq, p);
 
-	if (rt_prio(prio)) {
+	if (rt_prio(prio))
 		p->sched_class = &rt_sched_class;
-	}
 	else {
 	if (prev_class == &wrr_sched_class)
 		p->sched_class = &wrr_sched_class;
@@ -3907,7 +3910,7 @@ __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 				do_set_cpus_allowed(p, &hmp_slow_cpu_mask);
 			}
 #endif
-	} 
+	}
 	else if (policy == SCHED_WRR)
 		p->sched_class = &wrr_sched_class;
 	else
