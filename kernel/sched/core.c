@@ -3908,13 +3908,12 @@ __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 			}
 #endif
 	}
-	else 
+	else if (policy == SCHED_WRR)
+		p->sched_class = &wrr_sched_class;
+	else
 		p->sched_class = &fair_sched_class;
 
 	set_load_weight(p);
-
-	if (policy = SCHED_WRR);
-		p->sched_class = &wrr_sched_class;
 }
 
 /*
@@ -7240,7 +7239,7 @@ static void normalize_task(struct rq *rq, struct task_struct *p)
 	if (on_rq)
 		dequeue_task(rq, p, 0);
 	/* WRR */
-	__setscheduler(rq, p, SCHED_WRR, 0);
+	__setscheduler(rq, p, SCHED_NORMAL, 0);
 	if (on_rq) {
 		enqueue_task(rq, p, 0);
 		resched_task(rq->curr);
