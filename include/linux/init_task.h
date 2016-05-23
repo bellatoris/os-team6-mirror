@@ -183,7 +183,7 @@ extern struct task_group root_task_group;
 	},								\
 	.wrr		= {						\
 		.run_list	= LIST_HEAD_INIT(tsk.wrr.run_list),	\
-		.time_slice	= WRR_TIMESLICE,			\
+		.time_slice	= WRR_TIMESLICE * DEFAULT_WRR_WEIGHT,	\
 		.weight		= DEFAULT_WRR_WEIGHT,			\
 	},								\
 	.tasks		= LIST_HEAD_INIT(tsk.tasks),			\

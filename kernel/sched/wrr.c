@@ -119,6 +119,7 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct wrr_rq *wrr_rq = &rq->wrr;
 	struct sched_wrr_entity *wrr_se = &p->wrr;
+
 	if (on_wrr_rq(wrr_se))
 		return;
 	/* enqueue wrr_entity to wrr_rq */
@@ -173,7 +174,7 @@ static struct task_struct *_pick_next_task_wrr(struct rq *rq)
 	struct wrr_rq *wrr_rq;
 
 	wrr_rq = &rq->wrr;
-	if (!wrr_rq->wrr_nr_running)
+	if (wrr_rq->wrr_nr_running == 0)
 		return NULL;
 
 	wrr_se = list_first_entry(&wrr_rq->wrr_queue,
@@ -201,10 +202,10 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *p)
 static int find_lowest_cpu(struct task_struct *p)
 {
 	struct rq *rq;
-	unsigned int min_cpu, load, cpu;
+	unsigned long min_cpu, load, cpu;
 	min_cpu = task_cpu(p);
 
-	load = UINT_MAX;
+	load = ULONG_MAX;
 	for_each_cpu(cpu, cpu_active_mask) {
 		if (!cpumask_test_cpu(cpu, &p->cpus_allowed))
 			continue;
@@ -271,11 +272,14 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 }
 
 /*
- * Refill forked task's time_slice.
+ * Refill forked task's time_slice and initialize run_list
  */
 static void task_fork_wrr(struct task_struct *p)
 {
 	struct sched_wrr_entity *wrr_se = &p->wrr;
+
+	if (p == NULL)
+		return;
 	
 	INIT_LIST_HEAD(&wrr_se->run_list);
 	wrr_se->time_slice = wrr_se->weight * WRR_TIMESLICE;
@@ -379,7 +383,7 @@ void wrr_load_balance(void)
 	int cpu, max_cpu, min_cpu;
 	int i = 0;
 	unsigned long max_load = 0;
-	unsigned long min_load = UINT_MAX;
+	unsigned long min_load = ULONG_MAX;
 
 	struct rq *rq;
 

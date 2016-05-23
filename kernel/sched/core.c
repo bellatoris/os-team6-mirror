@@ -8260,6 +8260,9 @@ SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
 	/*check valid pid*/
 	if (task == NULL)
 		return -ESRCH;
+	/*check policy*/
+	if (task->policy != SCHED_WRR)
+		return -EINVAL;
 
 	rq = task_rq_lock(task, &flags);
 	weight = task->wrr.weight;
