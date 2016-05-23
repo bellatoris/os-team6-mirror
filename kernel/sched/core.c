@@ -1685,13 +1685,6 @@ static void __sched_fork(struct task_struct *p)
 	p->numa_scan_period = sysctl_numa_balancing_scan_delay;
 	p->numa_work.next = &p->numa_work;
 #endif /* CONFIG_NUMA_BALANCING */
-
-	/* init sched_wrr_entity */
-
-	INIT_LIST_HEAD(&p->wrr.run_list);
-
-	p->wrr.weight = current->wrr.weight;
-	p->wrr.time_slice = p->wrr.weight * WRR_TIMESLICE;
 }
 
 
@@ -3708,7 +3701,6 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 	/* WRR */
 	if (rt_prio(prio))
 		p->sched_class = &rt_sched_class;
-
 	else
 		p->sched_class = &wrr_sched_class;
 	
@@ -8196,6 +8188,7 @@ void dump_cpu_task(int cpu)
 	pr_info("Task dump for CPU %d:\n", cpu);
 	sched_show_task(cpu_curr(cpu));
 }
+
 /*
  * We should check following.
  * 1. is weight valid?
@@ -8203,7 +8196,6 @@ void dump_cpu_task(int cpu)
  * 3. is policy wrr?
  * 4. is athority correct? (only for setweight)
  */
-
 SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 {
 	struct task_struct *task;
@@ -8212,7 +8204,7 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 	unsigned long flags;
 
 	/*check wheather  1<= weight <= 20 */
-	if(weight < 1 || weight > 20)
+	if(weight < MIN_WRR_WEIGHT || weight > MAX_WRR_WEIGHT)
 		return -EINVAL;
 	if (pid < 0)
 		return -EINVAL;
@@ -8253,6 +8245,9 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
 {
 	struct task_struct *task;
+	struct rq *rq;
+	unsigned int weight;
+	unsigned long flags;
 
 	if (pid < 0)
 		return -EINVAL;
@@ -8266,5 +8261,9 @@ SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
 	if (task == NULL)
 		return -ESRCH;
 
-	return task->wrr.weight;
+	rq = task_rq_lock(task, &flags);
+	weight = task->wrr.weight;
+	task_rq_unlock(rq, task, &flags);
+	
+	return weight;
 }

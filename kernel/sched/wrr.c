@@ -13,11 +13,6 @@
 #include <linux/hrtimer.h>
 #include "sched.h"
 
-/*
- * The wrr time slice (quantum) is 10ms.
- * Weights of tasks can range between 1 and 20
- */
-
 void init_wrr_rq(struct wrr_rq *wrr_rq)
 {
 	wrr_rq->wrr_nr_running = 0;
@@ -92,8 +87,7 @@ static void update_curr_wrr(struct rq *rq)
 
 /*
  * wrr_se를 wrr_rq에 추가하고, wrr_rq의 load를 wrr_se의 weight만큼
- * 증가시킨다. 이 함수는 process가 sleeping state에서 runnable state로
- * 바뀔때 불린다.
+ * 증가시킨다.
  */
 static void enqueue_wrr_entity(struct wrr_rq *wrr_rq,
 			struct sched_wrr_entity *wrr_se, int flags)
@@ -105,9 +99,7 @@ static void enqueue_wrr_entity(struct wrr_rq *wrr_rq,
 
 /*
  * wrr_se를 wrr_rq에서 제거하고, wrr_rq의 load를 wrr_se의 weight만큼
- * 감소시킨다. 이 함수는 process가 runnable state에서 sleeping state
- * 로 바뀔때 불리거나, kernel이 다른 이유로 run_queue에서 이 process를
- * 빼고자 할때 불린다.
+ * 감소시킨다.
  */
 static void dequeue_wrr_entity(struct wrr_rq *wrr_rq,
 			struct sched_wrr_entity *wrr_se, int flags)
@@ -181,13 +173,11 @@ static struct task_struct *_pick_next_task_wrr(struct rq *rq)
 	struct wrr_rq *wrr_rq;
 
 	wrr_rq = &rq->wrr;
-
 	if (!wrr_rq->wrr_nr_running)
 		return NULL;
 
 	wrr_se = list_first_entry(&wrr_rq->wrr_queue,
 			    struct sched_wrr_entity, run_list);
-	
 	p = task_of(wrr_se);
 	p->se.exec_start = rq->clock_task;
 
@@ -214,13 +204,13 @@ static int find_lowest_cpu(struct task_struct *p)
 	unsigned int min_cpu, load, cpu;
 	min_cpu = task_cpu(p);
 
-	load = 0xffffffff;
+	load = UINT_MAX;
 	for_each_cpu(cpu, cpu_active_mask) {
 		if (!cpumask_test_cpu(cpu, &p->cpus_allowed))
 			continue;
 
 		rq = cpu_rq(cpu);
-		if (rq->wrr.wrr_load > load) 
+		if (rq->wrr.wrr_load > load)
 			continue;
 
 		load = rq->wrr.wrr_load;
@@ -280,6 +270,17 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 	return;
 }
 
+/*
+ * Refill forked task's time_slice.
+ */
+static void task_fork_wrr(struct task_struct *p)
+{
+	struct sched_wrr_entity *wrr_se = &p->wrr;
+	
+	INIT_LIST_HEAD(&wrr_se->run_list);
+	wrr_se->time_slice = wrr_se->weight * WRR_TIMESLICE;
+}
+
 static void switched_to_wrr(struct rq *rq, struct task_struct *p)
 {
 	/*
@@ -308,10 +309,10 @@ const struct sched_class wrr_sched_class = {
 #endif
 	.set_curr_task		= set_curr_task_wrr,
 	.task_tick		= task_tick_wrr,
+	.task_fork		= task_fork_wrr,
 
 	.switched_to		= switched_to_wrr,
 };
-
 
 #ifdef CONFIG_SMP
 static int
@@ -327,6 +328,9 @@ can_migrate_task(struct task_struct *p, struct rq *src, struct rq *dest)
 		return 0;
 	if (task_running(src, p))
 		return 0;
+	printk("src load = %d, dest loas = %d\n", src->wrr.wrr_load,
+					    dest->wrr.wrr_load);
+	printk("moving weight = %d\n", p->wrr.weight);
 	if (src->wrr.wrr_load - p->wrr.weight <=
 			    dest->wrr.wrr_load + p->wrr.weight)
 		return 0;
@@ -350,6 +354,7 @@ static void load_balance(int max_cpu, int min_cpu)
 			continue;
 		if (!can_migrate_task(p, src, dest))
 			continue;
+		printk("task's weight = %d\n", p->wrr.weight);
 		max_weight = p->wrr.weight;
 		max_task = p;
 	}
@@ -374,7 +379,7 @@ void wrr_load_balance(void)
 	int cpu, max_cpu, min_cpu;
 	int i = 0;
 	unsigned long max_load = 0;
-	unsigned long min_load = 0xffffffff;
+	unsigned long min_load = UINT_MAX;
 
 	struct rq *rq;
 
@@ -388,7 +393,7 @@ void wrr_load_balance(void)
 		if (max_load < rq->wrr.wrr_load) {
 			max_load = rq->wrr.wrr_load;
 			max_cpu = cpu;
-		} 
+		}
 		if (min_load > rq->wrr.wrr_load) {
 			min_load = rq->wrr.wrr_load;
 			min_cpu = cpu;
@@ -404,7 +409,9 @@ void wrr_load_balance(void)
 }
 
 #define WRR_LB_INTERVAL (2000 * 1000 * 1000)
+
 static struct hrtimer wrr_load_balance_timer;
+
 static enum hrtimer_restart __wrr_load_balance(struct hrtimer *timer)
 {
 	wrr_load_balance();
@@ -430,11 +437,14 @@ void print_wrr_stats(struct seq_file *m, int cpu)
 	struct rq *rq = cpu_rq(cpu);
 	struct wrr_rq *wrr_rq;
 	unsigned long flags;
+
 	raw_spin_lock_irqsave(&rq->lock, flags);
 	wrr_rq = &rq->wrr;
+
 	rcu_read_lock();
 	print_wrr_rq(m, cpu, wrr_rq);
 	rcu_read_unlock();
+
 	raw_spin_unlock_irqrestore(&rq->lock, flags);
 }
 #endif /* CONFIG_SCHED_DEBUG */

@@ -250,6 +250,9 @@ void print_cfs_rq(struct seq_file *m, int cpu, struct cfs_rq *cfs_rq)
 
 void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq *wrr_rq)
 {
+
+	struct sched_wrr_entity *curr;
+
 	SEQ_printf(m, "\nwrr_rq[%d]:\n", cpu);
 #define PW(x) \
 	SEQ_printf(m, "	.%-30s: %Ld\n", #x, (long long)(wrr_rq->x))
@@ -260,7 +263,6 @@ void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq *wrr_rq)
 	PW(wrr_load);
 	SEQ_printf(m, "wrr_rq: %p\n", &wrr_rq->wrr_queue);
 
-	struct sched_wrr_entity *curr;
 	list_for_each_entry(curr, &wrr_rq->wrr_queue, run_list) {
 		PNW(curr->weight);
 		SEQ_printf(m, "%p\n", curr);

@@ -2,6 +2,7 @@
 #include <linux/sched.h>
 #include <linux/sched/sysctl.h>
 #include <linux/sched/rt.h>
+#include <linux/sched/wrr.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
 #include <linux/stop_machine.h>
@@ -71,13 +72,6 @@ extern __read_mostly int scheduler_running;
  * single value that denotes runtime == period, ie unlimited time.
  */
 #define RUNTIME_INF	((u64)~0ULL)
-
-/*
- * Default timeslice is 10 msecs (used only for SCHED_WRR tasks).
- * Timeslices get refilled after they expire.
- */
-#define WRR_TIMESLICE		(10 * HZ / 1000)
-
 
 static inline int rt_policy(int policy)
 {

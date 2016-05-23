@@ -1,8 +1,8 @@
-Sched Debug Version: v0.10, 3.10.65-g1e466a2-dirty #282-Tizen
-ktime                                   : 198017.225340
-sched_clk                               : 198021.759032
-cpu_clk                                 : 198021.759032
-jiffies                                 : 4294957097
+Sched Debug Version: v0.10, 3.10.65-g5cf4c85-dirty #283-Tizen
+ktime                                   : 932020.307617
+sched_clk                               : 932024.780272
+cpu_clk                                 : 932024.780272
+jiffies                                 : 63202
 
 sysctl_sched
   .sysctl_sched_latency                    : 18.000000
@@ -13,14 +13,14 @@ sysctl_sched
   .sysctl_sched_tunable_scaling            : 1 (logaritmic)
 
 cpu#0
-  .nr_running                    : 1
+  .nr_running                    : 22
   .load                          : 0
-  .nr_switches                   : 27690
-  .nr_load_updates               : 5319
-  .nr_uninterruptible            : -12
-  .next_balance                  : 4294.957116
-  .curr->pid                     : 1133
-  .clock                         : 198014.617919
+  .nr_switches                   : 152009
+  .nr_load_updates               : 63020
+  .nr_uninterruptible            : 11
+  .next_balance                  : 0.063223
+  .curr->pid                     : 1296
+  .clock                         : 932025.146483
   .cpu_load[0]                   : 0
   .cpu_load[1]                   : 0
   .cpu_load[2]                   : 0
@@ -52,25 +52,67 @@ rt_rq[0]:/
   .rt_runtime                    : 950.000000
 
 wrr_rq[0]:
-	.wrr_nr_running                : 1
-	.wrr_load                      : 10
-wrr_rq: c1660764
- .curr->weight                  : 10	eeaec4dc
+	.wrr_nr_running                : 22
+	.wrr_load                      : 95
+wrr_rq: c1662764
+ .curr->weight                  : 10	edd70d9c
+ .curr->weight                  : 7	ee29b81c
+ .curr->weight                  : 5	ee29c91c
+ .curr->weight                  : 5	ec8eaf9c
+ .curr->weight                  : 1	ec8e9e9c
+ .curr->weight                  : 10	ee29c4dc
+ .curr->weight                  : 1	ee29eb1c
+ .curr->weight                  : 1	ecaa7c1c
+ .curr->weight                  : 4	ee29da1c
+ .curr->weight                  : 1	ecaa1a5c
+ .curr->weight                  : 1	ecaa491c
+ .curr->weight                  : 1	ecaa3c5c
+ .curr->weight                  : 5	ecaa051c
+ .curr->weight                  : 1	ec62af9c
+ .curr->weight                  : 1	ec8ef7dc
+ .curr->weight                  : 4	ec62cd5c
+ .curr->weight                  : 4	ecaa00dc
+ .curr->weight                  : 10	ed3fbc5c
+ .curr->weight                  : 7	ecaa271c
+ .curr->weight                  : 1	ee29cd5c
+ .curr->weight                  : 5	ec62b3dc
+ .curr->weight                  : 10	ec8ea2dc
 
 runnable tasks:
             task   PID         tree-key  switches  prio     exec-runtime         sum-exec        sum-sleep
 ----------------------------------------------------------------------------------------------------------
-R          while  1133         0.000000        24   120               0               0               0.000000               0.000000               0.000000 /
+  cp2-downloader   869         0.000000      1563   120               0               0               0.000000               0.000000               0.000000 /
+            sdbd   883         0.000000      1726   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1250         0.000000        44   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1251         0.000000        44   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1252         0.000000        44   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1253         0.000000        44   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1254         0.000000        44   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1258         0.000000        44   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1259         0.000000        44   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1263         0.000000        41   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1264         0.000000        41   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1265         0.000000        40   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1266         0.000000        40   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1269         0.000000        40   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1270         0.000000        43   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1276         0.000000        36   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1277         0.000000        34   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1281         0.000000        36   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1285         0.000000        22   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1287         0.000000        26   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1288         0.000000        25   120               0               0               0.000000               0.000000               0.000000 /
+R           sdbd  1296         0.000000         2   120               0               0               0.000000               0.000000               0.000000 /
 
 cpu#1
-  .nr_running                    : 0
+  .nr_running                    : 13
   .load                          : 0
-  .nr_switches                   : 26629
-  .nr_load_updates               : 2667
-  .nr_uninterruptible            : -70
-  .next_balance                  : 4294.957097
-  .curr->pid                     : 0
-  .clock                         : 198021.697997
+  .nr_switches                   : 43396
+  .nr_load_updates               : 18653
+  .nr_uninterruptible            : 0
+  .next_balance                  : 0.063223
+  .curr->pid                     : 1271
+  .clock                         : 932024.536132
   .cpu_load[0]                   : 0
   .cpu_load[1]                   : 0
   .cpu_load[2]                   : 0
@@ -102,23 +144,49 @@ rt_rq[1]:/
   .rt_runtime                    : 950.000000
 
 wrr_rq[1]:
-	.wrr_nr_running                : 0
-	.wrr_load                      : 0
-wrr_rq: c1669764
+	.wrr_nr_running                : 13
+	.wrr_load                      : 105
+wrr_rq: c166b764
+ .curr->weight                  : 10	ee29de5c
+ .curr->weight                  : 10	ed3f9e9c
+ .curr->weight                  : 1	ee29c09c
+ .curr->weight                  : 1	ec6291dc
+ .curr->weight                  : 10	ec62c4dc
+ .curr->weight                  : 1	ec62851c
+ .curr->weight                  : 10	ef390d9c
+ .curr->weight                  : 10	edeca71c
+ .curr->weight                  : 15	ee29f39c
+ .curr->weight                  : 10	ed3fd19c
+ .curr->weight                  : 7	eeaeeb1c
+ .curr->weight                  : 10	eeaec91c
+ .curr->weight                  : 10	ee299e9c
 
 runnable tasks:
             task   PID         tree-key  switches  prio     exec-runtime         sum-exec        sum-sleep
 ----------------------------------------------------------------------------------------------------------
+     kworker/1:2   138         0.000000       276   120               0               0               0.000000               0.000000               0.000000 /
+    kworker/1:1H   149         0.000000       426   100               0               0               0.000000               0.000000               0.000000 /
+      homescreen   850         0.000000     49463   120               0               0               0.000000               0.000000               0.000000 /
+            sdbd   888         0.000000      1656   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1260         0.000000        42   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1261         0.000000        46   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1268         0.000000        45   120               0               0               0.000000               0.000000               0.000000 /
+R          trial  1271         0.000000        45   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1273         0.000000        33   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1275         0.000000        33   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1278         0.000000        37   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1293         0.000000        25   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1294         0.000000        26   120               0               0               0.000000               0.000000               0.000000 /
 
 cpu#2
-  .nr_running                    : 1
+  .nr_running                    : 12
   .load                          : 0
-  .nr_switches                   : 39758
-  .nr_load_updates               : 2978
-  .nr_uninterruptible            : 10
-  .next_balance                  : 4294.957097
-  .curr->pid                     : 888
-  .clock                         : 198022.125243
+  .nr_switches                   : 82778
+  .nr_load_updates               : 18704
+  .nr_uninterruptible            : 104
+  .next_balance                  : 0.063226
+  .curr->pid                     : 1289
+  .clock                         : 932024.536132
   .cpu_load[0]                   : 0
   .cpu_load[1]                   : 0
   .cpu_load[2]                   : 0
@@ -150,24 +218,47 @@ rt_rq[2]:/
   .rt_runtime                    : 950.000000
 
 wrr_rq[2]:
-	.wrr_nr_running                : 1
-	.wrr_load                      : 10
-wrr_rq: c1672764
- .curr->weight                  : 10	ee3e161c
+	.wrr_nr_running                : 12
+	.wrr_load                      : 106
+wrr_rq: c1674764
+ .curr->weight                  : 10	ee3b851c
+ .curr->weight                  : 10	ee29895c
+ .curr->weight                  : 15	ecaa161c
+ .curr->weight                  : 1	ee29d19c
+ .curr->weight                  : 1	ec8eab5c
+ .curr->weight                  : 1	ec8efc1c
+ .curr->weight                  : 10	ee3bc4dc
+ .curr->weight                  : 13	ecaa33dc
+ .curr->weight                  : 10	ef071e9c
+ .curr->weight                  : 15	eeaeaf9c
+ .curr->weight                  : 10	ecaa095c
+ .curr->weight                  : 10	ee3bb3dc
 
 runnable tasks:
             task   PID         tree-key  switches  prio     exec-runtime         sum-exec        sum-sleep
 ----------------------------------------------------------------------------------------------------------
+     rcu_preempt     8         0.000000      3153   120               0               0               0.000000               0.000000               0.000000 /
+    kworker/u8:2   126         0.000000      2563   120               0               0               0.000000               0.000000               0.000000 /
+     kworker/2:2   173         0.000000       324   120               0               0               0.000000               0.000000               0.000000 /
+            Xorg   475         0.000000     12192   115               0               0               0.000000               0.000000               0.000000 /
+           trial  1255         0.000000        46   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1256         0.000000        50   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1257         0.000000        58   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1262         0.000000        45   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1284         0.000000        24   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1286         0.000000        24   120               0               0               0.000000               0.000000               0.000000 /
+R          trial  1289         0.000000        24   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1291         0.000000        24   120               0               0               0.000000               0.000000               0.000000 /
 
 cpu#3
-  .nr_running                    : 1
+  .nr_running                    : 10
   .load                          : 0
-  .nr_switches                   : 40270
-  .nr_load_updates               : 4069
-  .nr_uninterruptible            : 73
-  .next_balance                  : 4294.957121
-  .curr->pid                     : 1135
-  .clock                         : 198021.636962
+  .nr_switches                   : 73206
+  .nr_load_updates               : 20391
+  .nr_uninterruptible            : -113
+  .next_balance                  : 0.063218
+  .curr->pid                     : 1290
+  .clock                         : 932024.536132
   .cpu_load[0]                   : 0
   .cpu_load[1]                   : 0
   .cpu_load[2]                   : 0
@@ -199,13 +290,31 @@ rt_rq[3]:/
   .rt_runtime                    : 950.000000
 
 wrr_rq[3]:
-	.wrr_nr_running                : 1
-	.wrr_load                      : 10
-wrr_rq: c167b764
- .curr->weight                  : 10	ec50af9c
+	.wrr_nr_running                : 10
+	.wrr_load                      : 96
+wrr_rq: c167d764
+ .curr->weight                  : 13	ee3bfc1c
+ .curr->weight                  : 4	eeaed19c
+ .curr->weight                  : 7	ec62961c
+ .curr->weight                  : 1	ec62895c
+ .curr->weight                  : 15	ec62c91c
+ .curr->weight                  : 10	edec9e9c
+ .curr->weight                  : 10	ec62d19c
+ .curr->weight                  : 13	ee29fc1c
+ .curr->weight                  : 10	eeae91dc
+ .curr->weight                  : 13	ec62bc5c
 
 runnable tasks:
             task   PID         tree-key  switches  prio     exec-runtime         sum-exec        sum-sleep
 ----------------------------------------------------------------------------------------------------------
-R           sdbd  1135         0.000000         4   120               0               0               0.000000               0.000000               0.000000 /
+         mmcqd/0    96         0.000000     15999   120               0               0               0.000000               0.000000               0.000000 /
+  systemd-logind   644         0.000000       514   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1267         0.000000        40   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1274         0.000000        38   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1279         0.000000        33   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1280         0.000000        32   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1282         0.000000        32   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1283         0.000000        32   120               0               0               0.000000               0.000000               0.000000 /
+R          trial  1290         0.000000        20   120               0               0               0.000000               0.000000               0.000000 /
+           trial  1292         0.000000        20   120               0               0               0.000000               0.000000               0.000000 /
 
