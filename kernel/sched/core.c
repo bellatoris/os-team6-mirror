@@ -3907,11 +3907,11 @@ __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 				do_set_cpus_allowed(p, &hmp_slow_cpu_mask);
 			}
 #endif
-	} else if (policy == SCHED_WRR) {
+	} 
+	else if (policy == SCHED_WRR)
 		p->sched_class = &wrr_sched_class;
-	} else {
+	else
 		p->sched_class = &fair_sched_class;
-	}
 
 	set_load_weight(p);
 }
@@ -7237,7 +7237,7 @@ static void normalize_task(struct rq *rq, struct task_struct *p)
 	on_rq = p->on_rq;
 	if (on_rq)
 		dequeue_task(rq, p, 0);
-	__setscheduler(rq, p, SCHED_WRR, 0);
+	__setscheduler(rq, p, SCHED_NORMAL, 0);
 	if (on_rq) {
 		enqueue_task(rq, p, 0);
 		resched_task(rq->curr);
