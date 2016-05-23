@@ -33,31 +33,32 @@ int main(int argc, char* argv[]){
 	struct sched_param param;
 	param.sched_priority = 0;
 	sched_setscheduler(0, 6, &param);
-	
-	gettimeofday(&srt,NULL);
+	while(1) {
+		gettimeofday(&srt,NULL);
 
-	syscall(__NR_sched_setweight, self, weight);
-	//perror("sched_setweight");
-	
-	weight = syscall(__NR_sched_getweight, self);
-	for(i=0;i< N;i++){
-	obj = prime[i]+1;
-		for(j=0;j<=i;j++){
-			if(obj%prime[j]==0){
-				obj++;
-				j=-1;
-				continue;
-			}
-			else if(i == j ){
-				prime[i+1] = obj;
-				break;
-			}
+		syscall(__NR_sched_setweight, self, weight);
+		//perror("sched_setweight");
+		
+		weight = syscall(__NR_sched_getweight, self);
+		for(i=0;i< N;i++){
+		obj = prime[i]+1;
+			for(j=0;j<=i;j++){
+				if(obj%prime[j]==0){
+					obj++;
+					j=-1;
+					continue;
+				}
+				else if(i == j ){
+					prime[i+1] = obj;
+					break;
+				}
 
+			}
 		}
+		gettimeofday(&ed,NULL);
+		printf("weight : %d, execution time : %f\n",
+			    weight, timedifference_msec(srt,ed));
 	}
-	gettimeofday(&ed,NULL);
-	printf("weight : %d, execution time : %f\n", weight, timedifference_msec(srt,ed));
-	
 }
 
 void print_prime(int n){
