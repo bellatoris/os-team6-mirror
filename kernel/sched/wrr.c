@@ -276,10 +276,11 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
  */
 static void task_fork_wrr(struct task_struct *p)
 {
-	struct sched_wrr_entity *wrr_se = &p->wrr;
+	struct sched_wrr_entity *wrr_se;
 
 	if (p == NULL)
 		return;
+	wrr_se = &p->wrr;
 	
 	INIT_LIST_HEAD(&wrr_se->run_list);
 	wrr_se->time_slice = wrr_se->weight * WRR_TIMESLICE;
