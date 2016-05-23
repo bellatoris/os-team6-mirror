@@ -3702,11 +3702,8 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 	if (running)
 		p->sched_class->put_prev_task(rq, p);
 
-	/* WRR */
 	if (rt_prio(prio))
 		p->sched_class = &rt_sched_class;
-	else if (p->policy == SCHED_WRR)
-		p->sched_class = &wrr_sched_class;
 	else
 		p->sched_class = &fair_sched_class;
 	
@@ -3910,13 +3907,14 @@ __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 				do_set_cpus_allowed(p, &hmp_slow_cpu_mask);
 			}
 #endif
-	}   /* WRR */
-	else if(policy == SCHED_WRR)
-		p->sched_class = &wrr_sched_class;
+	}
 	else 
 		p->sched_class = &fair_sched_class;
 
 	set_load_weight(p);
+
+	if (policy = SCHED_WRR);
+		p->sched_class = &wrr_sched_class;
 }
 
 /*
