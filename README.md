@@ -1,2 +1,4 @@
 # os-team6
-proj2에 README와 모든 파일을 merge 해 놓았습니다.
+[proj1](../proj1/README.md)  
+[proj2](../proj2/README.md)  
+[proj3](../proj3/README.md)
