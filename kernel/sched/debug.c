@@ -248,6 +248,29 @@ void print_cfs_rq(struct seq_file *m, int cpu, struct cfs_rq *cfs_rq)
 #endif
 }
 
+void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq *wrr_rq)
+{
+
+	struct sched_wrr_entity *curr;
+
+	SEQ_printf(m, "\nwrr_rq[%d]:\n", cpu);
+#define PW(x) \
+	SEQ_printf(m, "	.%-30s: %Ld\n", #x, (long long)(wrr_rq->x))
+#define PNW(x) \
+	SEQ_printf(m, " .%-30s: %Ld\t", #x, (long long)(x))
+
+	PW(wrr_nr_running);
+	PW(wrr_load);
+	SEQ_printf(m, "wrr_rq: %p\n", &wrr_rq->wrr_queue);
+
+	list_for_each_entry(curr, &wrr_rq->wrr_queue, run_list) {
+		PNW(curr->weight);
+		SEQ_printf(m, "%p\n", curr);
+	}
+#undef PNW
+#undef PW
+}
+
 void print_rt_rq(struct seq_file *m, int cpu, struct rt_rq *rt_rq)
 {
 #ifdef CONFIG_RT_GROUP_SCHED
@@ -337,6 +360,7 @@ do {									\
 	spin_lock_irqsave(&sched_debug_lock, flags);
 	print_cfs_stats(m, cpu);
 	print_rt_stats(m, cpu);
+	print_wrr_stats(m, cpu);
 
 	rcu_read_lock();
 	print_rq(m, rq, cpu);

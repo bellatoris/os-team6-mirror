@@ -2,6 +2,7 @@
 #include <linux/sched.h>
 #include <linux/sched/sysctl.h>
 #include <linux/sched/rt.h>
+#include <linux/sched/wrr.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
 #include <linux/stop_machine.h>
@@ -226,6 +227,18 @@ extern void sched_offline_group(struct task_group *tg);
 
 extern void sched_move_task(struct task_struct *tsk);
 
+extern void wrr_load_balance(void);
+
+/* WRR-related fields in a runqueue */
+struct wrr_rq {
+	unsigned int wrr_nr_running;
+	struct list_head wrr_queue;
+	/*
+	 *   wrr_load is sum of all weights in this queue
+	 */
+	unsigned long wrr_load;
+};
+
 #ifdef CONFIG_FAIR_GROUP_SCHED
 extern int sched_group_set_shares(struct task_group *tg, unsigned long shares);
 #endif
@@ -422,6 +435,8 @@ struct rq {
 
 	struct cfs_rq cfs;
 	struct rt_rq rt;
+	/* add wrr_rq */
+	struct wrr_rq wrr;
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	/* list of leaf cfs_rq on this cpu: */
@@ -1029,7 +1044,8 @@ extern const struct sched_class stop_sched_class;
 extern const struct sched_class rt_sched_class;
 extern const struct sched_class fair_sched_class;
 extern const struct sched_class idle_sched_class;
-
+extern const struct sched_class wrr_sched_class;
+extern void change_load(struct rq *rq, int old_weight, int new_weight);
 
 #ifdef CONFIG_SMP
 
@@ -1064,6 +1080,9 @@ extern void update_max_interval(void);
 extern int update_runtime(struct notifier_block *nfb, unsigned long action, void *hcpu);
 extern void init_sched_rt_class(void);
 extern void init_sched_fair_class(void);
+#ifdef CONFIG_SMP
+extern void init_wrr_balancer(void);
+#endif
 
 extern void resched_task(struct task_struct *p);
 extern void resched_cpu(int cpu);
@@ -1324,8 +1343,10 @@ extern struct sched_entity *__pick_first_entity(struct cfs_rq *cfs_rq);
 extern struct sched_entity *__pick_last_entity(struct cfs_rq *cfs_rq);
 extern void print_cfs_stats(struct seq_file *m, int cpu);
 extern void print_rt_stats(struct seq_file *m, int cpu);
+extern void print_wrr_stats(struct seq_file *m, int cpu);
 
 extern void init_cfs_rq(struct cfs_rq *cfs_rq);
+extern void init_wrr_rq(struct wrr_rq *wrr_rq);
 extern void init_rt_rq(struct rt_rq *rt_rq, struct rq *rq);
 
 extern void cfs_bandwidth_usage_inc(void);

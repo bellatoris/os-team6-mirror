@@ -101,6 +101,9 @@
 #include <soc/sprd/sprd_debug.h>
 #endif
 
+/* for set/getweight error return */
+#include <asm-generic/errno-base.h>
+
 void start_bandwidth_timer(struct hrtimer *period_timer, ktime_t period)
 {
 	unsigned long delta;
@@ -1664,9 +1667,9 @@ static void __sched_fork(struct task_struct *p)
 #endif
 
 	INIT_LIST_HEAD(&p->rt.run_list);
-
 #ifdef CONFIG_PREEMPT_NOTIFIERS
 	INIT_HLIST_HEAD(&p->preempt_notifiers);
+
 #endif
 
 #ifdef CONFIG_NUMA_BALANCING
@@ -1683,6 +1686,7 @@ static void __sched_fork(struct task_struct *p)
 	p->numa_work.next = &p->numa_work;
 #endif /* CONFIG_NUMA_BALANCING */
 }
+
 
 #ifdef CONFIG_NUMA_BALANCING
 #ifdef CONFIG_SCHED_DEBUG
@@ -1729,7 +1733,8 @@ void sched_fork(struct task_struct *p)
 	 */
 	if (unlikely(p->sched_reset_on_fork)) {
 		if (task_has_rt_policy(p)) {
-			p->policy = SCHED_NORMAL;
+			p->policy = SCHED_WRR;
+			p->wrr.weight = DEFAULT_WRR_WEIGHT;
 			p->static_prio = NICE_TO_PRIO(0);
 			p->rt_priority = 0;
 		} else if (PRIO_TO_NICE(p->static_prio) < 0)
@@ -1745,7 +1750,9 @@ void sched_fork(struct task_struct *p)
 		p->sched_reset_on_fork = 0;
 	}
 
-	if (!rt_prio(p->prio))
+
+	/* WRR */
+	if (!rt_prio(p->prio) && (p->sched_class != &wrr_sched_class))
 		p->sched_class = &fair_sched_class;
 
 	if (p->sched_class->task_fork)
@@ -3693,8 +3700,12 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 
 	if (rt_prio(prio))
 		p->sched_class = &rt_sched_class;
+	else {
+	if (prev_class == &wrr_sched_class)
+		p->sched_class = &wrr_sched_class;
 	else
 		p->sched_class = &fair_sched_class;
+	}
 
 	p->prio = prio;
 
@@ -3896,8 +3907,9 @@ __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 			}
 #endif
 	}
-	else
-		p->sched_class = &fair_sched_class;
+	else if (policy == SCHED_WRR)
+		p->sched_class = &wrr_sched_class;
+
 	set_load_weight(p);
 }
 
@@ -3939,7 +3951,7 @@ recheck:
 
 		if (policy != SCHED_FIFO && policy != SCHED_RR &&
 				policy != SCHED_NORMAL && policy != SCHED_BATCH &&
-				policy != SCHED_IDLE)
+				policy != SCHED_IDLE && policy != SCHED_WRR)
 			return -EINVAL;
 	}
 
@@ -4055,6 +4067,7 @@ recheck:
 
 	oldprio = p->prio;
 	prev_class = p->sched_class;
+    
 	__setscheduler(rq, p, policy, param->sched_priority);
 
 	if (running)
@@ -4631,6 +4644,7 @@ SYSCALL_DEFINE1(sched_get_priority_max, int, policy)
 	case SCHED_NORMAL:
 	case SCHED_BATCH:
 	case SCHED_IDLE:
+	case SCHED_WRR:
 		ret = 0;
 		break;
 	}
@@ -4656,6 +4670,7 @@ SYSCALL_DEFINE1(sched_get_priority_min, int, policy)
 	case SCHED_NORMAL:
 	case SCHED_BATCH:
 	case SCHED_IDLE:
+	case SCHED_WRR:
 		ret = 0;
 	}
 	return ret;
@@ -6950,6 +6965,9 @@ void __init sched_init_smp(void)
 	free_cpumask_var(non_isolated_cpus);
 
 	init_sched_rt_class();
+
+	/* init wrr load balance */
+	init_wrr_balancer();
 }
 #else
 void __init sched_init_smp(void)
@@ -7048,6 +7066,8 @@ void __init sched_init(void)
 		rq->calc_load_active = 0;
 		rq->calc_load_update = jiffies + LOAD_FREQ;
 		init_cfs_rq(&rq->cfs);
+		/* WRR */
+		init_wrr_rq(&rq->wrr);
 		init_rt_rq(&rq->rt, rq);
 #ifdef CONFIG_FAIR_GROUP_SCHED
 		root_task_group.shares = ROOT_TASK_GROUP_LOAD;
@@ -7142,7 +7162,9 @@ void __init sched_init(void)
 	/*
 	 * During early bootup we pretend to be a normal task:
 	 */
-	current->sched_class = &fair_sched_class;
+
+	/* wrr */
+	current->sched_class = &wrr_sched_class;
 
 #ifdef CONFIG_SMP
 	zalloc_cpumask_var(&sched_domains_tmpmask, GFP_NOWAIT);
@@ -7213,7 +7235,7 @@ static void normalize_task(struct rq *rq, struct task_struct *p)
 	on_rq = p->on_rq;
 	if (on_rq)
 		dequeue_task(rq, p, 0);
-	__setscheduler(rq, p, SCHED_NORMAL, 0);
+	__setscheduler(rq, p, SCHED_WRR, 0);
 	if (on_rq) {
 		enqueue_task(rq, p, 0);
 		resched_task(rq->curr);
@@ -8166,4 +8188,86 @@ void dump_cpu_task(int cpu)
 {
 	pr_info("Task dump for CPU %d:\n", cpu);
 	sched_show_task(cpu_curr(cpu));
+}
+
+/*
+ * We should check following.
+ * 1. is weight valid?
+ * 2. is pid valid?
+ * 3. is policy wrr?
+ * 4. is athority correct? (only for setweight)
+ */
+SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
+{
+	struct task_struct *task;
+	struct rq *rq;
+	int old_weight;
+	unsigned long flags;
+
+	/*check wheather  1<= weight <= 20 */
+	if(weight < MIN_WRR_WEIGHT || weight > MAX_WRR_WEIGHT)
+		return -EINVAL;
+	if (pid < 0)
+		return -EINVAL;
+
+	if (pid == 0)
+		task = current;
+	else
+		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
+
+	/*check valid pid*/
+	if (task == NULL)
+		return -ESRCH;
+
+	old_weight = task->wrr.weight;
+	/*check policy*/
+	if (task->policy != SCHED_WRR)
+		return -EINVAL;
+
+	if (current_euid() == 0 || current_uid() == 0) {
+		task->wrr.weight = weight;
+	} else if (current_uid() == task_uid(task)){
+		if (task->wrr.weight > weight)
+			task->wrr.weight = weight;
+		else
+			return -EACCES;
+	} else{
+		/* not root && not user who make process */
+		return -EACCES;
+	}
+	
+	rq = task_rq_lock(task, &flags);
+	if (!list_empty(&task->wrr.run_list))
+		change_load(task_rq(task), old_weight, weight);
+	task_rq_unlock(rq, task, &flags);
+	return 0;
+}
+
+SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
+{
+	struct task_struct *task;
+	struct rq *rq;
+	unsigned int weight;
+	unsigned long flags;
+
+	if (pid < 0)
+		return -EINVAL;
+
+	if (pid == 0)
+		task = current;
+	else
+		task = pid_task(find_get_pid(pid), PIDTYPE_PID);
+
+	/*check valid pid*/
+	if (task == NULL)
+		return -ESRCH;
+	/*check policy*/
+	if (task->policy != SCHED_WRR)
+		return -EINVAL;
+
+	rq = task_rq_lock(task, &flags);
+	weight = task->wrr.weight;
+	task_rq_unlock(rq, task, &flags);
+	
+	return weight;
 }
