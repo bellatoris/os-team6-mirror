@@ -362,7 +362,6 @@ static void load_balance(int max_cpu, int min_cpu)
 	if (max_task) {
 		raw_spin_lock(&max_task->pi_lock);
 		deactivate_task(src, max_task, 0);
-
 		set_task_cpu(max_task, dest->cpu);
 		activate_task(dest, max_task, 0);
 		raw_spin_unlock(&max_task->pi_lock);
