@@ -8,7 +8,7 @@
 
 #define __NR_sched_setweight 384
 #define __NR_sched_getweight 385
-#define N 20000
+#define N 5000
 #define self 0
 int prime[N];
 
@@ -26,7 +26,6 @@ int main(int argc, char* argv[]){
 
 	struct timeval srt, ed;
 
-	n = 2;
 	prime[0]=2;
 	
 	weight = atoi(argv[1]);
@@ -36,6 +35,7 @@ int main(int argc, char* argv[]){
 	syscall(__NR_sched_setweight, self, weight);
 	while(1) {
 		gettimeofday(&srt,NULL);
+		n = 1234226772;
 
 		//perror("sched_setweight");
 		
@@ -58,6 +58,7 @@ int main(int argc, char* argv[]){
 		gettimeofday(&ed,NULL);
 		printf("weight : %d, execution time : %f\n",
 			    weight, timedifference_msec(srt,ed));
+		print_prime(n);	
 	}
 }
 
