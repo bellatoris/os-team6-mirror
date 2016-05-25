@@ -319,8 +319,8 @@ can_migrate_task(struct task_struct *p, struct rq *src, struct rq *dest)
 load_balance는 wrr_rq에 접근 하기 때문에 double_rq_lock을 사용해서 max, min rq모두에 rq_lock을 걸었다. max rq에서 옮길 수 있는 task를 찾는데 can_migrate_task를 통해서 1.옮길수 있고 2. cpu에서 runnning중이 아니고 3. max 와 min의 load 가 역전 되지 않는 task를 찾는다. 그중에 가장 weight가 큰 task가 존재한다면 deatctivate_task로 max_cpu에서 dequeue하고, set_task_cpu로 min_cpu로 옮기고, activate_task로 min_cpu에서 enqueue한다.  
 **2.investigation**  
 weight에 따른 task의 수행 시간 변화를 알아 보기 위해서 trial 프로그램을 작성했다.  
-trial은 weight를 인자로 받아 sched_setweight로 자신의 weight를 설정한 후 반복적으로  trial division 계산을 위해서 소수 set을 5000번째 까지 계산하는데 걸린시간과 자신의 weight를 출력한다.
-만들어진 소수 set을 가지고 trial division 계산을 하는 것은 수행 시간에 후거의 영향을 주지 않았지만 스펙에 맞게 계산하도록 했다
+trial은 weight를 인자로 받아 sched_setweight로 자신의 weight를 설정한 후 반복적으로  trial division 계산을 위해서 소수 set을 5000번째 까지 계산하고, 임의의 수 1234226772을 trial division 하는데 걸린 시간과 자신의 weight를 출력한다.
+
 
 다른 프로그램을 돌리지 않고 trial만 돌리게 될 경우 weight에 영향을 받지 않았는데 이는 time_slice에 관계없이 혼자만 실행 되었기 때문이다. 그래서 weight의 영향을 알아볼 수 있도록 아래와 같은 while.c 프로그램 4개를 weight 20으로 실행 시키고 같이 trial을 실행했다.이 방법으로 trial은 반드시 weight가 20인 while.c 하나와 같은 큐에서 실행되도록 하고 시스템콜 sched_setscheduler를 이용해서 weight를 바꿔가며 실험했다.
 ```c
