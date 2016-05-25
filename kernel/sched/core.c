@@ -3668,6 +3668,8 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 
 	BUG_ON(prio < 0 || prio > MAX_PRIO);
 
+	if (p->sched_class != &wrr_sched_class) {
+
 	rq = __task_rq_lock(p);
 
 	/*
@@ -3700,12 +3702,8 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 
 	if (rt_prio(prio))
 		p->sched_class = &rt_sched_class;
-	else {
-	if (prev_class == &wrr_sched_class)
-		p->sched_class = &wrr_sched_class;
-	else
+	else 
 		p->sched_class = &fair_sched_class;
-	}
 
 	p->prio = prio;
 
@@ -3717,6 +3715,7 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 	check_class_changed(rq, p, prev_class, oldprio);
 out_unlock:
 	__task_rq_unlock(rq);
+	}
 }
 #endif
 void set_user_nice(struct task_struct *p, long nice)
@@ -3907,7 +3906,7 @@ __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 			}
 #endif
 	}
-	else if (policy == SCHED_WRR)
+	else
 		p->sched_class = &wrr_sched_class;
 
 	set_load_weight(p);
@@ -7165,6 +7164,8 @@ void __init sched_init(void)
 
 	/* wrr */
 	current->sched_class = &wrr_sched_class;
+	current->wrr.weight = DEFAULT_WRR_WEIGHT;
+	current->wrr.time_slice = DEFAULT_WRR_WEIGHT * WRR_TIMESLICE;
 
 #ifdef CONFIG_SMP
 	zalloc_cpumask_var(&sched_domains_tmpmask, GFP_NOWAIT);
