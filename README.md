@@ -317,4 +317,26 @@ can_migrate_task(struct task_struct *p, struct rq *src, struct rq *dest)
         return 1;
 }
 ```
-load_balance는 wrr_rq에 접근 하기 때문에 double_rq_lock을 사용해서 max, min rq모두에 rq_lock을 걸었다. max rq에서 옮길 수 있는 task를 찾는데 can_migrate_task를 통해서 1.옮길수 있고 2. cpu에서 runnning중이 아니고 3. max 와 min의 load 가 역전 되지 않는 task를 찾는다. 그중에 가장 weight가 큰 task가 존재한다면 deatctivate_task로 max_cpu에서 dequeue하고, set_task_cpu로 min_cpu로 옮기고, activate_task로 min_cpu에서 enqueue한다.
+load_balance는 wrr_rq에 접근 하기 때문에 double_rq_lock을 사용해서 max, min rq모두에 rq_lock을 걸었다. max rq에서 옮길 수 있는 task를 찾는데 can_migrate_task를 통해서 1.옮길수 있고 2. cpu에서 runnning중이 아니고 3. max 와 min의 load 가 역전 되지 않는 task를 찾는다. 그중에 가장 weight가 큰 task가 존재한다면 deatctivate_task로 max_cpu에서 dequeue하고, set_task_cpu로 min_cpu로 옮기고, activate_task로 min_cpu에서 enqueue한다.  
+**2.investigation**  
+weight에 따른 task의 수행 시간 변화를 알아 보기 위해서 trial 프로그램을 작성했다.
+trial은 반복적으로  trial division 계산을 위해서 소수 set을 5000번째 까지 계산하는데 걸린시간과 자신의 weight를 출력한다.
+만들어진 소수 set을 가지고 trial division 계산을 하는 것은 수행 시간에 거의 영향을 주지 않았지만 스펙에 맞게 계산하도록 했다
+
+다른 프로그램을 돌리지 않고 trial만 돌리게 될 경우 weight에 영향을 받지 않았는데 이는 time_slice에 관계없이 혼자만 실행 되었기 때문이다. 그래서 weight의 영향을 알아볼 수 있도록 아래와 같은 while.c 프로그램 4개를 weight 20으로 실행 시키고 같이 trial을 실행했다.이 방법으로 trial은 반드시 weight가 20인 while.c 하나와 같은 큐에서 실행되었다.
+```c
+while.c 
+
+int main(){
+    while(1){}
+}
+```
+ plot.pdf에 나타나는 것처럼 계산시간은 1/weight 에 비례하는 결과를 얻었다.  
+trial 계산 시간 = 작업 시간 + 대기 시간 인데 작업시간은 weight에 관계 없이 동일하고 대기시간은 (계산에 필요한 time_slice의 수) * 20 이다. 계산에 필요한 time_slice의 수가 1/weight에 비례하기 때문에  계산 시간 = c1 + c2/weight의 관계식을 갖는다.  
+같은 큐에 도는 task의 수가 증가 하면 대기시간의 계산에서 20 이 20  + weight로 증가하게 되어 c2가 증가한다. trial의 소수 set을 더 크게 잡을 경우 c1이 증가한다.
+
+**3.lesson learned**  
+1.jiffies 보다 정확하고 간결한 hrtimer framework에 대해 알게 되었다.  
+2.C에서 모듈화 하는 방식을 이해했다.  
+3.CFS가 정말 잘 구현된 스케줄 방식이라는 것을 알았다.  
+4.커널 깨짐등의 현상이 사소한 문제로도 발생할 수 있다는걸 알았다.
