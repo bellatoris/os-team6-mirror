@@ -8,7 +8,7 @@
 
 #define __NR_sched_setweight 384
 #define __NR_sched_getweight 385
-#define N 20000
+#define N 5000
 #define self 0
 int prime[N];
 
