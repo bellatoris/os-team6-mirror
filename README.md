@@ -18,7 +18,6 @@ include/uapi/linux/sched.h
 arch/arm/configs/tizen_tm1_defconfig  
 kernel/sched/debug.c  
 를 변경하였습니다.  
-**trial 설명 추가하자**  
 **1.high-level design**  
 * policy  
 wrr이란 task마다 할당된 weight가 있고 weight * base time slice 의 time slice를 갖고서 round robin scheduling을 수행하는 policy다. 이를 위해서는 task가 weight, timle slice에 관한 data를 가져야 한다.base time slice는 10ms이고, wrr task의 default weight는 10, time slice는 100ms 이다.  
