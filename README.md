@@ -322,7 +322,7 @@ weight에 따른 task의 수행 시간 변화를 알아 보기 위해서 trial �
 trial은 반복적으로  trial division 계산을 위해서 소수 set을 5000번째 까지 계산하는데 걸린시간과 자신의 weight를 출력한다.
 만들어진 소수 set을 가지고 trial division 계산을 하는 것은 수행 시간에 거의 영향을 주지 않았지만 스펙에 맞게 계산하도록 했다
 
-다른 프로그램을 돌리지 않고 trial만 돌리게 될 경우 weight에 영향을 받지 않았는데 이는 time_slice에 관계없이 혼자만 실행 되었기 때문이다. 그래서 weight의 영향을 알아볼 수 있도록 아래와 같은 while.c 프로그램 4개를 weight 20으로 실행 시키고 같이 trial을 실행했다.이 방법으로 trial은 반드시 weight가 20인 while.c 하나와 같은 큐에서 실행되었다.
+다른 프로그램을 돌리지 않고 trial만 돌리게 될 경우 weight에 영향을 받지 않았는데 이는 time_slice에 관계없이 혼자만 실행 되었기 때문이다. 그래서 weight의 영향을 알아볼 수 있도록 아래와 같은 while.c 프로그램 4개를 weight 20으로 실행 시키고 같이 trial을 실행했다.이 방법으로 trial은 반드시 weight가 20인 while.c 하나와 같은 큐에서 실행되도록 하고 시스템콜 sched_setscheduler를 이용해서 weight를 바꿔가며 실험했다.
 ```c
 while.c 
 
