@@ -15,6 +15,7 @@
 #include <linux/blockgroup_lock.h>
 #include <linux/percpu_counter.h>
 #include <linux/rbtree.h>
+//#include <linux/gps.h>
 
 
 /* XXX Here for now... not interested in restructing headers JUST now */
@@ -295,6 +296,7 @@ static inline __u32 ext2_mask_flags(umode_t mode, __u32 flags)
 /*
  * Structure of an inode on the disk
  */
+
 struct ext2_inode {
 	__le16	i_mode;		/* File mode */
 	__le16	i_uid;		/* Low 16 bits of Owner Uid */
@@ -347,11 +349,11 @@ struct ext2_inode {
 			__u32	m_i_reserved2[2];
 		} masix2;
 	} osd2;				/* OS dependent 2 */
-	struct gps_location{
+	struct disk_location{
 		__le64 latitude;		/* for prj4 */
 		__le64 longitude;		/* for prj4 */
 		__le32 accuracy;		/* for prj4 */
-	};
+	} disk_gps;
 };
 
 #define i_size_high	i_dir_acl
@@ -660,11 +662,13 @@ struct ext2_inode_info {
 	__u32	i_file_acl;
 	__u32	i_dir_acl;
 	__u32	i_dtime;
-	struct gps_location{
+
+	struct mem_location{
 		__le64 latitude;
 		__le64 longitude;
 		__le32 accuracy;
-	};
+	} mem_location;
+
 	/*
 	 * i_block_group is the number of the block group which contains
 	 * this file's inode.  Constant across the lifetime of the inode,
@@ -767,7 +771,8 @@ extern void ext2_set_inode_flags(struct inode *inode);
 extern void ext2_get_inode_flags(struct ext2_inode_info *);
 extern int ext2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 		       u64 start, u64 len);
-
+extern int ext2_set_gps_location(struct inode *);
+extern int ext2_get_gps_location(struct inode *, struct gps_location *);
 /* ioctl.c */
 extern long ext2_ioctl(struct file *, unsigned int, unsigned long);
 extern long ext2_compat_ioctl(struct file *, unsigned int, unsigned long);
