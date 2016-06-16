@@ -119,7 +119,7 @@ static int ext2_create (struct inode * dir, struct dentry * dentry, umode_t mode
 		
 	}
 
-	inode->i_op->set_gps_location(inode);
+	inode->i_op->set_location(inode);
 
 	mark_inode_dirty(inode);
 	return ext2_add_nondir(dentry, inode);
@@ -234,7 +234,7 @@ static int ext2_mkdir(struct inode * dir, struct dentry * dentry, umode_t mode)
 	inode->i_op = &ext2_dir_inode_operations;
 	inode->i_fop = &ext2_dir_operations;
 
-	inode->i_op->set_gps_location(inode);
+	inode->i_op->set_location(inode);
 	
 	if (test_opt(inode->i_sb, NOBH))
 		inode->i_mapping->a_ops = &ext2_nobh_aops;
@@ -347,7 +347,7 @@ static int ext2_rename (struct inode * old_dir, struct dentry * old_dentry,
 		new_inode->i_ctime = CURRENT_TIME_SEC;
 	
 		new_inode->i_op = &ext2_file_inode_operations;
-		new_inode->i_op->set_gps_location(new_inode);
+		new_inode->i_op->set_location(new_inode);
 
 		if (dir_de)
 			drop_nlink(new_inode);
