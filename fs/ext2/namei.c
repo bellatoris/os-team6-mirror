@@ -37,7 +37,7 @@
 #include "acl.h"
 #include "xip.h"
 
-extern struct dps_location kernel_location;
+extern struct gps_location kernel_location;
 
 static inline int ext2_add_nondir(struct dentry *dentry, struct inode *inode)
 {
@@ -403,6 +403,7 @@ void current_gps_location(struct gps_location *k_gps)
 int ext2_set_gps_location(struct inode *inode)
 {
 
+
 	__u64 latitude = 0;
 	__u64 longitude = 0;
 	__u32 accuracy = 0;
@@ -411,46 +412,33 @@ int ext2_set_gps_location(struct inode *inode)
 	current_gps_location(&k_gps);  //여기도 에러 체크, gps가 들어있는지 등
 
 	struct ext2_inode_info *ei = EXT2_I(inode);
-	struct super_block *sb = inode->i_sb;
-	ino_t ino = inode->i_ino;
-
-	struct ext2_inode *raw_inode = ext2_iget(sb, ino);
-	int err = 0;
-	
-	if(IS_ERR(raw_inode))
-		return -EIO;
 
 	//lock 잡기	
-	latitude = *(__u64 *)&k_gps.latitude;
-	longitude = *(__u64 *)&k_gps.longitude;
-	accuracy = *(__u32 *)&k_gps.accuracy;
+	latitude = *(unsigned long long *)&k_gps.latitude;
+	longitude = *(unsigned long long *)&k_gps.longitude;
+	accuracy = *(unsigned int *)&k_gps.accuracy;
 	
-	raw_inode->disk_gps.latitude = cpu_to_le64(latitude);
-	raw_inode->disk_gps.longitude = cpu_to_le64(longitude);
-	raw_inode->disk_gps.accuracy = cpu_to_le32(accuracy);
+	ei->mem_gps.latitude = cpu_to_le64(latitude);
+	ei->mem_gps.longitude = cpu_to_le64(longitude);
+	ei->mem_gps.accuracy = cpu_to_le32(accuracy);
 
 
 }
 
 int ext2_get_gps_location(struct inode *inode, struct gps_location *gps)
 {
-	struct ext2_inode_info *ei = EXT2_I(inode);
 	struct super_block *sb = inode->i_sb;
 	ino_t ino = inode->i_ino;
+	
+	struct ext2_inode_info *ei = EXT2_I(inode);
 
-	struct ext2_inode *raw_inode = ext2_iget(sb, ino);
-	int err = 0;
-	
-	if(IS_ERR(raw_inode))
-		return -EIO;
-	
 	__u64 latitude = 0;
         __u64 longitude = 0;
         __u32 accuracy = 0;
 
-	latitude = le64_to_cpu(raw_inode->disk_gps.latitude);
-	longitude = le64_to_cpu(raw_inode->disk_gps.longitude);
-	accuracy = le64_to_cpu(raw_inode->disk_gps.accuracy);
+	latitude = le64_to_cpu(ei->mem_gps.latitude);
+	longitude = le64_to_cpu(ei->mem_gps.longitude);
+	accuracy = le64_to_cpu(ei->mem_gps.accuracy);
 
 	//여기도 lock
 
