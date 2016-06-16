@@ -15,7 +15,7 @@
 #include <linux/blockgroup_lock.h>
 #include <linux/percpu_counter.h>
 #include <linux/rbtree.h>
-
+//#include <linux/gps.h>
 
 /* XXX Here for now... not interested in restructing headers JUST now */
 
@@ -348,11 +348,11 @@ struct ext2_inode {
 			__u32	m_i_reserved2[2];
 		} masix2;
 	} osd2;				/* OS dependent 2 */
-	struct gps_location{
+	struct disk_location{
 		__le64 latitude;		/* for prj4 */
 		__le64 longitude;		/* for prj4 */
 		__le32 accuracy;		/* for prj4 */
-	} gps;
+	} disk_gps;
 };
 
 #define i_size_high	i_dir_acl
@@ -662,11 +662,11 @@ struct ext2_inode_info {
 	__u32	i_dir_acl;
 	__u32	i_dtime;
 
-	struct gps_location{
+	struct mem_location{
 		__le64 latitude;
 		__le64 longitude;
 		__le32 accuracy;
-	} gps;
+	} mem_location;
 
 	/*
 	 * i_block_group is the number of the block group which contains

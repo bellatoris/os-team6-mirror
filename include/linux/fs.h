@@ -27,10 +27,10 @@
 #include <linux/lockdep.h>
 #include <linux/percpu-rwsem.h>
 #include <linux/blk_types.h>
+#include <linux/gps.h>
 
 #include <asm/byteorder.h>
 #include <uapi/linux/fs.h>
-
 struct export_operations;
 struct hd_geometry;
 struct iovec;
