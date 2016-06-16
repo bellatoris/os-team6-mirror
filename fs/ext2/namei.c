@@ -37,6 +37,8 @@
 #include "acl.h"
 #include "xip.h"
 
+extern struct dps_location kernel_location;
+
 static inline int ext2_add_nondir(struct dentry *dentry, struct inode *inode)
 {
 	int err = ext2_add_link(dentry, inode);
@@ -391,7 +393,7 @@ out:
 	return err;
 }
 
-void current_gps_location(struct *gps_location)
+void current_gps_location(struct gps_location *k_gps)
 {
 	k_gps->latitude = kernel_location.latitude;	
 	k_gps->longitude = kernel_location.longitude;
@@ -411,8 +413,8 @@ int ext2_set_gps_location(struct inode *inode)
 	struct ext2_inode_info *ei = EXT2_I(inode);
 	struct super_block *sb = inode->i_sb;
 	ino_t ino = inode->i_ino;
-	struct buffer_head * bh;
-	struct ext2_inode *raw_inode = ext2_get_inode(sb, ino, &bh);
+
+	struct ext2_inode *raw_inode = ext2_iget(sb, ino);
 	int err = 0;
 	
 	if(IS_ERR(raw_inode))
@@ -435,8 +437,8 @@ int ext2_get_gps_location(struct inode *inode, struct gps_location *gps)
 	struct ext2_inode_info *ei = EXT2_I(inode);
 	struct super_block *sb = inode->i_sb;
 	ino_t ino = inode->i_ino;
-	struct buffer_head *bh;
-	struct ext2_inode *raw_inode = ext2_get_inode(sb, ino, &bh);
+
+	struct ext2_inode *raw_inode = ext2_iget(sb, ino);
 	int err = 0;
 	
 	if(IS_ERR(raw_inode))
