@@ -345,7 +345,7 @@ static int ext2_rename (struct inode * old_dir, struct dentry * old_dentry,
 		new_inode->i_ctime = CURRENT_TIME_SEC;
 	
 		new_inode->i_op = &ext2_file_inode_operations;
-		new_inode->i_op->set_gps_location(inode);
+		new_inode->i_op->set_gps_location(new_inode);
 
 		if (dir_de)
 			drop_nlink(new_inode);
