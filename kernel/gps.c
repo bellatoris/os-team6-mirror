@@ -13,12 +13,12 @@ int inode_to_gps(struct inode *inode, struct gps_location *loc)
 {
 	int ret = 0;
 	if (inode == NULL || loc == NULL)
-	return -EINVAL;
+		return -EINVAL;
 
 	if (inode->i_op->get_location != NULL)
-	ret = inode->i_op->get_location(inode, loc);
+		ret = inode->i_op->get_location(inode, loc);
 	else
-	ret = -ENOENT; /* No such GPS-capable file */
+		ret = -ENOENT; /* No such GPS-capable file */
 
 	return ret;
 }
@@ -27,21 +27,19 @@ static int get_file_gps_location(const char *kfile, struct gps_location *loc)
 {
 	int ret;
 	struct inode *d_inode;
-	struct path kpath = { .mnt = NULL, .dentry = NULL} ;
+	struct path kpath = { .mnt = NULL, .dentry = NULL};
 
-	if (kfile == NULL || loc == NULL){
+	if (kfile == NULL || loc == NULL)
 		return -EINVAL;
-	}
 
-	if (kern_path(kfile, LOOKUP_FOLLOW | LOOKUP_AUTOMOUNT, &kpath) != 0){
+	if (kern_path(kfile, LOOKUP_FOLLOW | LOOKUP_AUTOMOUNT, &kpath) != 0)
 		return -EAGAIN;
-	}
 
 	d_inode = kpath.dentry->d_inode;
 
-	if (d_inode == NULL){
+	if (d_inode == NULL)
 		return -EINVAL;
-	}
+
 
 	ret =  inode_to_gps(d_inode, loc);
 
@@ -54,14 +52,13 @@ static int get_file_gps_location(const char *kfile, struct gps_location *loc)
 SYSCALL_DEFINE1(set_gps_location, struct gps_location __user *, loc)
 {
 	int ret = 0;
-	if(loc == NULL)
+	if (loc == NULL)
 		return -EINVAL;
 
-	ret = copy_from_user(&kernel_location, loc,sizeof(struct gps_location));
+	ret = copy_from_user(&kernel_location, loc, sizeof(struct gps_location));
 
-	if(ret < 0) {
+	if (ret < 0)
 		return -EFAULT;
-	}
 
 	return 0;
 }

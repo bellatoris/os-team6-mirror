@@ -15,5 +15,4 @@ struct gps_location {
 
 asmlinkage int set_gps_location(struct gps_location __user *loc);
 asmlinkage int get_gps_location(const char *pathname, struct gps_location __user *loc);
-
 #endif
