@@ -69,7 +69,60 @@ ext2_create, ext2_mkdir(생성), ext2_rename(수정)이 불릴때 gps 정보를 
   new_inode->i_op = &ext2_file_inode_operations;
   new_inode->i_op->set_location(new_inode);
 ```
-**3. user space testing **
+**3. user space testing **  
 mke2fs를 이용해서 만든 proj4.fs을 mount해서 ext2 system을 이용했다.
 
+pathname을 문자열로 받아 inode의 gps 정보를 가져오는 utility file_loc를 만들었다.
+```
+sh-4.1# ./setgps 1 2 3
+sh-4.1# ./file_loc /home/developer/proj4/dir1/
+get_gps_location: Success
+latitude : 1.000000
+longitude : 2.000000
+accuracy : 3.000000
+Google map url : https://www.google.com/maps/@1.000000,2.000000,4z
+sh-4.1# ./setgps 4 5 6
+sh-4.1# ./file_loc /home/developer/proj4/file1
+get_gps_location: Success
+latitude : 4.000000
+longitude : 5.000000
+accuracy : 6.000000
+Google map url : https://www.google.com/maps/@4.000000,5.000000,4z
+sh-4.1# ./setgps 7 8 9                        
+sh-4.1# ./file_loc /home/developer/proj4/file2
+get_gps_location: Success
+latitude : 7.000000
+longitude : 8.000000
+accuracy : 9.000000
+Google map url : https://www.google.com/maps/@7.000000,8.000000,4z
+```
+```
+sh-4.1# ./setgps 1 2 3
+sh-4.1# ./file_loc /home/developer/proj4/dir1/
+get_gps_location: Success
+latitude : 1.000000
+longitude : 2.000000
+accuracy : 3.000000
+Google map url : https://www.google.com/maps/@1.000000,2.000000,4z
+sh-4.1# ./setgps 4 5 6
+sh-4.1# ./file_loc /home/developer/proj4/file1
+get_gps_location: Success
+latitude : 4.000000
+longitude : 5.000000
+accuracy : 6.000000
+Google map url : https://www.google.com/maps/@4.000000,5.000000,4z
+sh-4.1# ./setgps 7 8 9                        
+sh-4.1# ./file_loc /home/developer/proj4/file2
+get_gps_location: Success
+latitude : 7.000000
+longitude : 8.000000
+accuracy : 9.000000
+Google map url : https://www.google.com/maps/@7.000000,8.000000,4z
+```
+setgps로 latitude,longitude,accuracy를 (1,2,3),(4,5,6),(7,8,9)로 바꾸면서
+dir1, file1, file2를 만들고 
+file_loc으로 gps값을 불러왔다. 
 
+**4.lesson learned **  
+1.inode에 접근하고,inode에 새로운 header를 추가하는 법을 알게 되었다.
+2.file system maintain utility를 사용하는 법을 알게 되었다.
