@@ -306,7 +306,7 @@ static int acl_permission_check(struct inode *inode, int mask)
 	/*
 	 * If inode is ext2, check gps location.
 	 */
-
+	/*
 	if (strcmp(inode->i_sb->s_type->name, "ext2")==0){
 		printk("sm It's EXT2! we need gps check!\n");
 		struct ext2_inode_info *ei = EXT2_I(inode);
@@ -330,6 +330,7 @@ static int acl_permission_check(struct inode *inode, int mask)
 		}
 		printk("sm GPS check pass!\n");
 	}
+	 */
 	/*
 	 * If the DACs are ok we don't need any capability check.
 	 */
