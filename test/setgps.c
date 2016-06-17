@@ -18,20 +18,17 @@ struct gps_location {
  */
 
 int main(int argc, char* argv[]){
-	
-	struct gps_location usr_gps;
 
+	struct gps_location usr_gps;
 	usr_gps.latitude = atof(argv[1]);
 	usr_gps.longitude = atof(argv[2]);
 	usr_gps.accuracy = atof(argv[3]);
-	
-	
 
 	unsigned long long *lat =(unsigned long long*) (&usr_gps.latitude);
 	unsigned long long *lng = (unsigned long long *)&usr_gps.longitude;
 	unsigned int *acc = (unsigned int *)&usr_gps.accuracy;
 
-	printf("lat : %llu long : %llu accu : %x",usr_gps.latitude,*lng,*acc); 
+	printf("lat : %llu long : %llu accu : %x",usr_gps.latitude,*lng,*acc);
 
 	syscall(__NR_set_gps_location, &usr_gps);
 	return 0;

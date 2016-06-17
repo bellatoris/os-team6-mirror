@@ -37,6 +37,8 @@
 #include "xip.h"
 #include "xattr.h"
 
+extern struct gps_location kernel_location;
+
 static int __ext2_write_inode(struct inode *inode, int do_sync);
 
 /*
@@ -1550,6 +1552,16 @@ int ext2_setattr(struct dentry *dentry, struct iattr *iattr)
 	error = inode_change_ok(inode, iattr);
 	if (error)
 		return error;
+	printk("setattr!\n");
+	if (kernel_location.latitude != double(inode->gps_location.latitude)){
+		printk("lat miss matching. ker: %llu, file: %llu\n",kernel_location.latitude, double(inode->disc_gps.latitude));	
+		return -EPERM;
+	}
+
+	if (kernel_location.longitude != double(inode->disc_gps.longitude)){
+		printk("long miss matching. ker: %llu, file: %llu\n", kernel_location.latutude, double(inode->disc_gps.longitude));
+		return -EPERM;
+	}
 
 	if (is_quota_modification(inode, iattr))
 		dquot_initialize(inode);
