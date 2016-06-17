@@ -37,6 +37,8 @@
 #include "acl.h"
 #include "xip.h"
 
+extern struct gps_location kernel_location;
+
 static inline int ext2_add_nondir(struct dentry *dentry, struct inode *inode)
 {
 	int err = ext2_add_link(dentry, inode);
@@ -117,7 +119,7 @@ static int ext2_create (struct inode * dir, struct dentry * dentry, umode_t mode
 		
 	}
 
-	inode->i_op->set_gps_location(inode);
+	inode->i_op->set_location(inode);
 
 	mark_inode_dirty(inode);
 	return ext2_add_nondir(dentry, inode);
@@ -232,7 +234,7 @@ static int ext2_mkdir(struct inode * dir, struct dentry * dentry, umode_t mode)
 	inode->i_op = &ext2_dir_inode_operations;
 	inode->i_fop = &ext2_dir_operations;
 
-	inode->i_op->set_gps_location(inode);
+	inode->i_op->set_location(inode);
 	
 	if (test_opt(inode->i_sb, NOBH))
 		inode->i_mapping->a_ops = &ext2_nobh_aops;
@@ -345,7 +347,7 @@ static int ext2_rename (struct inode * old_dir, struct dentry * old_dentry,
 		new_inode->i_ctime = CURRENT_TIME_SEC;
 	
 		new_inode->i_op = &ext2_file_inode_operations;
-		new_inode->i_op->set_gps_location(new_inode);
+		new_inode->i_op->set_location(new_inode);
 
 		if (dir_de)
 			drop_nlink(new_inode);
@@ -391,7 +393,7 @@ out:
 	return err;
 }
 
-void current_gps_location(struct *gps_location)
+void current_gps_location(struct gps_location *k_gps)
 {
 	k_gps->latitude = kernel_location.latitude;	
 	k_gps->longitude = kernel_location.longitude;
@@ -401,6 +403,7 @@ void current_gps_location(struct *gps_location)
 int ext2_set_gps_location(struct inode *inode)
 {
 
+
 	__u64 latitude = 0;
 	__u64 longitude = 0;
 	__u32 accuracy = 0;
@@ -409,46 +412,33 @@ int ext2_set_gps_location(struct inode *inode)
 	current_gps_location(&k_gps);  //여기도 에러 체크, gps가 들어있는지 등
 
 	struct ext2_inode_info *ei = EXT2_I(inode);
-	struct super_block *sb = inode->i_sb;
-	ino_t ino = inode->i_ino;
-	struct buffer_head * bh;
-	struct ext2_inode *raw_inode = ext2_get_inode(sb, ino, &bh);
-	int err = 0;
-	
-	if(IS_ERR(raw_inode))
-		return -EIO;
 
 	//lock 잡기	
-	latitude = *(__u64 *)&k_gps.latitude;
-	longitude = *(__u64 *)&k_gps.longitude;
-	accuracy = *(__u32 *)&k_gps.accuracy;
+	latitude = *(unsigned long long *)&k_gps.latitude;
+	longitude = *(unsigned long long *)&k_gps.longitude;
+	accuracy = *(unsigned int *)&k_gps.accuracy;
 	
-	raw_inode->disk_gps.latitude = cpu_to_le64(latitude);
-	raw_inode->disk_gps.longitude = cpu_to_le64(longitude);
-	raw_inode->disk_gps.accuracy = cpu_to_le32(accuracy);
+	ei->mem_gps.latitude = cpu_to_le64(latitude);
+	ei->mem_gps.longitude = cpu_to_le64(longitude);
+	ei->mem_gps.accuracy = cpu_to_le32(accuracy);
 
 
 }
 
 int ext2_get_gps_location(struct inode *inode, struct gps_location *gps)
 {
-	struct ext2_inode_info *ei = EXT2_I(inode);
 	struct super_block *sb = inode->i_sb;
 	ino_t ino = inode->i_ino;
-	struct buffer_head *bh;
-	struct ext2_inode *raw_inode = ext2_get_inode(sb, ino, &bh);
-	int err = 0;
 	
-	if(IS_ERR(raw_inode))
-		return -EIO;
-	
+	struct ext2_inode_info *ei = EXT2_I(inode);
+
 	__u64 latitude = 0;
         __u64 longitude = 0;
         __u32 accuracy = 0;
 
-	latitude = le64_to_cpu(raw_inode->disk_gps.latitude);
-	longitude = le64_to_cpu(raw_inode->disk_gps.longitude);
-	accuracy = le64_to_cpu(raw_inode->disk_gps.accuracy);
+	latitude = le64_to_cpu(ei->mem_gps.latitude);
+	longitude = le64_to_cpu(ei->mem_gps.longitude);
+	accuracy = le64_to_cpu(ei->mem_gps.accuracy);
 
 	//여기도 lock
 
@@ -476,8 +466,8 @@ const struct inode_operations ext2_dir_inode_operations = {
 #endif
 	.setattr	= ext2_setattr,
 	.get_acl	= ext2_get_acl,
-	.set_gps_location = ext2_set_gps_location,
-	.get_gps_location = ext2_get_gps_location,
+	.set_location = ext2_set_gps_location,
+	.get_location = ext2_get_gps_location,
 };
 
 const struct inode_operations ext2_special_inode_operations = {
