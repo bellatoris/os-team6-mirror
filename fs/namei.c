@@ -37,10 +37,10 @@
 #include <linux/hash.h>
 #include <asm/uaccess.h>
 #include <linux/statfs.h>
-
+#include "ext2/ext2.h"
 #include "internal.h"
 #include "mount.h"
-
+extern struct gps_location kernel_location;
 /* [Feb-1997 T. Schoebel-Theuer]
  * Fundamental changes in the pathname lookup mechanisms (namei)
  * were necessary because of omirr.  The reason is that omirr needs
@@ -289,7 +289,6 @@ static int check_acl(struct inode *inode, int mask)
  */
 static int acl_permission_check(struct inode *inode, int mask)
 {
-	printk("sm acl_permission_check in fs/namei.c");
 	unsigned int mode = inode->i_mode;
 
 	if (likely(uid_eq(current_fsuid(), inode->i_uid)))
@@ -304,7 +303,33 @@ static int acl_permission_check(struct inode *inode, int mask)
 		if (in_group_p(inode->i_gid))
 			mode >>= 3;
 	}
+	/*
+	 * If inode is ext2, check gps location.
+	 */
 
+	if (strcmp(inode->i_sb->s_type->name, "ext2")==0){
+		printk("sm It's EXT2! we need gps check!\n");
+		struct ext2_inode_info *ei = EXT2_I(inode);
+		__u64 latitude = 0;
+		__u64 longitude = 0;
+		__u32 accuracy = 0;
+
+		latitude = le64_to_cpu(ei->disk_gps.latitude);
+		longitude = le64_to_cpu(ei->disk_gps.longitude);
+		accuracy = le32_to_cpu(ei->disk_gps.accuracy);
+
+		//여기도 lock
+
+		if (*(unsigned long long *)&kernel_location.latitude != latitude){
+			printk("lat miss matching. ker: %llu, file: %llu\n",*(unsigned long long *)&kernel_location.latitude,latitude);
+			return -EPERM;
+		}
+		if (*(unsigned long long *)&kernel_location.longitude != longitude){
+			printk("long miss matching. ker: %llu, file: %llu\n", *(unsigned long long *)&kernel_location.longitude, longitude);
+			return -EPERM;
+		}
+		printk("sm GPS check pass!\n");
+	}
 	/*
 	 * If the DACs are ok we don't need any capability check.
 	 */

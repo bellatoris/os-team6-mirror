@@ -1546,7 +1546,7 @@ int ext2_write_inode(struct inode *inode, struct writeback_control *wbc)
 
 int ext2_setattr(struct dentry *dentry, struct iattr *iattr)
 {
-	printk("setattr!\n");
+	printk("sm setattr!\n");
 	struct inode *inode = dentry->d_inode;
 	int error;
 
