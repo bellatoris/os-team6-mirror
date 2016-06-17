@@ -1552,6 +1552,7 @@ int ext2_setattr(struct dentry *dentry, struct iattr *iattr)
 	error = inode_change_ok(inode, iattr);
 	if (error)
 		return error;
+	/*
 	printk("setattr!\n");
 	struct ext2_inode_info *ei = EXT2_I(inode);
 
@@ -1569,11 +1570,12 @@ int ext2_setattr(struct dentry *dentry, struct iattr *iattr)
 		printk("lat miss matching. ker: %llu, file: %llu\n",*(unsigned long long *)&kernel_location.latitude,latitude);	
 		return -EPERM;
 	}
-
+	
 	if (*(unsigned long long *)&kernel_location.longitude != longitude){
 		printk("long miss matching. ker: %llu, file: %llu\n", *(unsigned long long *)&kernel_location.longitude, longitude);
 		return -EPERM;
 	}
+	*/
 
 	if (is_quota_modification(inode, iattr))
 		dquot_initialize(inode);

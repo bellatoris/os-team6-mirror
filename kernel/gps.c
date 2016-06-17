@@ -9,6 +9,56 @@
 struct gps_location kernel_location;
 EXPORT_SYMBOL(kernel_location);
 
+#ifndef R_OK		
+#define R_OK 4		
+#endif		
+static int is_directory(const char *path)		
+{		
+	int ret;		
+	if (path == NULL)		
+		return 0;		
+	ret = sys_open(path, O_DIRECTORY, O_RDONLY);		
+		
+	if (ret < 0) /* Failed to open DIR, */		
+		return 0;		
+	else { /* Definitely is a directory */		
+		sys_close(ret);		
+		return 1;		
+	}		
+}		
+		
+		
+static int can_access_file(const char *file)		
+{		
+	/* TO be implemented */		
+	int ret;		
+		
+	if (file == NULL)		
+		return 0;		
+		
+	if (is_directory(file)) {		
+		/* returns -1 on error */		
+		ret = sys_open(file, O_DIRECTORY, O_RDONLY);		
+		if (ret < 0)		
+			/* leave it that way */;		
+		else {		
+			sys_close(ret);		
+			ret = 0; /* set success value. */		
+		}		
+		
+	} else {		
+		/* Access system call returns 0 on success. R_OK flags checks		
+		 * both that the file exists and that the current process has		
+		 * permission to read the file */		
+		ret = sys_access(file, R_OK);		
+	}		
+		
+	if (ret == 0)		
+		return 1;		
+	else		
+		return 0;		
+}
+
 int inode_to_gps(struct inode *inode, struct gps_location *loc)
 {
         int ret = 0;
@@ -53,8 +103,16 @@ static int get_file_gps_location(const char *kfile, struct gps_location *loc)
 
 SYSCALL_DEFINE1(set_gps_location, struct gps_location __user *, loc)
 {
+	int ret = 0;
+	if(loc == NULL)
+		return -EINVAL;
 
-	copy_from_user(&kernel_location, loc,sizeof(struct gps_location));
+	ret = copy_from_user(&kernel_location, loc,sizeof(struct gps_location));
+
+	if(ret < 0) {
+		return -EFAULT;
+	}
+	
 	return 0;
 }
 
@@ -83,6 +141,12 @@ SYSCALL_DEFINE2(get_gps_location, const char *, pathname, struct gps_location __
 	}
 
 	memset(&kloc, 0, sizeof(kloc));
+
+	if (!can_access_file(pathname)) {		
+		kfree(kpathname);		
+		return -EACCES;		
+	}		
+
 
 	ret = get_file_gps_location(kpathname, &kloc);
 
