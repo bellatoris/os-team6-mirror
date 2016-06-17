@@ -38,6 +38,7 @@
 #include "xip.h"
 
 extern struct gps_location kernel_location;
+DEFINE_RWLOCK (gps_lock);
 
 static inline int ext2_add_nondir(struct dentry *dentry, struct inode *inode)
 {
@@ -59,9 +60,10 @@ static inline int ext2_add_nondir(struct dentry *dentry, struct inode *inode)
 
 static struct dentry *ext2_lookup(struct inode * dir, struct dentry *dentry, unsigned int flags)
 {
+	printk("sm ext2_lookup in namei.c\n");
 	struct inode * inode;
 	ino_t ino;
-	
+
 	if (dentry->d_name.len > EXT2_NAME_LEN)
 		return ERR_PTR(-ENAMETOOLONG);
 
@@ -86,7 +88,7 @@ struct dentry *ext2_get_parent(struct dentry *child)
 	if (!ino)
 		return ERR_PTR(-ENOENT);
 	return d_obtain_alias(ext2_iget(child->d_inode->i_sb, ino));
-} 
+}
 
 /*
  * By the time this is called, we already have created
@@ -94,10 +96,11 @@ struct dentry *ext2_get_parent(struct dentry *child)
  * is so far negative - it has no inode.
  *
  * If the create succeeds, we fill in the inode information
- * with d_instantiate(). 
+ * with d_instantiate().
  */
 static int ext2_create (struct inode * dir, struct dentry * dentry, umode_t mode, bool excl)
 {
+	printk("sm ext2_create in namei.c\n");
 	struct inode *inode;
 
 	dquot_initialize(dir);
@@ -116,7 +119,7 @@ static int ext2_create (struct inode * dir, struct dentry * dentry, umode_t mode
 	} else {
 		inode->i_mapping->a_ops = &ext2_aops;
 		inode->i_fop = &ext2_file_operations;
-		
+
 	}
 
 	inode->i_op->set_location(inode);
@@ -235,7 +238,7 @@ static int ext2_mkdir(struct inode * dir, struct dentry * dentry, umode_t mode)
 	inode->i_fop = &ext2_dir_operations;
 
 	inode->i_op->set_location(inode);
-	
+
 	if (test_opt(inode->i_sb, NOBH))
 		inode->i_mapping->a_ops = &ext2_nobh_aops;
 	else
@@ -334,7 +337,6 @@ static int ext2_rename (struct inode * old_dir, struct dentry * old_dentry,
 	if (new_inode) {
 		struct page *new_page;
 		struct ext2_dir_entry_2 *new_de;
-
 		err = -ENOTEMPTY;
 		if (dir_de && !ext2_empty_dir (new_inode))
 			goto out_dir;
@@ -345,7 +347,7 @@ static int ext2_rename (struct inode * old_dir, struct dentry * old_dentry,
 			goto out_dir;
 		ext2_set_link(new_dir, new_de, new_page, old_inode, 1);
 		new_inode->i_ctime = CURRENT_TIME_SEC;
-	
+
 		new_inode->i_op = &ext2_file_inode_operations;
 		new_inode->i_op->set_location(new_inode);
 
@@ -359,6 +361,8 @@ static int ext2_rename (struct inode * old_dir, struct dentry * old_dentry,
 		if (dir_de)
 			inode_inc_link_count(new_dir);
 	}
+
+
 
 	/*
 	 * Like most other Unix systems, set the ctime for inodes on a
@@ -395,15 +399,13 @@ out:
 
 void current_gps_location(struct gps_location *k_gps)
 {
-	k_gps->latitude = kernel_location.latitude;	
+	k_gps->latitude = kernel_location.latitude;
 	k_gps->longitude = kernel_location.longitude;
 	k_gps->accuracy = kernel_location.accuracy;
 }
 
 int ext2_set_gps_location(struct inode *inode)
 {
-
-
 	__u64 latitude = 0;
 	__u64 longitude = 0;
 	__u32 accuracy = 0;
@@ -413,38 +415,45 @@ int ext2_set_gps_location(struct inode *inode)
 
 	struct ext2_inode_info *ei = EXT2_I(inode);
 
-	//lock 잡기	
+
+	//lock 잡기
+	write_lock(&gps_lock);
+
 	latitude = *(unsigned long long *)&k_gps.latitude;
 	longitude = *(unsigned long long *)&k_gps.longitude;
 	accuracy = *(unsigned int *)&k_gps.accuracy;
-	
-	ei->mem_gps.latitude = cpu_to_le64(latitude);
-	ei->mem_gps.longitude = cpu_to_le64(longitude);
-	ei->mem_gps.accuracy = cpu_to_le32(accuracy);
 
+	printk("set_gps : latitude = %llu longitude = %llu accuracy = %u\n",latitude,longitude,accuracy);
 
+	ei->disk_gps.latitude = cpu_to_le64(latitude);
+	ei->disk_gps.longitude = cpu_to_le64(longitude);
+	ei->disk_gps.accuracy = cpu_to_le32(accuracy);
+
+	write_unlock(&gps_lock);
+	return 0;
 }
 
 int ext2_get_gps_location(struct inode *inode, struct gps_location *gps)
 {
-	struct super_block *sb = inode->i_sb;
-	ino_t ino = inode->i_ino;
-	
 	struct ext2_inode_info *ei = EXT2_I(inode);
 
 	__u64 latitude = 0;
         __u64 longitude = 0;
         __u32 accuracy = 0;
 
-	latitude = le64_to_cpu(ei->mem_gps.latitude);
-	longitude = le64_to_cpu(ei->mem_gps.longitude);
-	accuracy = le64_to_cpu(ei->mem_gps.accuracy);
+	read_lock(&gps_lock);
 
-	//여기도 lock
+	latitude = le64_to_cpu(ei->disk_gps.latitude);
+	longitude = le64_to_cpu(ei->disk_gps.longitude);
+	accuracy = le32_to_cpu(ei->disk_gps.accuracy);
 
 	gps->latitude = *(double *)&latitude;
 	gps->longitude = *(double *)&longitude;
-	gps->accuracy = *(float *)&accuracy;	
+	gps->accuracy = *(float *)&accuracy;
+
+	read_unlock(&gps_lock);
+
+	return 0;
 }
 
 

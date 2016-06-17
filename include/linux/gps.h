@@ -5,6 +5,8 @@
 #include <linux/linkage.h>
 #include <linux/uaccess.h>
 
+#define EXT2_FS_GPS "ext2"
+
 struct gps_location {
 	double latitude;
 	double longitude;
