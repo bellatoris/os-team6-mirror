@@ -38,6 +38,7 @@
 #include "xip.h"
 
 extern struct gps_location kernel_location;
+DEFINE_RWLOCK (gps_lock);
 
 static inline int ext2_add_nondir(struct dentry *dentry, struct inode *inode)
 {
@@ -336,7 +337,6 @@ static int ext2_rename (struct inode * old_dir, struct dentry * old_dentry,
 	if (new_inode) {
 		struct page *new_page;
 		struct ext2_dir_entry_2 *new_de;
-
 		err = -ENOTEMPTY;
 		if (dir_de && !ext2_empty_dir (new_inode))
 			goto out_dir;
@@ -361,6 +361,8 @@ static int ext2_rename (struct inode * old_dir, struct dentry * old_dentry,
 		if (dir_de)
 			inode_inc_link_count(new_dir);
 	}
+
+
 
 	/*
 	 * Like most other Unix systems, set the ctime for inodes on a
@@ -413,7 +415,10 @@ int ext2_set_gps_location(struct inode *inode)
 
 	struct ext2_inode_info *ei = EXT2_I(inode);
 
+
 	//lock 잡기
+	write_lock(&gps_lock);
+
 	latitude = *(unsigned long long *)&k_gps.latitude;
 	longitude = *(unsigned long long *)&k_gps.longitude;
 	accuracy = *(unsigned int *)&k_gps.accuracy;
@@ -424,6 +429,7 @@ int ext2_set_gps_location(struct inode *inode)
 	ei->disk_gps.longitude = cpu_to_le64(longitude);
 	ei->disk_gps.accuracy = cpu_to_le32(accuracy);
 
+	write_unlock(&gps_lock);
 	return 0;
 }
 
@@ -435,15 +441,17 @@ int ext2_get_gps_location(struct inode *inode, struct gps_location *gps)
         __u64 longitude = 0;
         __u32 accuracy = 0;
 
+	read_lock(&gps_lock);
+
 	latitude = le64_to_cpu(ei->disk_gps.latitude);
 	longitude = le64_to_cpu(ei->disk_gps.longitude);
 	accuracy = le32_to_cpu(ei->disk_gps.accuracy);
 
-	//여기도 lock
-
 	gps->latitude = *(double *)&latitude;
 	gps->longitude = *(double *)&longitude;
 	gps->accuracy = *(float *)&accuracy;
+
+	read_unlock(&gps_lock);
 
 	return 0;
 }

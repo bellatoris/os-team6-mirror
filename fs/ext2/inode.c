@@ -1554,28 +1554,6 @@ int ext2_setattr(struct dentry *dentry, struct iattr *iattr)
 	if (error)
 		return error;
 
-	struct ext2_inode_info *ei = EXT2_I(inode);
-
-        __u64 latitude = 0;
-        __u64 longitude = 0;
-        __u32 accuracy = 0;
-
-        latitude = le64_to_cpu(ei->disk_gps.latitude);
-        longitude = le64_to_cpu(ei->disk_gps.longitude);
-        accuracy = le32_to_cpu(ei->disk_gps.accuracy);
-
-        //여기도 lock
-
-	if (*(unsigned long long *)&kernel_location.latitude != latitude){
-		printk("lat miss matching. ker: %llu, file: %llu\n",*(unsigned long long *)&kernel_location.latitude,latitude);
-		return -EPERM;
-	}
-
-	if (*(unsigned long long *)&kernel_location.longitude != longitude){
-		printk("long miss matching. ker: %llu, file: %llu\n", *(unsigned long long *)&kernel_location.longitude, longitude);
-		return -EPERM;
-	}
-
 	if (is_quota_modification(inode, iattr))
 		dquot_initialize(inode);
 	if ((iattr->ia_valid & ATTR_UID && !uid_eq(iattr->ia_uid, inode->i_uid)) ||

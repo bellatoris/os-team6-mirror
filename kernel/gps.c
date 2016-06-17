@@ -11,16 +11,16 @@ EXPORT_SYMBOL(kernel_location);
 
 int inode_to_gps(struct inode *inode, struct gps_location *loc)
 {
-        int ret = 0;
-        if (inode == NULL || loc == NULL)
-                return -EINVAL;
+	int ret = 0;
+	if (inode == NULL || loc == NULL)
+	return -EINVAL;
 
-        if (inode->i_op->get_location != NULL)
-                ret = inode->i_op->get_location(inode, loc);
-        else
-                ret = -ENOENT; /* No such GPS-capable file */
+	if (inode->i_op->get_location != NULL)
+	ret = inode->i_op->get_location(inode, loc);
+	else
+	ret = -ENOENT; /* No such GPS-capable file */
 
-        return ret;
+	return ret;
 }
 
 static int get_file_gps_location(const char *kfile, struct gps_location *loc)
@@ -53,8 +53,16 @@ static int get_file_gps_location(const char *kfile, struct gps_location *loc)
 
 SYSCALL_DEFINE1(set_gps_location, struct gps_location __user *, loc)
 {
+	int ret = 0;
+	if(loc == NULL)
+		return -EINVAL;
 
-	copy_from_user(&kernel_location, loc,sizeof(struct gps_location));
+	ret = copy_from_user(&kernel_location, loc,sizeof(struct gps_location));
+
+	if(ret < 0) {
+		return -EFAULT;
+	}
+
 	return 0;
 }
 
