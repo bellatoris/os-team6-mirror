@@ -24,7 +24,63 @@ file/ directory가 생성되거나 변경될 때 미다 구조체에서 gps정�
 file / direcctory의 path를 인자로 받아 해당 path에 저장된 gps 정보를 받아오는 시스템콜을 만든다.   
 
 시스템콜이 inode의 gps구조체에 접근할 때는 inode_operation에 등록된 함수를 이용한다.  
-access control은 시간부족으로 구현하지 못했습니다.ㅜ  
+access control은 시간부족으로 제대로 구현하지 못하였습니다. 
+혹시라도 제대로 동작하지 않으 실 경우 
+ ```c
+ *
+ * This does the basic permission checking
+ */
+static int acl_permission_check(struct inode *inode, int mask)
+{
+	unsigned int mode = inode->i_mode;
+
+	if (likely(uid_eq(current_fsuid(), inode->i_uid)))
+		mode >>= 6;
+	else {
+		if (IS_POSIXACL(inode) && (mode & S_IRWXG)) {
+			int error = check_acl(inode, mask);
+			if (error != -EAGAIN)
+				return error;
+		}
+
+		if (in_group_p(inode->i_gid))
+			mode >>= 3;
+	}
+	/*
+	 * If inode is ext2, check gps location.
+	 */
+	if (strcmp(inode->i_sb->s_type->name, "ext2")==0){
+		printk("sm It's EXT2! we need gps check!\n");
+		struct ext2_inode_info *ei = EXT2_I(inode);
+		__u64 latitude = 0;
+		__u64 longitude = 0;
+		__u32 accuracy = 0;
+
+		latitude = le64_to_cpu(ei->disk_gps.latitude);
+		longitude = le64_to_cpu(ei->disk_gps.longitude);
+		accuracy = le32_to_cpu(ei->disk_gps.accuracy);
+
+		//여기도 lock
+
+		if (*(unsigned long long *)&kernel_location.latitude != latitude){
+			printk("lat miss matching. ker: %llu, file: %llu\n",*(unsigned long long *)&kernel_location.latitude,latitude);
+			return -EACCES;
+		}
+		if (*(unsigned long long *)&kernel_location.longitude != longitude){
+			printk("long miss matching. ker: %llu, file: %llu\n", *(unsigned long long *)&kernel_location.longitude, longitude);
+			return -EACCES;
+		}
+		printk("sm GPS check pass!\n");
+	}
+	/*
+	 * If the DACs are ok we don't need any capability check.
+	 */
+	if ((mask & ~mode & (MAY_READ | MAY_WRITE | MAY_EXEC)) == 0)
+		return 0;
+	return -EACCES;
+}
+```
+fs/namei.c의 위의 함수에서 check gps location하는 부분을 전체 주석 처리해 주시길 바랍니다.
 
 **2.implementation**  
 * gps 구조체  
