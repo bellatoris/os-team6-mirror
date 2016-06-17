@@ -663,11 +663,7 @@ struct ext2_inode_info {
 	__u32	i_dir_acl;
 	__u32	i_dtime;
 
-	struct mem_location{
-		__le64 latitude;
-		__le64 longitude;
-		__le32 accuracy;
-	} mem_gps;
+	struct disk_location disk_gps;
 
 	/*
 	 * i_block_group is the number of the block group which contains
