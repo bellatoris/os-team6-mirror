@@ -1553,13 +1553,25 @@ int ext2_setattr(struct dentry *dentry, struct iattr *iattr)
 	if (error)
 		return error;
 	printk("setattr!\n");
-	if (kernel_location.latitude != double(inode->gps_location.latitude)){
-		printk("lat miss matching. ker: %llu, file: %llu\n",kernel_location.latitude, double(inode->disc_gps.latitude));	
+	struct ext2_inode_info *ei = EXT2_I(inode);
+
+        __u64 latitude = 0;
+        __u64 longitude = 0;
+        __u32 accuracy = 0;
+
+        latitude = le64_to_cpu(ei->disk_gps.latitude);
+        longitude = le64_to_cpu(ei->disk_gps.longitude);
+        accuracy = le32_to_cpu(ei->disk_gps.accuracy);
+
+        //여기도 lock
+
+	if (*(unsigned long long *)&kernel_location.latitude != latitude){
+		printk("lat miss matching. ker: %llu, file: %llu\n",*(unsigned long long *)&kernel_location.latitude,latitude);	
 		return -EPERM;
 	}
 
-	if (kernel_location.longitude != double(inode->disc_gps.longitude)){
-		printk("long miss matching. ker: %llu, file: %llu\n", kernel_location.latutude, double(inode->disc_gps.longitude));
+	if (*(unsigned long long *)&kernel_location.longitude != longitude){
+		printk("long miss matching. ker: %llu, file: %llu\n", *(unsigned long long *)&kernel_location.longitude, longitude);
 		return -EPERM;
 	}
 
