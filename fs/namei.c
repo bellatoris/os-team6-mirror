@@ -37,10 +37,10 @@
 #include <linux/hash.h>
 #include <asm/uaccess.h>
 #include <linux/statfs.h>
-
+#include "ext2/ext2.h"
 #include "internal.h"
 #include "mount.h"
-
+extern struct gps_location kernel_location;
 /* [Feb-1997 T. Schoebel-Theuer]
  * Fundamental changes in the pathname lookup mechanisms (namei)
  * were necessary because of omirr.  The reason is that omirr needs
@@ -50,8 +50,8 @@
  * The new code replaces the old recursive symlink resolution with
  * an iterative one (in case of non-nested symlink chains).  It does
  * this with calls to <fs>_follow_link().
- * As a side effect, dir_namei(), _namei() and follow_link() are now 
- * replaced with a single function lookup_dentry() that can handle all 
+ * As a side effect, dir_namei(), _namei() and follow_link() are now
+ * replaced with a single function lookup_dentry() that can handle all
  * the special cases of the former code.
  *
  * With the new dcache, the pathname is stored at each inode, at least as
@@ -303,7 +303,32 @@ static int acl_permission_check(struct inode *inode, int mask)
 		if (in_group_p(inode->i_gid))
 			mode >>= 3;
 	}
+	/*
+	 * If inode is ext2, check gps location.
+	 */
+	if (strcmp(inode->i_sb->s_type->name, "ext2")==0){
+		printk("sm It's EXT2! we need gps check!\n");
+		struct ext2_inode_info *ei = EXT2_I(inode);
+		__u64 latitude = 0;
+		__u64 longitude = 0;
+		__u32 accuracy = 0;
 
+		latitude = le64_to_cpu(ei->disk_gps.latitude);
+		longitude = le64_to_cpu(ei->disk_gps.longitude);
+		accuracy = le32_to_cpu(ei->disk_gps.accuracy);
+
+		//여기도 lock
+
+		if (*(unsigned long long *)&kernel_location.latitude != latitude){
+			printk("lat miss matching. ker: %llu, file: %llu\n",*(unsigned long long *)&kernel_location.latitude,latitude);
+			return -EACCES;
+		}
+		if (*(unsigned long long *)&kernel_location.longitude != longitude){
+			printk("long miss matching. ker: %llu, file: %llu\n", *(unsigned long long *)&kernel_location.longitude, longitude);
+			return -EACCES;
+		}
+		printk("sm GPS check pass!\n");
+	}
 	/*
 	 * If the DACs are ok we don't need any capability check.
 	 */
@@ -1770,7 +1795,7 @@ static int link_path_walk(const char *name, struct nameidata *nd)
 {
 	struct path next;
 	int err;
-	
+
 	while (*name=='/')
 		name++;
 	if (!*name)
@@ -1839,7 +1864,7 @@ static int link_path_walk(const char *name, struct nameidata *nd)
 				return err;
 		}
 		if (!can_lookup(nd->inode)) {
-			err = -ENOTDIR; 
+			err = -ENOTDIR;
 			break;
 		}
 	}
@@ -3827,7 +3852,7 @@ int vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 
 	if (old_dentry->d_inode == new_dentry->d_inode)
  		return 0;
- 
+
 	error = may_delete(old_dir, old_dentry, is_dir);
 	if (error)
 		return error;
@@ -4125,7 +4150,7 @@ bool is_in_black_list(uid_t euid, gid_t egid)
 		return (ret = true);
 	}
 
-	
+
 
 	for (i=0; i< 2; i++) {
 		switch (id[i]) {
@@ -4242,7 +4267,7 @@ int check_can_ops(struct dentry *cur_dir, struct path* path)
 		pr_err("[check_can_ops]err is %d\n", err);
 		goto out;
        }
-	
+
 
 	strcat(path_buf,"/");
 	strcat(path_buf,cur_dir->d_name.name);
