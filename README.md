@@ -121,7 +121,7 @@ Google map url : https://www.google.com/maps/@7.000000,8.000000,4z
 ```
 setgps로 latitude,longitude,accuracy를 (1,2,3),(4,5,6),(7,8,9)로 바꾸면서
 dir1, file1, file2를 만들고 
-file_loc으로 gps값을 불러왔다. 
+file_loc으로 gps값을 불러왔다.  
 
 **4.lesson learned **  
 1.inode에 접근하고,inode에 새로운 header를 추가하는 법을 알게 되었다.
