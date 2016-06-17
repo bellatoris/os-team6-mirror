@@ -104,3 +104,6 @@ srcfiles.txt
 system_kernel.tar
 arch/arm/boot/dzImage
 test/Makefile
+
+e2fsprogs-1.43.1/*
+proj4.fs
